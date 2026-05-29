@@ -1,44 +1,15 @@
 {
-  "updated_at": "2026-05-29 05:59 UTC",
-  "universe_size": 139,
+  "updated_at": "2026-05-29 22:47 UTC",
+  "universe_size": 137,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "DELL",
-      "regular_close": 317.05,
-      "ext_price": 441.0,
-      "ah_pct": 39.09,
-      "name": "Dell Technologies Inc."
-    },
-    {
       "symbol": "NOW",
-      "regular_close": 108.73,
-      "ext_price": 113.03,
-      "ah_pct": 3.95,
+      "regular_close": 124.37,
+      "ext_price": 128.1,
+      "ah_pct": 3.0,
       "name": "ServiceNow, Inc."
-    },
-    {
-      "symbol": "ORCL",
-      "regular_close": 203.7,
-      "ext_price": 210.79,
-      "ah_pct": 3.48,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 335.27,
-      "ext_price": 342.77,
-      "ah_pct": 2.24,
-      "name": "Arm Holdings plc"
     }
   ],
-  "drops": [
-    {
-      "symbol": "ADSK",
-      "regular_close": 240.95,
-      "ext_price": 225.0,
-      "ah_pct": -6.62,
-      "name": "Autodesk, Inc."
-    }
-  ]
+  "drops": []
 }
