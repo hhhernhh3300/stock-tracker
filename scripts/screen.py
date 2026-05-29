@@ -40,8 +40,15 @@ VOL_SURGE_MULT = 2.0
 RS_TOP_N = 25
 BREAKOUT_MIN_MONTH_PCT = 0.0
 TOP_PICKS_N = 10
+SETUP_TOP_N = 10
 AH_MOVE_THRESHOLD_PCT = 2.0  # show after-hours movers >= 2% (either direction)
 BENCH = "SPY"
+
+# Setup Score blend weights — sum to 1.0
+W_TECH = 0.55
+W_FUND = 0.35
+W_AH = 0.10
+EARNINGS_RISK_WINDOW_DAYS = 7  # warn / penalize if earnings inside this window
 
 
 def load_universe() -> list[str]:
@@ -75,6 +82,117 @@ def pct_change(a: float, b: float) -> float | None:
     if a is None or b is None or b == 0 or (isinstance(a, float) and math.isnan(a)) or (isinstance(b, float) and math.isnan(b)):
         return None
     return (a - b) / b * 100.0
+
+
+# -------------- FUNDAMENTALS --------------
+
+def fetch_fundamentals(symbol: str) -> dict | None:
+    """Pull Yahoo fundamentals via yfinance.info. Returns None on failure."""
+    try:
+        info = yf.Ticker(symbol).info or {}
+    except Exception:
+        return None
+
+    def _num(key):
+        v = info.get(key)
+        if v is None:
+            return None
+        try:
+            v = float(v)
+            if math.isnan(v) or math.isinf(v):
+                return None
+            return v
+        except (TypeError, ValueError):
+            return None
+
+    # Earnings date — yfinance returns a list of upcoming earnings timestamps
+    next_earn_iso = None
+    days_to_earn = None
+    earn = info.get("earningsDate") or info.get("earningsTimestamp")
+    try:
+        if isinstance(earn, (list, tuple)) and earn:
+            ts = earn[0]
+            if hasattr(ts, "timestamp"):
+                next_earn = datetime.fromtimestamp(ts.timestamp(), tz=timezone.utc)
+            else:
+                next_earn = datetime.fromtimestamp(float(ts), tz=timezone.utc)
+            next_earn_iso = next_earn.strftime("%Y-%m-%d")
+            days_to_earn = (next_earn.date() - datetime.now(timezone.utc).date()).days
+    except Exception:
+        pass
+
+    return {
+        "trailing_pe": _num("trailingPE"),
+        "forward_pe": _num("forwardPE"),
+        "peg": _num("pegRatio") or _num("trailingPegRatio"),
+        "rev_growth": _num("revenueGrowth"),      # YoY, fraction (e.g., 0.21 = +21%)
+        "eps_growth": _num("earningsGrowth"),     # YoY, fraction
+        "profit_margin": _num("profitMargins"),
+        "operating_margin": _num("operatingMargins"),
+        "roe": _num("returnOnEquity"),
+        "debt_to_equity": _num("debtToEquity"),
+        "next_earnings": next_earn_iso,
+        "days_to_earnings": days_to_earn,
+        "market_cap": _num("marketCap"),
+    }
+
+
+def score_fundamentals(f: dict) -> tuple[float | None, dict]:
+    """Return (composite 0-100, sub-scores dict). None if insufficient data."""
+    if not f:
+        return None, {}
+    subs = {}
+    # Revenue growth: 20% YoY = 100, 0% = 0, -10% = 0
+    if f.get("rev_growth") is not None:
+        subs["rev_growth"] = max(0.0, min(100.0, f["rev_growth"] * 500.0))
+    # EPS growth: 40% YoY = 100, capped
+    if f.get("eps_growth") is not None:
+        subs["eps_growth"] = max(0.0, min(100.0, f["eps_growth"] * 250.0))
+    # Profit margin: 20% = 100
+    if f.get("profit_margin") is not None:
+        subs["margin"] = max(0.0, min(100.0, f["profit_margin"] * 500.0))
+    # PEG: <1 great (=100), 2 = 0, missing = neutral skip
+    peg = f.get("peg")
+    if peg is not None and peg > 0:
+        subs["peg"] = max(0.0, min(100.0, (2.0 - peg) * 100.0))
+    # Debt/Equity (D/E is in % per yfinance, e.g., 180 = 1.8x): 0 = 100, 300 = 0
+    de = f.get("debt_to_equity")
+    if de is not None:
+        subs["balance_sheet"] = max(0.0, min(100.0, 100.0 - de / 3.0))
+
+    if not subs:
+        return None, {}
+    composite = round(sum(subs.values()) / len(subs), 1)
+    return composite, {k: round(v, 1) for k, v in subs.items()}
+
+
+def _fund_signals(subs: dict) -> list[str]:
+    out = []
+    if subs.get("rev_growth", 0) >= 80: out.append("strong-revenue-growth")
+    if subs.get("eps_growth", 0) >= 80: out.append("strong-earnings-growth")
+    if subs.get("margin", 0) >= 80: out.append("high-margin")
+    if subs.get("peg", 0) >= 70: out.append("reasonable-valuation")
+    if subs.get("balance_sheet", 0) >= 80: out.append("strong-balance-sheet")
+    return out
+
+
+def load_after_hours_data() -> dict[str, dict]:
+    """Read data/after_hours.json if present. Returns dict symbol -> AH row."""
+    if not AFTER_OUT.exists():
+        return {}
+    try:
+        ah = json.loads(AFTER_OUT.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for r in ah.get("surges", []) + ah.get("drops", []):
+        out[r["symbol"]] = {
+            "ah_pct": r.get("ah_pct"),
+            "ext_price": r.get("ext_price"),
+            "regular_close": r.get("regular_close"),
+            "updated_at": ah.get("updated_at"),
+        }
+    return out
 
 
 # -------------- DAILY MODE --------------
@@ -218,16 +336,79 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     top_picks_rows.sort(key=lambda r: r["score"], reverse=True)
     top_picks = top_picks_rows[:TOP_PICKS_N]
 
+    # Tomorrow's Setups: enrich the top-20 tech-composite candidates with
+    # fundamentals and after-hours confirmation, then re-rank.
+    ah_data = load_after_hours_data()
+    setup_pool = top_picks_rows[:20]  # widen pool before re-ranking
+    print(f"[daily] Fetching fundamentals for {len(setup_pool)} setup candidates…", flush=True)
+    tomorrow_setups = []
+    for r in setup_pool:
+        sym = r["symbol"]
+        fund = fetch_fundamentals(sym)
+        time.sleep(0.1)
+        fund_score, fund_subs = score_fundamentals(fund) if fund else (None, {})
+        ah = ah_data.get(sym)
+        ah_pct = ah["ah_pct"] if ah else None
+
+        # AH boost: +AH_pct mapped to 0-100 via tanh-ish clamp. 0 at AH=0, ~50 at +5%, ~100 at +15%.
+        if ah_pct is None:
+            ah_boost = 50.0  # neutral if no AH data
+        else:
+            ah_boost = max(0.0, min(100.0, 50.0 + ah_pct * 4.0))
+
+        # Weighted setup score; if fundamentals missing, redistribute weight to tech.
+        if fund_score is None:
+            setup_score = W_TECH / (W_TECH + W_AH) * r["score"] + W_AH / (W_TECH + W_AH) * ah_boost
+            blend = "tech+ah only (no fund data)"
+        else:
+            setup_score = W_TECH * r["score"] + W_FUND * fund_score + W_AH * ah_boost
+            blend = "tech+fund+ah"
+        setup_score = round(setup_score, 1)
+
+        # Earnings risk
+        warnings = []
+        dte = fund.get("days_to_earnings") if fund else None
+        if dte is not None and 0 <= dte <= EARNINGS_RISK_WINDOW_DAYS:
+            warnings.append(f"earnings-in-{dte}d")
+            setup_score = round(setup_score - 10, 1)  # binary-event penalty
+
+        sigs = list(r["signals"])
+        if fund:
+            sigs.extend(_fund_signals(fund_subs))
+        if ah_pct is not None and ah_pct >= 2:
+            sigs.append("ah-surge")
+        elif ah_pct is not None and ah_pct <= -2:
+            sigs.append("ah-drop")
+
+        tomorrow_setups.append({
+            "symbol": sym,
+            "price": r["price"],
+            "day_pct": r["day_pct"],
+            "month_pct": r["month_pct"],
+            "rs_vs_spy": r["rs_vs_spy"],
+            "tech_score": r["score"],
+            "fund_score": fund_score,
+            "ah_boost": round(ah_boost, 1),
+            "setup_score": setup_score,
+            "signals": sigs,
+            "warnings": warnings,
+            "blend": blend,
+            "fundamentals": fund,
+            "after_hours": ah,
+        })
+    tomorrow_setups.sort(key=lambda r: r["setup_score"], reverse=True)
+    tomorrow_setups = tomorrow_setups[:SETUP_TOP_N]
+
     # Name lookups only for displayed tickers
     display_syms = set()
-    for r in breakouts + vol_surges + top_rs + top_picks:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups:
         display_syms.add(r["symbol"])
     print(f"[daily] Looking up names for {len(display_syms)} displayed tickers…", flush=True)
     name_cache: dict[str, str] = {}
     for sym in display_syms:
         get_name_cached(sym, name_cache)
         time.sleep(0.05)
-    for r in breakouts + vol_surges + top_rs + top_picks:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups:
         r["name"] = name_cache.get(r["symbol"], "")
 
     return {
@@ -238,8 +419,10 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
             "near_high_pct": NEAR_HIGH_PCT,
             "vol_surge_mult": VOL_SURGE_MULT,
             "breakout_min_month_pct": BREAKOUT_MIN_MONTH_PCT,
-            "top_picks_filter": "positive 1M & 3M returns",
+            "setup_blend_weights": {"tech": W_TECH, "fund": W_FUND, "ah": W_AH},
+            "earnings_risk_window_days": EARNINGS_RISK_WINDOW_DAYS,
         },
+        "tomorrow_setups": tomorrow_setups,
         "top_picks": top_picks,
         "breakouts": breakouts,
         "volume_surges": vol_surges,
@@ -336,6 +519,7 @@ def main() -> int:
         DAILY_OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
         print(
             f"Wrote {DAILY_OUT} — "
+            f"{len(result['tomorrow_setups'])} tomorrow setups, "
             f"{len(result['top_picks'])} top picks, "
             f"{len(result['breakouts'])} breakouts, "
             f"{len(result['volume_surges'])} vol surges, "
