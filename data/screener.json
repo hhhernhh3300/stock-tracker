@@ -1,12 +1,165 @@
 {
-  "updated_at": "2026-05-29 05:44 UTC",
+  "updated_at": "2026-05-29 05:57 UTC",
   "universe_size": 137,
   "spy_3m_pct": 10.3,
   "thresholds": {
     "near_high_pct": 2.0,
     "vol_surge_mult": 2.0,
-    "breakout_min_month_pct": 0.0
+    "breakout_min_month_pct": 0.0,
+    "top_picks_filter": "positive 1M & 3M returns"
   },
+  "top_picks": [
+    {
+      "symbol": "BTDR",
+      "price": 18.38,
+      "day_pct": 18.28,
+      "month_pct": 62.65,
+      "rs_vs_spy": 128.4,
+      "from_high_pct": -29.03,
+      "vol_ratio": 2.53,
+      "score": 91.7,
+      "signals": [
+        "1m-momentum",
+        "near-52w-high",
+        "volume-surge",
+        "rs-leader"
+      ],
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "SNOW",
+      "price": 239.2,
+      "day_pct": 36.48,
+      "month_pct": 67.79,
+      "rs_vs_spy": 31.73,
+      "from_high_pct": -13.69,
+      "vol_ratio": 4.87,
+      "score": 86.1,
+      "signals": [
+        "1m-momentum",
+        "near-52w-high",
+        "volume-surge"
+      ],
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "ORCL",
+      "price": 203.7,
+      "day_pct": 6.67,
+      "month_pct": 22.74,
+      "rs_vs_spy": 30.28,
+      "from_high_pct": -37.47,
+      "vol_ratio": 1.25,
+      "score": 77.3,
+      "signals": [
+        "near-52w-high",
+        "volume-surge"
+      ],
+      "name": "Oracle Corporation"
+    },
+    {
+      "symbol": "MRVL",
+      "price": 204.83,
+      "day_pct": 3.09,
+      "month_pct": 33.67,
+      "rs_vs_spy": 140.56,
+      "from_high_pct": -1.65,
+      "vol_ratio": 2.06,
+      "score": 75.0,
+      "signals": [
+        "volume-surge",
+        "rs-leader"
+      ],
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "ARM",
+      "price": 335.27,
+      "day_pct": 10.76,
+      "month_pct": 68.77,
+      "rs_vs_spy": 152.76,
+      "from_high_pct": 0.0,
+      "vol_ratio": 1.22,
+      "score": 68.1,
+      "signals": [
+        "1m-momentum",
+        "rs-leader"
+      ],
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "DELL",
+      "price": 317.05,
+      "day_pct": 3.84,
+      "month_pct": 53.96,
+      "rs_vs_spy": 104.47,
+      "from_high_pct": 0.0,
+      "vol_ratio": 3.48,
+      "score": 68.1,
+      "signals": [
+        "1m-momentum",
+        "volume-surge",
+        "rs-leader"
+      ],
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "FTNT",
+      "price": 129.7,
+      "day_pct": 1.38,
+      "month_pct": 51.31,
+      "rs_vs_spy": 53.81,
+      "from_high_pct": -3.18,
+      "vol_ratio": 0.91,
+      "score": 67.1,
+      "signals": [],
+      "name": "Fortinet, Inc."
+    },
+    {
+      "symbol": "MU",
+      "price": 923.52,
+      "day_pct": -0.53,
+      "month_pct": 83.13,
+      "rs_vs_spy": 113.75,
+      "from_high_pct": -0.53,
+      "vol_ratio": 0.91,
+      "score": 66.2,
+      "signals": [
+        "1m-momentum",
+        "rs-leader"
+      ],
+      "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "INTC",
+      "price": 120.89,
+      "day_pct": -0.72,
+      "month_pct": 43.03,
+      "rs_vs_spy": 154.75,
+      "from_high_pct": -6.61,
+      "vol_ratio": 0.66,
+      "score": 65.7,
+      "signals": [
+        "rs-leader"
+      ],
+      "name": "Intel Corporation"
+    },
+    {
+      "symbol": "INOD",
+      "price": 99.35,
+      "day_pct": 11.63,
+      "month_pct": 137.23,
+      "rs_vs_spy": 114.62,
+      "from_high_pct": -4.31,
+      "vol_ratio": 0.45,
+      "score": 64.4,
+      "signals": [
+        "1m-momentum",
+        "rs-leader"
+      ],
+      "name": "Innodata Inc."
+    }
+  ],
   "breakouts": [
     {
       "symbol": "AAPL",
