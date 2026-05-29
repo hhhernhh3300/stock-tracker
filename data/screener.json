@@ -1,0 +1,14 @@
+{
+  "updated_at": null,
+  "universe_size": 0,
+  "spy_3m_pct": null,
+  "thresholds": {
+    "near_high_pct": 2.0,
+    "vol_surge_mult": 2.0,
+    "breakout_min_month_pct": 0.0
+  },
+  "breakouts": [],
+  "volume_surges": [],
+  "top_relative_strength": [],
+  "_note": "Placeholder — replaced on first workflow run."
+}

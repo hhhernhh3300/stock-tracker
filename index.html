@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Tracker — Daily Breakout Screener</title>
+<style>
+:root{--fg:#222;--muted:#888;--line:#eee;--bg:#fff;--card:#fafaf7;--accent:#185FA5;--green:#3B6D11;--red:#A32D2D;--amber:#854F0B;}
+*{box-sizing:border-box;}
+body{font-family:system-ui,-apple-system,sans-serif;max-width:1100px;margin:0 auto;padding:1rem 1.25rem;color:var(--fg);background:var(--bg);line-height:1.45;}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:0.5px solid var(--line);padding-bottom:12px;margin-bottom:18px;}
+h1{font-size:22px;font-weight:600;margin:0;}
+.sub{font-size:12px;color:var(--muted);margin:2px 0 0;}
+.disclaimer{background:#FAEEDA;color:#854F0B;font-size:12px;padding:10px 14px;border-radius:8px;margin-bottom:18px;line-height:1.5;}
+.tabs{display:flex;gap:4px;border-bottom:0.5px solid var(--line);margin-bottom:14px;flex-wrap:wrap;}
+.tab{padding:8px 14px;font-size:13px;font-weight:500;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+.tab.active{color:var(--fg);border-bottom-color:var(--accent);}
+.section{display:none;}
+.section.active{display:block;}
+.section-desc{font-size:12px;color:var(--muted);margin:0 0 12px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:8px 10px;text-align:right;border-bottom:0.5px solid var(--line);}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left;}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+tr:hover{background:var(--card);}
+.ticker{font-weight:600;}
+.name{color:var(--muted);font-size:12px;}
+.green{color:var(--green);font-weight:500;}
+.red{color:var(--red);font-weight:500;}
+.muted{color:var(--muted);}
+.bar{display:inline-block;background:#f0ede6;border-radius:3px;height:6px;width:70px;vertical-align:middle;overflow:hidden;margin-left:6px;}
+.bf{height:100%;background:var(--accent);}
+.meta{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted);}
+.meta b{color:var(--fg);font-weight:500;}
+footer{font-size:11px;color:var(--muted);margin-top:30px;padding-top:14px;border-top:0.5px solid var(--line);}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:13px;}
+.loading{padding:30px;text-align:center;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Daily Breakout Screener</h1>
+    <p class="sub">Rules-based candidates for further research. Refreshed each weekday morning by GitHub Actions.</p>
+  </div>
+  <div style="text-align:right;">
+    <div class="sub" id="updated">—</div>
+    <div class="sub"><a href="https://github.com/hhhernhh3300/stock-tracker">source on github</a></div>
+  </div>
+</header>
+
+<div class="disclaimer">
+  <b>This is not a prediction tool.</b> It surfaces stocks that match well-known technical patterns (52-week-high breakouts, volume surges, top relative strength). These patterns sometimes precede further upside — and often don't. Use as a starting list for your own research. Not financial advice.
+</div>
+
+<div class="meta" id="metaBar"></div>
+
+<div class="tabs">
+  <button class="tab active" data-section="breakouts">52-Week High Breakouts</button>
+  <button class="tab" data-section="volume">Volume Surge</button>
+  <button class="tab" data-section="rs">Top Relative Strength</button>
+</div>
+
+<section class="section active" id="breakouts">
+  <p class="section-desc">Stocks within 2% of their 52-week high, with positive trend. The classic "buy strength" setup — when it works, it often runs.</p>
+  <div id="breakoutsBody" class="loading">Loading…</div>
+</section>
+
+<section class="section" id="volume">
+  <p class="section-desc">Today's volume is at least 2× the 20-day average. Often signals institutional accumulation or news-driven interest.</p>
+  <div id="volumeBody" class="loading">Loading…</div>
+</section>
+
+<section class="section" id="rs">
+  <p class="section-desc">Best 3-month return vs SPY. Relative-strength leaders historically tend to keep leading in the near term — until the regime changes.</p>
+  <div id="rsBody" class="loading">Loading…</div>
+</section>
+
+<footer>
+  Universe: <span id="universeCount">—</span> tickers from S&amp;P 100 + Nasdaq 100 union.
+  Data: Yahoo Finance via <code>yfinance</code>, refreshed weekday mornings ~11:00 UTC.
+  Built with vanilla JS + a GitHub Actions cron. Source: <a href="https://github.com/hhhernhh3300/stock-tracker">github.com/hhhernhh3300/stock-tracker</a>
+</footer>
+
+<script>
+const TABS = document.querySelectorAll(".tab");
+TABS.forEach(t => t.addEventListener("click", () => {
+  TABS.forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById(t.dataset.section).classList.add("active");
+}));
+
+function fmtPct(v, signed=true){
+  if (v == null || isNaN(v)) return '<span class="muted">—</span>';
+  const cls = v >= 0 ? "green" : "red";
+  const sign = signed ? (v >= 0 ? "+" : "") : "";
+  return `<span class="${cls}">${sign}${v.toFixed(2)}%</span>`;
+}
+function fmtPrice(v){
+  if (v == null) return '<span class="muted">—</span>';
+  return "$" + v.toFixed(2);
+}
+function fmtNum(v){
+  if (v == null) return '<span class="muted">—</span>';
+  if (v >= 1e9) return (v/1e9).toFixed(1) + "B";
+  if (v >= 1e6) return (v/1e6).toFixed(1) + "M";
+  if (v >= 1e3) return (v/1e3).toFixed(1) + "K";
+  return v.toFixed(0);
+}
+
+function renderBreakouts(rows){
+  const el = document.getElementById("breakoutsBody");
+  if (!rows || !rows.length){ el.innerHTML = '<div class="empty">No breakout candidates today.</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>Ticker</th><th>Name</th><th>Price</th><th>Day %</th><th>From 52W High</th><th>1M %</th>
+  </tr></thead><tbody>${rows.map(r => `
+    <tr>
+      <td><span class="ticker">${r.symbol}</span></td>
+      <td class="name">${r.name || ""}</td>
+      <td>${fmtPrice(r.price)}</td>
+      <td>${fmtPct(r.day_pct)}</td>
+      <td>${fmtPct(r.from_high_pct, false)}</td>
+      <td>${fmtPct(r.month_pct)}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+function renderVolume(rows){
+  const el = document.getElementById("volumeBody");
+  if (!rows || !rows.length){ el.innerHTML = '<div class="empty">No volume surges today.</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>Ticker</th><th>Name</th><th>Price</th><th>Day %</th><th>Vol / 20d Avg</th><th>Today Vol</th>
+  </tr></thead><tbody>${rows.map(r => `
+    <tr>
+      <td><span class="ticker">${r.symbol}</span></td>
+      <td class="name">${r.name || ""}</td>
+      <td>${fmtPrice(r.price)}</td>
+      <td>${fmtPct(r.day_pct)}</td>
+      <td><b>${r.vol_ratio.toFixed(1)}×</b></td>
+      <td>${fmtNum(r.volume)}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+function renderRS(rows){
+  const el = document.getElementById("rsBody");
+  if (!rows || !rows.length){ el.innerHTML = '<div class="empty">No data.</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>Rank</th><th>Ticker</th><th>Name</th><th>Price</th><th>3M %</th><th>vs SPY</th>
+  </tr></thead><tbody>${rows.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="ticker">${r.symbol}</span></td>
+      <td class="name">${r.name || ""}</td>
+      <td>${fmtPrice(r.price)}</td>
+      <td>${fmtPct(r.three_month_pct)}</td>
+      <td>${fmtPct(r.rs_vs_spy)}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+async function load(){
+  try {
+    const r = await fetch("data/screener.json?_=" + Date.now());
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    document.getElementById("updated").innerHTML = "Updated: <b>" + (data.updated_at || "—") + "</b>";
+    document.getElementById("universeCount").textContent = data.universe_size ?? "—";
+    document.getElementById("metaBar").innerHTML = `
+      <span>Universe scanned: <b>${data.universe_size}</b></span>
+      <span>Breakouts: <b>${data.breakouts.length}</b></span>
+      <span>Volume surges: <b>${data.volume_surges.length}</b></span>
+      <span>SPY 3M: <b class="${(data.spy_3m_pct||0)>=0?'green':'red'}">${(data.spy_3m_pct||0).toFixed(2)}%</b></span>
+    `;
+    renderBreakouts(data.breakouts);
+    renderVolume(data.volume_surges);
+    renderRS(data.top_relative_strength);
+  } catch (e) {
+    const msg = '<div class="empty">No data yet — the screener runs each weekday at ~11:00 UTC. First run pending.<br><span style="font-size:11px;">' + e.message + '</span></div>';
+    document.getElementById("breakoutsBody").innerHTML = msg;
+    document.getElementById("volumeBody").innerHTML = msg;
+    document.getElementById("rsBody").innerHTML = msg;
+  }
+}
+load();
+</script>
+</body>
+</html>
