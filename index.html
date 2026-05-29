@@ -42,6 +42,9 @@ a{color:var(--accent);text-decoration:none;}
 a:hover{text-decoration:underline;}
 .empty{padding:30px;text-align:center;color:var(--muted);font-size:13px;}
 .loading{padding:30px;text-align:center;color:var(--muted);font-size:13px;}
+.chip{display:inline-block;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--card);color:var(--fg);border:0.5px solid var(--line);margin-right:3px;margin-bottom:2px;font-family:"Poppins",Arial,sans-serif;}
+.ah-h{font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--fg);}
+.ah-h:first-child{margin-top:0;}
 </style>
 </head>
 <body>
@@ -64,12 +67,24 @@ a:hover{text-decoration:underline;}
 <div class="meta" id="metaBar"></div>
 
 <div class="tabs">
-  <button class="tab active" data-section="breakouts">52-Week High Breakouts</button>
+  <button class="tab active" data-section="picks">Today's Top Picks</button>
+  <button class="tab" data-section="afterhours">After-Hours Movers</button>
+  <button class="tab" data-section="breakouts">52-Week High Breakouts</button>
   <button class="tab" data-section="volume">Volume Surge</button>
   <button class="tab" data-section="rs">Top Relative Strength</button>
 </div>
 
-<section class="section active" id="breakouts">
+<section class="section active" id="picks">
+  <p class="section-desc"><b>Composite ranking.</b> Each stock is scored 0–100 on four signals (1M momentum, distance from 52-week high, volume surge, relative strength vs SPY), then averaged. Top 10 names firing strongly across multiple signals — a deeper signal than any one indicator. Filter: positive 1M & 3M returns. <i>Still rules-based, not predictive.</i></p>
+  <div id="picksBody" class="loading">Loading…</div>
+</section>
+
+<section class="section" id="afterhours">
+  <p class="section-desc">Post-market moves of <b>2% or more</b>, captured 1.5h into extended trading (5:30pm ET). After-hours moves often reflect earnings surprises, guidance changes, or news — frequently leak into the next session's open. Refreshed every weekday at 21:30 UTC.</p>
+  <div id="afterhoursBody" class="loading">Loading…</div>
+</section>
+
+<section class="section" id="breakouts">
   <p class="section-desc">Stocks within 2% of their 52-week high, with positive trend. The classic "buy strength" setup — when it works, it often runs.</p>
   <div id="breakoutsBody" class="loading">Loading…</div>
 </section>
@@ -115,6 +130,54 @@ function fmtNum(v){
   if (v >= 1e6) return (v/1e6).toFixed(1) + "M";
   if (v >= 1e3) return (v/1e3).toFixed(1) + "K";
   return v.toFixed(0);
+}
+
+function renderPicks(rows){
+  const el = document.getElementById("picksBody");
+  if (!rows || !rows.length){ el.innerHTML = '<div class="empty">No top picks today (waiting on first daily run).</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>#</th><th>Ticker</th><th>Name</th><th>Score</th><th>Signals</th><th>Price</th><th>Day %</th><th>1M %</th><th>vs SPY</th>
+  </tr></thead><tbody>${rows.map((r,i) => `
+    <tr>
+      <td><span class="muted">${i+1}</span></td>
+      <td><span class="ticker">${r.symbol}</span></td>
+      <td class="name">${r.name || ""}</td>
+      <td><b>${(r.score||0).toFixed(0)}</b> <span class="bar"><span class="bf" style="width:${Math.min((r.score||0)*0.7,70)}px;"></span></span></td>
+      <td>${(r.signals||[]).map(s => `<span class="chip">${s}</span>`).join("")}</td>
+      <td>${fmtPrice(r.price)}</td>
+      <td>${fmtPct(r.day_pct)}</td>
+      <td>${fmtPct(r.month_pct)}</td>
+      <td>${fmtPct(r.rs_vs_spy)}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+function renderAfterHours(data){
+  const el = document.getElementById("afterhoursBody");
+  const surges = data.surges || [];
+  const drops = data.drops || [];
+  if (!data.updated_at){
+    el.innerHTML = '<div class="empty">No after-hours data yet — first scan fires today at 21:30 UTC.</div>';
+    return;
+  }
+  if (!surges.length && !drops.length){
+    el.innerHTML = `<div class="empty">No after-hours moves ≥ ${data.threshold_pct}% in either direction.<br><span style="font-size:11px;">Last scan: ${data.updated_at}</span></div>`;
+    return;
+  }
+  function tbl(rows, title){
+    if (!rows.length) return "";
+    return `<h3 class="ah-h">${title}</h3>
+    <table><thead><tr>
+      <th>Ticker</th><th>Name</th><th>Reg Close</th><th>AH Price</th><th>AH %</th>
+    </tr></thead><tbody>${rows.map(r => `
+      <tr>
+        <td><span class="ticker">${r.symbol}</span></td>
+        <td class="name">${r.name || ""}</td>
+        <td>${fmtPrice(r.regular_close)}</td>
+        <td>${fmtPrice(r.ext_price)}</td>
+        <td>${fmtPct(r.ah_pct)}</td>
+      </tr>`).join("")}</tbody></table>`;
+  }
+  el.innerHTML = tbl(surges, `↑ Surges (${surges.length})`) + tbl(drops, `↓ Drops (${drops.length})`);
 }
 
 function renderBreakouts(rows){
@@ -165,30 +228,47 @@ function renderRS(rows){
     </tr>`).join("")}</tbody></table>`;
 }
 
-async function load(){
+async function loadDaily(){
   try {
     const r = await fetch("data/screener.json?_=" + Date.now());
     if (!r.ok) throw new Error("HTTP " + r.status);
     const data = await r.json();
-    document.getElementById("updated").innerHTML = "Updated: <b>" + (data.updated_at || "—") + "</b>";
+    document.getElementById("updated").innerHTML = "Daily: <b>" + (data.updated_at || "—") + "</b>";
     document.getElementById("universeCount").textContent = data.universe_size ?? "—";
     document.getElementById("metaBar").innerHTML = `
       <span>Universe scanned: <b>${data.universe_size}</b></span>
+      <span>Top picks: <b>${(data.top_picks||[]).length}</b></span>
       <span>Breakouts: <b>${data.breakouts.length}</b></span>
       <span>Volume surges: <b>${data.volume_surges.length}</b></span>
       <span>SPY 3M: <b class="${(data.spy_3m_pct||0)>=0?'green':'red'}">${(data.spy_3m_pct||0).toFixed(2)}%</b></span>
     `;
+    renderPicks(data.top_picks || []);
     renderBreakouts(data.breakouts);
     renderVolume(data.volume_surges);
     renderRS(data.top_relative_strength);
   } catch (e) {
-    const msg = '<div class="empty">No data yet — the screener runs each weekday at ~11:00 UTC. First run pending.<br><span style="font-size:11px;">' + e.message + '</span></div>';
-    document.getElementById("breakoutsBody").innerHTML = msg;
-    document.getElementById("volumeBody").innerHTML = msg;
-    document.getElementById("rsBody").innerHTML = msg;
+    const msg = '<div class="empty">No data yet — the daily screener runs weekdays ~11:00 UTC.<br><span style="font-size:11px;">' + e.message + '</span></div>';
+    ["picksBody","breakoutsBody","volumeBody","rsBody"].forEach(id => document.getElementById(id).innerHTML = msg);
   }
 }
-load();
+
+async function loadAfterHours(){
+  try {
+    const r = await fetch("data/after_hours.json?_=" + Date.now());
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    renderAfterHours(data);
+    if (data.updated_at){
+      const existing = document.getElementById("updated").innerHTML;
+      document.getElementById("updated").innerHTML = existing + "<br>After-hours: <b>" + data.updated_at + "</b>";
+    }
+  } catch (e) {
+    document.getElementById("afterhoursBody").innerHTML = '<div class="empty">After-hours data not loaded.<br><span style="font-size:11px;">' + e.message + '</span></div>';
+  }
+}
+
+loadDaily();
+loadAfterHours();
 </script>
 </body>
 </html>

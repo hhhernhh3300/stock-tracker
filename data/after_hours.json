@@ -1,0 +1,8 @@
+{
+  "updated_at": null,
+  "universe_size": 0,
+  "threshold_pct": 2.0,
+  "surges": [],
+  "drops": [],
+  "_note": "Placeholder — populated on first after-hours workflow run."
+}
