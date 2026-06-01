@@ -60,6 +60,15 @@ SECTOR_ETFS = {
     "XLRE": "Real Estate", "XLU": "Utilities",
 }
 
+# Industry / thematic ETFs -> label, for a finer "industries & themes" heatmap.
+THEME_ETFS = {
+    "SMH": "Semiconductors", "IGV": "Software", "CIBR": "Cybersecurity",
+    "SKYY": "Cloud", "FDN": "Internet", "BOTZ": "AI & Robotics",
+    "ITA": "Aerospace & Defense", "ARKX": "Space", "BLOK": "Blockchain",
+    "URA": "Uranium / Nuclear", "XBI": "Biotech", "KRE": "Regional Banks",
+    "TAN": "Solar", "GDX": "Gold Miners", "XHB": "Homebuilders", "IYT": "Transports",
+}
+
 
 def load_universe() -> list[str]:
     syms: list[str] = []
@@ -250,7 +259,7 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     # Build per-ticker raw metrics
     rows = []
     for sym, df in data.items():
-        if sym == BENCH or sym in SECTOR_ETFS:
+        if sym == BENCH or sym in SECTOR_ETFS or sym in THEME_ETFS:
             continue
         closes = df["Close"].dropna()
         vols = df["Volume"].dropna()
@@ -468,6 +477,22 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     sector_rows.sort(key=lambda r: r["week_pct"], reverse=True)
     sector_week = {"leader": sector_rows[0] if sector_rows else None, "ranked": sector_rows}
 
+    # Finer industries & themes (semis, software, space/defense, uranium, etc.).
+    industry_rows = []
+    for etf, label in THEME_ETFS.items():
+        df = data.get(etf)
+        if df is None:
+            continue
+        c = df["Close"].dropna()
+        if len(c) < 6:
+            continue
+        wk = pct_change(float(c.iloc[-1]), float(c.iloc[-6]))
+        if wk is None:
+            continue
+        industry_rows.append({"sector": label, "etf": etf, "week_pct": round(wk, 2)})
+    industry_rows.sort(key=lambda r: r["week_pct"], reverse=True)
+    industry_week = {"leader": industry_rows[0] if industry_rows else None, "ranked": industry_rows}
+
     # Name lookups only for displayed tickers
     display_syms = set()
     for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks:
@@ -494,6 +519,7 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
         "tomorrow_setups": tomorrow_setups,
         "long_term_picks": long_term_picks,
         "sector_week": sector_week,
+        "industry_week": industry_week,
         "top_picks": top_picks,
         "breakouts": breakouts,
         "volume_surges": vol_surges,
@@ -579,7 +605,7 @@ def main() -> int:
         return 1
     if BENCH not in syms:
         syms.append(BENCH)
-    for etf in SECTOR_ETFS:
+    for etf in list(SECTOR_ETFS) + list(THEME_ETFS):
         if etf not in syms:
             syms.append(etf)
 
