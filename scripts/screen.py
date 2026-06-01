@@ -49,6 +49,16 @@ W_TECH = 0.55
 W_FUND = 0.35
 W_AH = 0.10
 EARNINGS_RISK_WINDOW_DAYS = 7  # warn / penalize if earnings inside this window
+LONG_TERM_N = 10
+LT_POOL_N = 45  # how many RS leaders to pull fundamentals for, for the long-term screen
+
+# SPDR sector ETFs -> sector name, for the weekly sector-leader board.
+SECTOR_ETFS = {
+    "XLK": "Technology", "XLC": "Communication Svcs", "XLY": "Consumer Discretionary",
+    "XLP": "Consumer Staples", "XLE": "Energy", "XLF": "Financials",
+    "XLV": "Health Care", "XLI": "Industrials", "XLB": "Materials",
+    "XLRE": "Real Estate", "XLU": "Utilities",
+}
 
 
 def load_universe() -> list[str]:
@@ -240,7 +250,7 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     # Build per-ticker raw metrics
     rows = []
     for sym, df in data.items():
-        if sym == BENCH:
+        if sym == BENCH or sym in SECTOR_ETFS:
             continue
         closes = df["Close"].dropna()
         vols = df["Volume"].dropna()
@@ -336,6 +346,14 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     top_picks_rows.sort(key=lambda r: r["score"], reverse=True)
     top_picks = top_picks_rows[:TOP_PICKS_N]
 
+    # Shared fundamentals cache (used by both Tomorrow's Setups and Long-Term picks).
+    fund_cache: dict[str, dict | None] = {}
+    def get_fund(sym: str):
+        if sym not in fund_cache:
+            fund_cache[sym] = fetch_fundamentals(sym)
+            time.sleep(0.1)
+        return fund_cache[sym]
+
     # Tomorrow's Setups: enrich the top-20 tech-composite candidates with
     # fundamentals and after-hours confirmation, then re-rank.
     ah_data = load_after_hours_data()
@@ -344,8 +362,7 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     tomorrow_setups = []
     for r in setup_pool:
         sym = r["symbol"]
-        fund = fetch_fundamentals(sym)
-        time.sleep(0.1)
+        fund = get_fund(sym)
         fund_score, fund_subs = score_fundamentals(fund) if fund else (None, {})
         ah = ah_data.get(sym)
         ah_pct = ah["ah_pct"] if ah else None
@@ -399,16 +416,68 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     tomorrow_setups.sort(key=lambda r: r["setup_score"], reverse=True)
     tomorrow_setups = tomorrow_setups[:SETUP_TOP_N]
 
+    # Long-term ideas: quality businesses (fundamentals) that are also market
+    # leaders (RS). Pull fundamentals for the top RS names, keep the growing &
+    # profitable ones, rank 60% fundamentals / 40% relative strength.
+    lt_pool = sorted([r for r in rows if r["three_month_pct"] is not None],
+                     key=lambda r: r["three_month_pct"], reverse=True)[:LT_POOL_N]
+    print(f"[daily] Fetching fundamentals for {len(lt_pool)} long-term candidates…", flush=True)
+    elig_lt = []
+    for r in lt_pool:
+        f = get_fund(r["symbol"])
+        fs, _ = score_fundamentals(f) if f else (None, {})
+        if fs is None or f is None:
+            continue
+        if (f.get("rev_growth") or 0) <= 0:
+            continue  # must be growing
+        if (f.get("profit_margin") or 0) <= 0 and (f.get("eps_growth") or 0) <= 0:
+            continue  # must be profitable or earnings-growing (no junk)
+        elig_lt.append((r, f, fs))
+    lt_rs_pct = percentile_rank([(rr["rs_vs_spy"] or 0.0) for (rr, _, _) in elig_lt])
+    long_term_rows = []
+    for i, (r, f, fs) in enumerate(elig_lt):
+        long_term_rows.append({
+            "symbol": r["symbol"],
+            "price": r["price"],
+            "lt_score": round(0.6 * fs + 0.4 * lt_rs_pct[i], 1),
+            "fund_score": fs,
+            "rev_growth": f.get("rev_growth"),
+            "eps_growth": f.get("eps_growth"),
+            "profit_margin": f.get("profit_margin"),
+            "forward_pe": f.get("forward_pe"),
+            "peg": f.get("peg"),
+            "rs_vs_spy": r["rs_vs_spy"],
+            "three_month_pct": r["three_month_pct"],
+        })
+    long_term_rows.sort(key=lambda r: r["lt_score"], reverse=True)
+    long_term_picks = long_term_rows[:LONG_TERM_N]
+
+    # Weekly sector leaders: ~5-trading-day return of each SPDR sector ETF.
+    sector_rows = []
+    for etf, sector_name in SECTOR_ETFS.items():
+        df = data.get(etf)
+        if df is None:
+            continue
+        c = df["Close"].dropna()
+        if len(c) < 6:
+            continue
+        wk = pct_change(float(c.iloc[-1]), float(c.iloc[-6]))
+        if wk is None:
+            continue
+        sector_rows.append({"sector": sector_name, "etf": etf, "week_pct": round(wk, 2)})
+    sector_rows.sort(key=lambda r: r["week_pct"], reverse=True)
+    sector_week = {"leader": sector_rows[0] if sector_rows else None, "ranked": sector_rows}
+
     # Name lookups only for displayed tickers
     display_syms = set()
-    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks:
         display_syms.add(r["symbol"])
     print(f"[daily] Looking up names for {len(display_syms)} displayed tickers…", flush=True)
     name_cache: dict[str, str] = {}
     for sym in display_syms:
         get_name_cached(sym, name_cache)
         time.sleep(0.05)
-    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks:
         r["name"] = name_cache.get(r["symbol"], "")
 
     return {
@@ -423,6 +492,8 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
             "earnings_risk_window_days": EARNINGS_RISK_WINDOW_DAYS,
         },
         "tomorrow_setups": tomorrow_setups,
+        "long_term_picks": long_term_picks,
+        "sector_week": sector_week,
         "top_picks": top_picks,
         "breakouts": breakouts,
         "volume_surges": vol_surges,
@@ -508,6 +579,9 @@ def main() -> int:
         return 1
     if BENCH not in syms:
         syms.append(BENCH)
+    for etf in SECTOR_ETFS:
+        if etf not in syms:
+            syms.append(etf)
 
     if args.mode == "daily":
         data = fetch_daily_history(syms)
@@ -520,6 +594,8 @@ def main() -> int:
         print(
             f"Wrote {DAILY_OUT} — "
             f"{len(result['tomorrow_setups'])} tomorrow setups, "
+            f"{len(result['long_term_picks'])} long-term ideas, "
+            f"sector leader {result['sector_week']['leader']['sector'] if result['sector_week']['leader'] else 'n/a'}, "
             f"{len(result['top_picks'])} top picks, "
             f"{len(result['breakouts'])} breakouts, "
             f"{len(result['volume_surges'])} vol surges, "
