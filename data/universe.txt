@@ -166,6 +166,7 @@ JCI
 SSNC
 AFRM
 STX
+CIEN
 
 # Broad-market benchmark (used as RS denominator)
 SPY

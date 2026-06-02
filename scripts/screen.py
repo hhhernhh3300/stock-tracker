@@ -92,6 +92,9 @@ ANALYST_WATCHLIST = {
     "META": ("Morgan Stanley", "AI-driven ad platform"),
     "UNH": ("UBS/Morgan Stanley", "Healthcare; margin recovery"),
     "MU": ("Goldman/UBS", "Memory/HBM; AI supercycle"),
+    "PLTR": ("Street/Seeking Alpha", "AI data analytics; ~70% rev growth"),
+    "LLY": ("UBS/CFRA", "GLP-1 / longevity leader"),
+    "CIEN": ("Seeking Alpha", "Optical networking for AI data centers"),
 }
 
 
