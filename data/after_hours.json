@@ -1,58 +1,30 @@
 {
-  "updated_at": "2026-06-01 23:13 UTC",
-  "universe_size": 164,
+  "updated_at": "2026-06-02 23:13 UTC",
+  "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "DG",
-      "regular_close": 109.93,
-      "ext_price": 115.35,
-      "ah_pct": 4.93,
-      "name": "Dollar General Corporation"
+      "symbol": "MRVL",
+      "regular_close": 290.79,
+      "ext_price": 321.63,
+      "ah_pct": 10.61,
+      "name": "Marvell Technology, Inc."
     },
     {
       "symbol": "AVGO",
-      "regular_close": 459.97,
-      "ext_price": 472.7,
-      "ah_pct": 2.77,
+      "regular_close": 481.57,
+      "ext_price": 494.63,
+      "ah_pct": 2.71,
       "name": "Broadcom Inc."
     }
   ],
   "drops": [
     {
-      "symbol": "BLOK",
-      "regular_close": 68.73,
-      "ext_price": 66.9,
-      "ah_pct": -2.66,
-      "name": "Amplify Blockchain Technology E"
-    },
-    {
       "symbol": "IBM",
-      "regular_close": 320.42,
-      "ext_price": 312.33,
-      "ah_pct": -2.53,
-      "name": "International Business Machines"
-    },
-    {
-      "symbol": "ORCL",
-      "regular_close": 248.15,
-      "ext_price": 242.2,
-      "ah_pct": -2.4,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "WDAY",
-      "regular_close": 157.23,
-      "ext_price": 153.55,
+      "regular_close": 329.23,
+      "ext_price": 321.51,
       "ah_pct": -2.34,
-      "name": "Workday, Inc."
-    },
-    {
-      "symbol": "NOW",
-      "regular_close": 135.86,
-      "ext_price": 132.7,
-      "ah_pct": -2.33,
-      "name": "ServiceNow, Inc."
+      "name": "International Business Machines"
     }
   ]
 }
