@@ -69,6 +69,31 @@ THEME_ETFS = {
     "TAN": "Solar", "GDX": "Gold Miners", "XHB": "Homebuilders", "IYT": "Transports",
 }
 
+# Curated analyst long-term ideas (2026 outlooks: UBS, BlackRock, Goldman, Morgan Stanley)
+# -> (firms, one-line thesis). Shown verbatim on the dashboard's Analyst Watchlist.
+ANALYST_WATCHLIST = {
+    "CEG": ("UBS/BlackRock", "Nuclear power for AI data centers"),
+    "VST": ("Street", "Independent power producer; AI demand"),
+    "TLN": ("Street", "Nuclear/power; data-center deals"),
+    "GEV": ("BlackRock", "Grid + nuclear equipment (GE Vernova)"),
+    "BWXT": ("Street", "Small modular reactors / nuclear"),
+    "VRT": ("Street", "Data-center power & cooling"),
+    "ANET": ("UBS", "AI data-center networking"),
+    "AMT": ("UBS", "Towers + data centers"),
+    "NXT": ("UBS", "Solar trackers (Nextracker)"),
+    "LNT": ("UBS", "Utility w/ data-center contracts"),
+    "JCI": ("UBS", "Building efficiency / data-center HVAC"),
+    "SSNC": ("UBS", "Financial software; efficiency"),
+    "AFRM": ("Morgan Stanley", "Fintech / BNPL; AI use"),
+    "STX": ("Morgan Stanley", "Storage for AI data"),
+    "CRWD": ("Morgan Stanley", "Cybersecurity platform"),
+    "PANW": ("Morgan Stanley", "Cybersecurity + CyberArk deal"),
+    "NVDA": ("Morgan Stanley", "Core AI compute"),
+    "META": ("Morgan Stanley", "AI-driven ad platform"),
+    "UNH": ("UBS/Morgan Stanley", "Healthcare; margin recovery"),
+    "MU": ("Goldman/UBS", "Memory/HBM; AI supercycle"),
+}
+
 
 def load_universe() -> list[str]:
     syms: list[str] = []
@@ -493,16 +518,29 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
     industry_rows.sort(key=lambda r: r["week_pct"], reverse=True)
     industry_week = {"leader": industry_rows[0] if industry_rows else None, "ranked": industry_rows}
 
+    # Analyst Watchlist: curated 2026 long-term ideas joined with live metrics.
+    rows_by_sym = {r["symbol"]: r for r in rows}
+    analyst_watchlist = []
+    for sym, info in ANALYST_WATCHLIST.items():
+        r = rows_by_sym.get(sym)
+        analyst_watchlist.append({
+            "symbol": sym, "firms": info[0], "thesis": info[1],
+            "price": r["price"] if r else None,
+            "month_pct": r["month_pct"] if r else None,
+            "rs_vs_spy": r["rs_vs_spy"] if r else None,
+        })
+    analyst_watchlist.sort(key=lambda x: (x["rs_vs_spy"] is None, -(x["rs_vs_spy"] or 0)))
+
     # Name lookups only for displayed tickers
     display_syms = set()
-    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks + analyst_watchlist:
         display_syms.add(r["symbol"])
     print(f"[daily] Looking up names for {len(display_syms)} displayed tickers…", flush=True)
     name_cache: dict[str, str] = {}
     for sym in display_syms:
         get_name_cached(sym, name_cache)
         time.sleep(0.05)
-    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks:
+    for r in breakouts + vol_surges + top_rs + top_picks + tomorrow_setups + long_term_picks + analyst_watchlist:
         r["name"] = name_cache.get(r["symbol"], "")
 
     return {
@@ -518,6 +556,7 @@ def compute_daily(data: dict[str, pd.DataFrame]) -> dict:
         },
         "tomorrow_setups": tomorrow_setups,
         "long_term_picks": long_term_picks,
+        "analyst_watchlist": analyst_watchlist,
         "sector_week": sector_week,
         "industry_week": industry_week,
         "top_picks": top_picks,
