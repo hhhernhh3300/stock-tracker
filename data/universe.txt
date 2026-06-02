@@ -150,5 +150,22 @@ CCJ
 UEC
 TEM
 
+# Analyst long-term ideas (2026 outlooks: UBS, BlackRock, Goldman, Morgan Stanley)
+# AI infrastructure → power / nuclear / grid / networking, plus named bank picks
+CEG
+VST
+TLN
+GEV
+BWXT
+VRT
+ANET
+AMT
+NXT
+LNT
+JCI
+SSNC
+AFRM
+STX
+
 # Broad-market benchmark (used as RS denominator)
 SPY
