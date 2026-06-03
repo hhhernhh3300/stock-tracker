@@ -19,6 +19,9 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # read backend/.env regardless of the current working directory
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
@@ -104,3 +107,38 @@ def analyze(ticker: str) -> dict:
         "ai_error": ai_error,
         "disclaimer": GLOBAL_DISCLAIMER,
     }
+
+
+# --------------------------------------------------------------------------- #
+# Optional: serve the built React frontend from the SAME service (one URL, no
+# CORS). Enabled automatically when a built frontend is found. Set the directory
+# with FRONTEND_DIST, or it defaults to ../../frontend/dist relative to this file.
+# API routes above take precedence; everything else falls back to index.html so
+# the single-page app's client-side routing works.
+# --------------------------------------------------------------------------- #
+_FRONTEND_DIST = os.environ.get(
+    "FRONTEND_DIST",
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "frontend", "dist"),
+)
+_FRONTEND_DIST = os.path.abspath(_FRONTEND_DIST)
+_INDEX_HTML = os.path.join(_FRONTEND_DIST, "index.html")
+
+if os.path.isfile(_INDEX_HTML):
+    # Serve hashed assets (JS/CSS) under /assets, and static files at the root.
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(_FRONTEND_DIST, "assets")),
+        name="assets",
+    )
+
+    @app.get("/")
+    def _serve_index() -> FileResponse:
+        return FileResponse(_INDEX_HTML)
+
+    # SPA fallback: any non-API path that isn't a real file returns index.html.
+    @app.exception_handler(StarletteHTTPException)
+    async def _spa_fallback(request, exc):  # type: ignore[override]
+        if exc.status_code == 404 and not request.url.path.startswith("/api"):
+            return FileResponse(_INDEX_HTML)
+        # default JSON error for API 404s and everything else
+        return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
