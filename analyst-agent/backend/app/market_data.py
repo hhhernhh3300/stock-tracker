@@ -239,32 +239,66 @@ def _yf_json(url: str) -> dict:
         return {}
 
 
+def _parse_recommended_symbols(data: dict) -> list[str]:
+    """Pull the peer symbols out of a recommendationsbysymbol JSON payload."""
+    out: list[str] = []
+    results = (
+        (data.get("finance", {}) or {}).get("result")
+        or data.get("recommendedSymbols")
+        or []
+    )
+    for entry in results:
+        for item in (entry or {}).get("recommendedSymbols", []) or []:
+            sym = (item or {}).get("symbol")
+            if sym:
+                out.append(sym.upper())
+    return out
+
+
 def _peers_recommendations_by_symbol(ticker: str) -> list[str]:
     """DYNAMIC peer discovery: ask Yahoo for the symbols related to *this* ticker.
 
     Yahoo's ``recommendationsbysymbol`` endpoint returns the "people also follow"
     list for whatever symbol is passed — i.e. peers are looked up live from the
-    searched ticker, with no hardcoded mapping."""
-    out: list[str] = []
+    searched ticker, with no hardcoded mapping.
+
+    The request is routed through yfinance's ``YfData`` session, which uses
+    ``curl_cffi`` browser impersonation plus Yahoo's cookie/crumb handshake. That
+    matters in production: Yahoo blocks bare ``urllib`` calls from cloud/data-center
+    IPs (e.g. Render), but accepts the impersonated session. Plain ``urllib`` is
+    kept only as a last-ditch local fallback."""
+    quoted = urllib.parse.quote(ticker)
+
+    # Primary: yfinance's authenticated, browser-impersonating session.
+    try:
+        import yfinance.data as _ydata  # lazy import
+
+        yf_data = _ydata.YfData()
+        for host in ("query2", "query1"):
+            url = (
+                f"https://{host}.finance.yahoo.com/v6/finance/"
+                f"recommendationsbysymbol/{quoted}"
+            )
+            try:
+                data = yf_data.get_raw_json(url) or {}
+            except Exception:
+                data = {}
+            syms = _parse_recommended_symbols(data)
+            if syms:
+                return syms
+    except Exception:
+        pass
+
+    # Fallback: plain urllib (works locally / residential IPs).
     for host in ("query2", "query1"):
         url = (
             f"https://{host}.finance.yahoo.com/v6/finance/"
-            f"recommendationsbysymbol/{urllib.parse.quote(ticker)}"
+            f"recommendationsbysymbol/{quoted}"
         )
-        data = _yf_json(url)
-        results = (
-            (data.get("finance", {}) or {}).get("result")
-            or data.get("recommendedSymbols")
-            or []
-        )
-        for entry in results:
-            for item in (entry or {}).get("recommendedSymbols", []) or []:
-                sym = (item or {}).get("symbol")
-                if sym:
-                    out.append(sym.upper())
-        if out:
-            break
-    return out
+        syms = _parse_recommended_symbols(_yf_json(url))
+        if syms:
+            return syms
+    return []
 
 
 def _peers_from_yf_recommendations(ticker: str) -> list[str]:
