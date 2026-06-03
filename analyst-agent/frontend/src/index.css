@@ -3,5 +3,9 @@
 @tailwind utilities;
 
 body {
-  @apply bg-cream text-slate-800 antialiased;
+  background: #03040a;
+  color: #cdd3df;
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
