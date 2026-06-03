@@ -364,6 +364,44 @@ def _yf_quote_batch(symbols: list[str]) -> dict[str, dict]:
     return out
 
 
+def _yf_chart_quote(sym: str) -> dict:
+    """Last-ditch live price via the ``/v8/finance/chart`` endpoint.
+
+    The chart endpoint (the same one ``Ticker.history()`` uses) stays available
+    from Render's shared IP even during windows when ``/v7/quote`` and
+    ``Ticker.info`` are rate-limited. It only carries price/prev-close — not
+    market cap / P/E / sector — so it is used purely to keep a peer row's price
+    and change-% populated when the batch quote misses that symbol."""
+    su = (sym or "").upper()
+    if not su:
+        return {}
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v8/finance/chart/"
+            f"{urllib.parse.quote(su)}?range=5d&interval=1d"
+        )
+        data = _yf_get_json(url)
+        meta = (
+            ((data.get("chart", {}) or {}).get("result") or [{}])[0] or {}
+        ).get("meta", {}) or {}
+        price = meta.get("regularMarketPrice")
+        prev = meta.get("chartPreviousClose") or meta.get("previousClose")
+        if price is not None:
+            chg = None
+            try:
+                if prev:
+                    chg = (float(price) - float(prev)) / float(prev) * 100.0
+            except (TypeError, ValueError, ZeroDivisionError):
+                chg = None
+            return {
+                "regularMarketPrice": price,
+                "regularMarketPreviousClose": prev,
+                "regularMarketChangePercent": chg,
+                "shortName": meta.get("shortName") or meta.get("longName"),
+            }
+    return {}
+
+
 def _row_from_quote(sym: str, q: dict) -> dict:
     """Build a compact, JSON-safe peer row from a /v7/quote result entry."""
     price = q.get("regularMarketPrice")
@@ -384,7 +422,7 @@ def _row_from_quote(sym: str, q: dict) -> dict:
 # A successful peer lookup is cached briefly so a subsequent request can survive
 # a Yahoo rate-limit window (when the live call would otherwise return empty).
 _PEERS_CACHE: dict[str, tuple[float, list[dict]]] = {}
-_PEERS_TTL = 900.0  # seconds
+_PEERS_TTL = 21600.0  # 6 hours — long enough to bridge Render-IP throttle windows
 
 
 def _peers_cache_get(ticker: str) -> list[dict] | None:
@@ -538,9 +576,15 @@ def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
         q = quotes.get(sym)
         if q:
             rows.append(_row_from_quote(sym, q))
+        else:
+            # The batch quote missed this symbol (partial throttling). Try the
+            # resilient chart endpoint so the row still carries a live price.
+            cq = _yf_chart_quote(sym)
+            if cq:
+                rows.append(_row_from_quote(sym, cq))
 
-    # If the batch quote returned nothing (rare; whole endpoint throttled),
-    # fall back to the per-ticker ``.info`` snapshot for whatever we can get.
+    # If we got nothing at all (whole quote+chart path throttled), fall back to
+    # the per-ticker ``.info`` snapshot for whatever we can still scrape.
     if not rows:
         self_row = _peer_snapshot(ticker)
         if self_row:
@@ -550,93 +594,33 @@ def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
             if row:
                 rows.append(row)
 
-    # If we still have peers (more than just the self row), cache and return.
+    # If we have real peers (more than just the self row), cache and return.
     if len(rows) > 1:
         _peers_cache_put(ticker, rows)
         return rows
 
     # Last resort: serve a recent cached result so the table isn't empty while
-    # Yahoo is rate-limiting this IP.
+    # Yahoo is rate-limiting this IP. This is what lets a previously-seen ticker
+    # survive a throttle window even when every live path fails.
     cached = _peers_cache_get(ticker)
     if cached and len(cached) > len(rows):
         return cached
     return rows
 
 
-def diag_peers(ticker: str) -> dict:
-    """TEMPORARY diagnostic: report what each Yahoo peer/data path returns from
-    *this* host's IP (used to tell whether Render is being rate-limited)."""
-    tu = ticker.upper()
-    out: dict = {"ticker": tu}
-
-    sess = _yf_data_session()
-    out["yfdata_session"] = sess is not None
-
+def _get_peers_safe(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
+    """``_get_peers`` wrapper that never raises and always prefers a non-empty
+    result — serving cached peers if a live lookup throws or comes back empty."""
     try:
-        q = _yf_quote_batch([tu])
-        row = q.get(tu, {})
-        out["v7_quote_ok"] = bool(row)
-        out["v7_quote_price"] = row.get("regularMarketPrice")
-        out["v7_quote_sector"] = row.get("sector")
-    except Exception as exc:
-        out["v7_quote_error"] = str(exc)
-
-    try:
-        out["recs_by_symbol"] = _peers_recommendations_by_symbol(tu)
-    except Exception as exc:
-        out["recs_by_symbol_error"] = str(exc)
-
-    # Probe the chart endpoint (same one .history() uses — known to work on Render).
-    try:
-        churl = (
-            f"https://query2.finance.yahoo.com/v8/finance/chart/"
-            f"{urllib.parse.quote(tu)}?range=5d&interval=1d"
-        )
-        cdata = _yf_get_json(churl)
-        cmeta = (
-            ((cdata.get("chart", {}) or {}).get("result") or [{}])[0] or {}
-        ).get("meta", {}) or {}
-        out["chart_ok"] = bool(cmeta)
-        out["chart_price"] = cmeta.get("regularMarketPrice")
-        out["chart_prev"] = cmeta.get("chartPreviousClose") or cmeta.get("previousClose")
-    except Exception as exc:
-        out["chart_error"] = str(exc)
-
-    # Probe quoteSummary (carries sector/price via summaryProfile + price modules).
-    try:
-        qsurl = (
-            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/"
-            f"{urllib.parse.quote(tu)}?modules=price,summaryProfile"
-        )
-        qsdata = _yf_get_json(qsurl)
-        qsres = (
-            ((qsdata.get("quoteSummary", {}) or {}).get("result") or [{}])[0] or {}
-        )
-        pr = qsres.get("price", {}) or {}
-        prof = qsres.get("summaryProfile", {}) or {}
-        out["qsummary_ok"] = bool(pr or prof)
-        rmp = pr.get("regularMarketPrice", {}) or {}
-        out["qsummary_price"] = rmp.get("raw") if isinstance(rmp, dict) else rmp
-        out["qsummary_sector"] = prof.get("sector")
-    except Exception as exc:
-        out["qsummary_error"] = str(exc)
-
-    try:
-        info = yf.Ticker(tu).info or {}
-        out["info_keys"] = len(info)
-        out["info_sector"] = info.get("sector")
-        out["info_price"] = info.get("currentPrice") or info.get("regularMarketPrice")
-    except Exception as exc:
-        out["info_error"] = str(exc)
-
-    try:
-        rows = _get_peers(tu, {"sector": out.get("v7_quote_sector")})
-        out["get_peers_count"] = len(rows)
-        out["get_peers"] = [r.get("ticker") for r in rows]
-    except Exception as exc:
-        out["get_peers_error"] = str(exc)
-
-    return out
+        rows = _get_peers(ticker, base_info, limit)
+    except Exception:
+        rows = []
+    if len(rows) > 1:
+        return rows
+    cached = _peers_cache_get(ticker)
+    if cached and len(cached) > len(rows):
+        return cached
+    return rows
 
 
 def _alpha_vantage_quote(ticker: str) -> float | None:
@@ -743,7 +727,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     except Exception:
         news = []
     try:
-        peers = _get_peers(ticker, info)
+        peers = _get_peers_safe(ticker, info)
     except Exception:
         peers = []
 

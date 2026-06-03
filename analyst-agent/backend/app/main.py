@@ -112,13 +112,6 @@ def analyze(ticker: str) -> dict:
     }
 
 
-@app.get("/api/_debug/peers/{ticker}")
-def debug_peers(ticker: str) -> dict:
-    """TEMPORARY diagnostic: shows which Yahoo data paths succeed from this host's
-    IP (to confirm/deny Render rate-limiting). Safe to remove later."""
-    return market_data.diag_peers((ticker or "").strip().upper())
-
-
 class ChatTurn(BaseModel):
     role: str = "user"
     text: str = ""
