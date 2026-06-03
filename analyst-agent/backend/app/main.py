@@ -63,10 +63,12 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict:
     provider = analyst.resolve_provider()
+    chain = analyst.resolve_provider_chain()
     return {
         "status": "ok",
         "ai_configured": provider is not None,
-        "llm_provider": provider,
+        "llm_provider": provider,                 # primary (first in the chain)
+        "llm_provider_chain": chain,              # full failover order (e.g. [gemini, openai_compatible])
         "llm_model": analyst.active_model(provider),
         "rules_fallback": ALLOW_RULES_FALLBACK,
     }

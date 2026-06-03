@@ -188,15 +188,41 @@ def _key_for(provider: str) -> str | None:
 
 
 def resolve_provider() -> str | None:
-    """Return the provider to use, or None if no key is configured."""
+    """Return the single primary provider to use, or None if none is configured."""
+    chain = resolve_provider_chain()
+    return chain[0] if chain else None
+
+
+def resolve_provider_chain() -> list[str]:
+    """Ordered list of configured providers to try, for cross-provider failover.
+
+    Order of precedence:
+      1. ``LLM_PROVIDER_CHAIN`` — explicit, comma-separated (e.g. "gemini,openai_compatible").
+      2. ``LLM_PROVIDER`` — a single provider is honored as the first/only choice.
+      3. Otherwise ``_AUTO_ORDER``.
+
+    In every case only providers that actually have an API key configured are kept,
+    in the requested order. ``openai_compatible`` covers Groq/OpenRouter/Mistral/etc.
+    """
+    chain_env = (os.environ.get("LLM_PROVIDER_CHAIN") or "").strip()
     requested = (os.environ.get("LLM_PROVIDER") or "auto").strip().lower()
-    if requested in _PROVIDER_KEYS:
-        return requested if _key_for(requested) else None
-    # auto (or unknown value) -> first provider with a key
-    for provider in _AUTO_ORDER:
-        if _key_for(provider):
-            return provider
-    return None
+
+    if chain_env:
+        order = [p.strip().lower() for p in chain_env.split(",") if p.strip()]
+    elif requested in _PROVIDER_KEYS:
+        # Honor the explicit primary, then let the rest of the auto-order act as
+        # automatic backups (so e.g. LLM_PROVIDER=gemini still falls back to Groq).
+        order = [requested, *[p for p in _AUTO_ORDER if p != requested]]
+    else:
+        order = list(_AUTO_ORDER)
+
+    seen: set[str] = set()
+    out: list[str] = []
+    for provider in order:
+        if provider in _PROVIDER_KEYS and provider not in seen and _key_for(provider):
+            seen.add(provider)
+            out.append(provider)
+    return out
 
 
 def is_configured() -> bool:
@@ -395,26 +421,37 @@ _DISPATCH = {
 
 
 def analyze(snap: dict) -> dict:
-    """Call the configured LLM provider and return the validated assessment as a dict.
+    """Produce a validated assessment, trying each configured provider in turn.
 
-    Raises RuntimeError if no provider is configured, or the underlying SDK/HTTP
-    error if the call itself fails (callers should degrade gracefully).
+    Cross-provider failover: walks ``resolve_provider_chain()`` (e.g. Gemini -> Groq)
+    and returns the first provider that succeeds. Raises RuntimeError only if no
+    provider is configured or every provider in the chain fails (callers can then
+    degrade to the rule-based engine).
     """
-    provider = resolve_provider()
-    if provider is None:
+    chain = resolve_provider_chain()
+    if not chain:
         raise RuntimeError(
-            "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or "
-            "GEMINI_API_KEY (and optionally LLM_PROVIDER)."
+            "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, "
+            "GEMINI_API_KEY, or OPENAI_COMPAT_API_KEY (and optionally LLM_PROVIDER / "
+            "LLM_PROVIDER_CHAIN)."
         )
 
     user_msg = _build_user_message(snap)
-    raw = _DISPATCH[provider](user_msg)
+    errors: list[str] = []
+    for provider in chain:
+        try:
+            raw = _DISPATCH[provider](user_msg)
+            assessment = StockAssessment(**raw)
+            result = assessment.model_dump()
+            result["engine"] = provider          # e.g. "gemini", "openai_compatible"
+            result["model"] = DEFAULT_MODELS[provider]
+            return result
+        except Exception as exc:
+            errors.append(f"{provider}: {exc}")
 
-    assessment = StockAssessment(**raw)
-    result = assessment.model_dump()
-    result["engine"] = provider          # e.g. "anthropic"
-    result["model"] = DEFAULT_MODELS[provider]
-    return result
+    raise RuntimeError(
+        "All configured LLM providers failed — " + " | ".join(errors)
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -572,14 +609,30 @@ _CHAT_DISPATCH = {
 def chat(snap: dict, question: str, history: list | None = None) -> dict:
     """Answer a free-form question about the stock, grounded in the snapshot.
 
-    Returns {"reply": str, "engine": provider, "model": model}. Raises RuntimeError
-    if no provider is configured, or the SDK/HTTP error if the call fails.
+    Cross-provider failover: tries each provider in ``resolve_provider_chain()``
+    (e.g. Gemini -> Groq) and returns the first that succeeds. Returns
+    {"reply": str, "engine": provider, "model": model}. Raises RuntimeError if no
+    provider is configured or every provider in the chain fails.
     """
-    provider = resolve_provider()
-    if provider is None:
+    chain = resolve_provider_chain()
+    if not chain:
         raise RuntimeError(
-            "No LLM provider configured. Set an API key (and optionally LLM_PROVIDER)."
+            "No LLM provider configured. Set an API key (and optionally LLM_PROVIDER / "
+            "LLM_PROVIDER_CHAIN)."
         )
     messages = _chat_messages(snap, question, history)
-    reply = _CHAT_DISPATCH[provider](messages)
-    return {"reply": reply, "engine": provider, "model": DEFAULT_MODELS[provider]}
+    errors: list[str] = []
+    for provider in chain:
+        try:
+            reply = _CHAT_DISPATCH[provider](messages)
+            if reply and reply.strip():
+                return {
+                    "reply": reply,
+                    "engine": provider,
+                    "model": DEFAULT_MODELS[provider],
+                }
+            errors.append(f"{provider}: empty reply")
+        except Exception as exc:
+            errors.append(f"{provider}: {exc}")
+
+    raise RuntimeError("All configured LLM providers failed — " + " | ".join(errors))
