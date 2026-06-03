@@ -18,6 +18,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -54,7 +55,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -107,6 +108,42 @@ def analyze(ticker: str) -> dict:
         "ai_error": ai_error,
         "disclaimer": GLOBAL_DISCLAIMER,
     }
+
+
+class ChatRequest(BaseModel):
+    message: str
+    ticker: str
+
+
+@app.post("/api/chat")
+async def chat_endpoint(req: ChatRequest) -> dict:
+    ticker = (req.ticker or "").strip().upper()
+    if not ticker or len(ticker) > 12 or not ticker.replace(".", "").replace("-", "").isalnum():
+        raise HTTPException(status_code=400, detail="Enter a valid ticker symbol.")
+
+    try:
+        snapshot = market_data.get_market_snapshot(ticker)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not fetch market data: {exc}")
+
+    if not analyst.is_configured():
+        return {
+            "response": (
+                "No AI provider is configured on this server. "
+                "Ask the site owner to set an API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, "
+                "or OPENAI_COMPAT_API_KEY via Groq/OpenRouter)."
+            ),
+            "disclaimer": GLOBAL_DISCLAIMER,
+        }
+
+    try:
+        response = analyst.chat(snapshot, req.message)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Chat failed: {exc}")
+
+    return {"response": response, "disclaimer": GLOBAL_DISCLAIMER}
 
 
 # --------------------------------------------------------------------------- #

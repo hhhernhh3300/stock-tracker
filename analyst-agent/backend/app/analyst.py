@@ -341,6 +341,87 @@ _DISPATCH = {
 
 
 # --------------------------------------------------------------------------- #
+# Conversational chat (plain-text responses)
+# --------------------------------------------------------------------------- #
+
+CHAT_SYSTEM_PROMPT = (
+    "You are a knowledgeable equity-research assistant. You have been given current "
+    "market data for a stock. Answer the user's question in a balanced, plain-English "
+    "way (2-4 paragraphs). Cite specific numbers from the data when relevant. Always "
+    "note that your response is for educational and research purposes only — not "
+    "personalized financial advice and not the output of a licensed advisor."
+)
+
+
+def _chat_anthropic(system: str, user_msg: str) -> str:
+    import anthropic
+    client = anthropic.Anthropic(api_key=_key_for("anthropic"))
+    resp = client.messages.create(
+        model=DEFAULT_MODELS["anthropic"],
+        max_tokens=1000,
+        system=system,
+        messages=[{"role": "user", "content": user_msg}],
+    )
+    return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+
+
+def _chat_openai(system: str, user_msg: str) -> str:
+    from openai import OpenAI
+    client = OpenAI(api_key=_key_for("openai"))
+    resp = client.chat.completions.create(
+        model=DEFAULT_MODELS["openai"],
+        max_tokens=1000,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
+    )
+    return resp.choices[0].message.content
+
+
+def _chat_gemini(system: str, user_msg: str) -> str:
+    import google.generativeai as genai
+    genai.configure(api_key=_key_for("gemini"))
+    model = genai.GenerativeModel(model_name=DEFAULT_MODELS["gemini"], system_instruction=system)
+    return model.generate_content(user_msg).text
+
+
+def _chat_openai_compatible(system: str, user_msg: str) -> str:
+    from openai import OpenAI
+    base_url = _compat_base_url()
+    if not base_url:
+        raise RuntimeError("openai_compatible provider needs OPENAI_COMPAT_BASE_URL set.")
+    model = DEFAULT_MODELS["openai_compatible"]
+    if not model:
+        raise RuntimeError("openai_compatible provider needs OPENAI_COMPAT_MODEL set.")
+    client = OpenAI(api_key=_key_for("openai_compatible"), base_url=base_url)
+    resp = client.chat.completions.create(
+        model=model,
+        max_tokens=1000,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
+    )
+    return resp.choices[0].message.content
+
+
+_CHAT_DISPATCH = {
+    "anthropic": _chat_anthropic,
+    "openai": _chat_openai,
+    "gemini": _chat_gemini,
+    "openai_compatible": _chat_openai_compatible,
+}
+
+
+def chat(snap: dict, message: str) -> str:
+    """Return a conversational plain-text response about the stock."""
+    provider = resolve_provider()
+    if provider is None:
+        raise RuntimeError(
+            "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, "
+            "GEMINI_API_KEY, or OPENAI_COMPAT_API_KEY."
+        )
+    context = _build_user_message(snap)
+    system = CHAT_SYSTEM_PROMPT + "\n\n--- CURRENT MARKET DATA ---\n" + context
+    return _CHAT_DISPATCH[provider](system, message)
+
+
+# --------------------------------------------------------------------------- #
 # Public entrypoint
 # --------------------------------------------------------------------------- #
 
