@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -129,10 +130,47 @@ def _derive_latest(frame: pd.DataFrame) -> dict:
 
 
 def _get_info(ticker: str) -> dict:
+    """Fundamentals/consensus for the searched symbol.
+
+    Primary: ``Ticker.info`` (richest payload). On a shared cloud IP (Render)
+    Yahoo aggressively rate-limits ``.info`` — when it comes back empty or thin
+    (e.g. no ``sector``), we merge in the lighter ``/v7/finance/quote`` payload so
+    sector, price, market cap and P/E still populate. The quote fields use the
+    same key names as ``.info`` for these overlapping fields, so downstream code
+    is unchanged."""
+    info: dict = {}
     try:
-        return yf.Ticker(ticker).info or {}
+        info = yf.Ticker(ticker).info or {}
     except Exception:
-        return {}
+        info = {}
+
+    # If the heavy .info call was throttled (no sector / no price), backfill from
+    # the lightweight batch-quote endpoint (routed through the YfData session).
+    if not info.get("sector") or not (
+        info.get("currentPrice") or info.get("regularMarketPrice")
+    ):
+        try:
+            q = _yf_quote_batch([ticker]).get(ticker.upper()) or {}
+        except Exception:
+            q = {}
+        for key in (
+            "sector",
+            "industry",
+            "shortName",
+            "longName",
+            "regularMarketPrice",
+            "regularMarketPreviousClose",
+            "regularMarketChangePercent",
+            "marketCap",
+            "trailingPE",
+            "fiftyTwoWeekHigh",
+            "fiftyTwoWeekLow",
+            "currency",
+            "fullExchangeName",
+        ):
+            if not info.get(key) and q.get(key) is not None:
+                info[key] = q[key]
+    return info
 
 
 def _classify_sentiment(title: str) -> str:
@@ -255,6 +293,112 @@ def _parse_recommended_symbols(data: dict) -> list[str]:
     return out
 
 
+def _yf_data_session():
+    """Return a yfinance ``YfData`` session (curl_cffi + cookie/crumb), or None.
+
+    This session impersonates a real browser and completes Yahoo's crumb
+    handshake, so it succeeds from cloud/data-center IPs (e.g. Render) where bare
+    ``urllib`` is blocked. Cached on the function for reuse."""
+    cached = getattr(_yf_data_session, "_cache", None)
+    if cached is not None:
+        return cached
+    try:
+        import yfinance.data as _ydata  # lazy import
+
+        cached = _ydata.YfData()
+    except Exception:
+        cached = None
+    _yf_data_session._cache = cached  # type: ignore[attr-defined]
+    return cached
+
+
+def _yf_get_json(url: str) -> dict:
+    """GET a Yahoo JSON endpoint, preferring the yfinance session, urllib as last
+    resort. Returns {} on any failure."""
+    session = _yf_data_session()
+    if session is not None:
+        try:
+            data = session.get_raw_json(url)
+            if data:
+                return data
+        except Exception:
+            pass
+    return _yf_json(url)
+
+
+# --- batch quote ----------------------------------------------------------- #
+# Yahoo's /v7/finance/quote returns price, change, market cap, P/E, name AND
+# sector for MANY symbols in a SINGLE request. That matters in production:
+# per-ticker ``Ticker.info`` is the most aggressively rate-limited Yahoo
+# endpoint from a shared cloud IP, so building peer rows from one batch quote
+# (instead of one ``.info`` call per peer) is far more resilient on Render.
+_QUOTE_FIELDS = (
+    "symbol,shortName,longName,regularMarketPrice,regularMarketPreviousClose,"
+    "regularMarketChangePercent,marketCap,trailingPE,sector,industry"
+)
+
+
+def _yf_quote_batch(symbols: list[str]) -> dict[str, dict]:
+    """Fetch quote rows for many symbols at once; keyed by upper-case symbol."""
+    syms = [s.upper() for s in symbols if s]
+    if not syms:
+        return {}
+    out: dict[str, dict] = {}
+    # Yahoo caps the symbol list length; chunk to be safe.
+    for i in range(0, len(syms), 40):
+        chunk = syms[i : i + 40]
+        joined = urllib.parse.quote(",".join(chunk))
+        for host in ("query2", "query1"):
+            url = (
+                f"https://{host}.finance.yahoo.com/v7/finance/quote?"
+                f"symbols={joined}&fields={urllib.parse.quote(_QUOTE_FIELDS)}"
+            )
+            data = _yf_get_json(url)
+            results = (data.get("quoteResponse", {}) or {}).get("result") or []
+            if results:
+                for q in results:
+                    sym = (q or {}).get("symbol")
+                    if sym:
+                        out[sym.upper()] = q
+                break
+    return out
+
+
+def _row_from_quote(sym: str, q: dict) -> dict:
+    """Build a compact, JSON-safe peer row from a /v7/quote result entry."""
+    price = q.get("regularMarketPrice")
+    chg = q.get("regularMarketChangePercent")
+    return {
+        "ticker": sym.upper(),
+        "name": q.get("shortName") or q.get("longName") or sym.upper(),
+        "price": _round(price, 2),
+        "change_pct": _round(chg, 2),
+        "market_cap": q.get("marketCap"),
+        "trailing_pe": _round(q.get("trailingPE")),
+        "profit_margin": None,  # not in the lightweight quote payload
+        "revenue": None,
+    }
+
+
+# --- tiny in-process TTL cache -------------------------------------------- #
+# A successful peer lookup is cached briefly so a subsequent request can survive
+# a Yahoo rate-limit window (when the live call would otherwise return empty).
+_PEERS_CACHE: dict[str, tuple[float, list[dict]]] = {}
+_PEERS_TTL = 900.0  # seconds
+
+
+def _peers_cache_get(ticker: str) -> list[dict] | None:
+    entry = _PEERS_CACHE.get(ticker.upper())
+    if entry and (time.time() - entry[0]) < _PEERS_TTL:
+        return entry[1]
+    return None
+
+
+def _peers_cache_put(ticker: str, rows: list[dict]) -> None:
+    if rows:
+        _PEERS_CACHE[ticker.upper()] = (time.time(), rows)
+
+
 def _peers_recommendations_by_symbol(ticker: str) -> list[str]:
     """DYNAMIC peer discovery: ask Yahoo for the symbols related to *this* ticker.
 
@@ -268,34 +412,14 @@ def _peers_recommendations_by_symbol(ticker: str) -> list[str]:
     IPs (e.g. Render), but accepts the impersonated session. Plain ``urllib`` is
     kept only as a last-ditch local fallback."""
     quoted = urllib.parse.quote(ticker)
-
-    # Primary: yfinance's authenticated, browser-impersonating session.
-    try:
-        import yfinance.data as _ydata  # lazy import
-
-        yf_data = _ydata.YfData()
-        for host in ("query2", "query1"):
-            url = (
-                f"https://{host}.finance.yahoo.com/v6/finance/"
-                f"recommendationsbysymbol/{quoted}"
-            )
-            try:
-                data = yf_data.get_raw_json(url) or {}
-            except Exception:
-                data = {}
-            syms = _parse_recommended_symbols(data)
-            if syms:
-                return syms
-    except Exception:
-        pass
-
-    # Fallback: plain urllib (works locally / residential IPs).
+    # _yf_get_json prefers the browser-impersonating YfData session (works from
+    # Render's cloud IP) and falls back to plain urllib (works locally).
     for host in ("query2", "query1"):
         url = (
             f"https://{host}.finance.yahoo.com/v6/finance/"
             f"recommendationsbysymbol/{quoted}"
         )
-        syms = _parse_recommended_symbols(_yf_json(url))
+        syms = _parse_recommended_symbols(_yf_get_json(url))
         if syms:
             return syms
     return []
@@ -379,8 +503,14 @@ def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
       2. yfinance ``.recommendations`` attribute (same idea, different transport).
       3. Yahoo screener filtered by the searched symbol's own sector/industry.
 
-    The queried ticker is always the first row. Capped to ``limit`` to respect
-    rate limits."""
+    Peer rows are then built from a SINGLE batch ``/v7/finance/quote`` call rather
+    than one ``Ticker.info`` per peer. ``Ticker.info`` is the most aggressively
+    rate-limited Yahoo endpoint from a shared cloud IP (Render), so the batch
+    quote is what keeps peers populated in production. A short in-process cache
+    lets a result survive a transient rate-limit window. ``_peer_snapshot`` (the
+    old per-ticker ``.info`` path) is kept only as a last-ditch fallback.
+
+    The queried ticker is always the first row. Capped to ``limit``."""
     tu = ticker.upper()
 
     candidates: list[str] = _peers_recommendations_by_symbol(ticker)
@@ -399,14 +529,37 @@ def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
         if len(peers_syms) >= limit:
             break
 
+    wanted = [tu, *peers_syms]
+
+    # Primary path: one batch quote for the searched symbol + all peers.
+    quotes = _yf_quote_batch(wanted)
     rows: list[dict] = []
-    self_row = _peer_snapshot(ticker)
-    if self_row:
-        rows.append(self_row)
-    for s in peers_syms:
-        row = _peer_snapshot(s)
-        if row:
-            rows.append(row)
+    for sym in wanted:
+        q = quotes.get(sym)
+        if q:
+            rows.append(_row_from_quote(sym, q))
+
+    # If the batch quote returned nothing (rare; whole endpoint throttled),
+    # fall back to the per-ticker ``.info`` snapshot for whatever we can get.
+    if not rows:
+        self_row = _peer_snapshot(ticker)
+        if self_row:
+            rows.append(self_row)
+        for s in peers_syms:
+            row = _peer_snapshot(s)
+            if row:
+                rows.append(row)
+
+    # If we still have peers (more than just the self row), cache and return.
+    if len(rows) > 1:
+        _peers_cache_put(ticker, rows)
+        return rows
+
+    # Last resort: serve a recent cached result so the table isn't empty while
+    # Yahoo is rate-limiting this IP.
+    cached = _peers_cache_get(ticker)
+    if cached and len(cached) > len(rows):
+        return cached
     return rows
 
 
