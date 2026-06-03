@@ -130,6 +130,14 @@ Open **http://localhost:5173**, type a ticker (e.g. `AAPL`, `MSFT`, `NVDA`), and
 The frontend talks to `http://localhost:8000` by default; override with
 `frontend/.env` → `VITE_API_URL=...` if your backend runs elsewhere.
 
+## 3) Deploy to a public website (not localhost)
+
+Want a shareable URL instead of localhost? See **[DEPLOY.md](DEPLOY.md)**. The repo
+includes a Render blueprint ([`render.yaml`](render.yaml)) that hosts the FastAPI backend
+and the static React frontend on a **free tier** — you get URLs like
+`https://analyst-agent-web.onrender.com`. (You deploy with your own hosting account;
+set `VITE_API_URL` to the backend URL and `CORS_ORIGINS` to the frontend URL.)
+
 ---
 
 ## How the assessment works (`analyst.py` + `rules.py`)
