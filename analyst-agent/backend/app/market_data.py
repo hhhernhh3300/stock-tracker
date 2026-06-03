@@ -563,6 +563,47 @@ def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
     return rows
 
 
+def diag_peers(ticker: str) -> dict:
+    """TEMPORARY diagnostic: report what each Yahoo peer/data path returns from
+    *this* host's IP (used to tell whether Render is being rate-limited)."""
+    tu = ticker.upper()
+    out: dict = {"ticker": tu}
+
+    sess = _yf_data_session()
+    out["yfdata_session"] = sess is not None
+
+    try:
+        q = _yf_quote_batch([tu])
+        row = q.get(tu, {})
+        out["v7_quote_ok"] = bool(row)
+        out["v7_quote_price"] = row.get("regularMarketPrice")
+        out["v7_quote_sector"] = row.get("sector")
+    except Exception as exc:
+        out["v7_quote_error"] = str(exc)
+
+    try:
+        out["recs_by_symbol"] = _peers_recommendations_by_symbol(tu)
+    except Exception as exc:
+        out["recs_by_symbol_error"] = str(exc)
+
+    try:
+        info = yf.Ticker(tu).info or {}
+        out["info_keys"] = len(info)
+        out["info_sector"] = info.get("sector")
+        out["info_price"] = info.get("currentPrice") or info.get("regularMarketPrice")
+    except Exception as exc:
+        out["info_error"] = str(exc)
+
+    try:
+        rows = _get_peers(tu, {"sector": out.get("v7_quote_sector")})
+        out["get_peers_count"] = len(rows)
+        out["get_peers"] = [r.get("ticker") for r in rows]
+    except Exception as exc:
+        out["get_peers_error"] = str(exc)
+
+    return out
+
+
 def _alpha_vantage_quote(ticker: str) -> float | None:
     """Optional fallback live quote via Alpha Vantage (stdlib only)."""
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "").strip()
