@@ -135,6 +135,125 @@ def _get_info(ticker: str) -> dict:
         return {}
 
 
+def _classify_sentiment(title: str) -> str:
+    """Very light keyword sentiment for headline coloring (POS/NEG/NEU)."""
+    t = (title or "").lower()
+    pos = ("beat", "surge", "record", "soar", "jump", "rally", "upgrade", "raises",
+           "raise", "growth", "strong", "wins", "approval", "partnership", "buyback")
+    neg = ("miss", "fall", "drop", "plunge", "slump", "downgrade", "cut", "lawsuit",
+           "probe", "investigation", "recall", "warning", "weak", "loss", "decline")
+    if any(w in t for w in pos):
+        return "POS"
+    if any(w in t for w in neg):
+        return "NEG"
+    return "NEU"
+
+
+def _get_news(ticker: str, limit: int = 8) -> list[dict]:
+    """Recent headlines from Yahoo Finance (best-effort; empty list on failure)."""
+    try:
+        raw = yf.Ticker(ticker).news or []
+    except Exception:
+        return []
+    items: list[dict] = []
+    for n in raw[:limit]:
+        # yfinance returns either a flat dict or a nested {"content": {...}} shape.
+        content = n.get("content") if isinstance(n.get("content"), dict) else n
+        title = content.get("title") or n.get("title")
+        if not title:
+            continue
+        # publisher
+        prov = content.get("provider") or {}
+        publisher = (
+            prov.get("displayName")
+            if isinstance(prov, dict)
+            else n.get("publisher")
+        ) or n.get("publisher")
+        # link
+        link = None
+        cu = content.get("canonicalUrl") or content.get("clickThroughUrl")
+        if isinstance(cu, dict):
+            link = cu.get("url")
+        link = link or n.get("link")
+        # timestamp
+        ts = n.get("providerPublishTime") or content.get("pubDate")
+        when = None
+        if isinstance(ts, (int, float)):
+            when = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        elif isinstance(ts, str):
+            when = ts
+        summary = content.get("summary") or content.get("description")
+        items.append(
+            {
+                "title": title,
+                "publisher": publisher,
+                "link": link,
+                "published": when,
+                "summary": summary,
+                "sentiment": _classify_sentiment(title),
+            }
+        )
+    return items
+
+
+def _peer_snapshot(ticker: str) -> dict | None:
+    """A compact, JSON-safe row for a single peer (price, change, cap, P/E, margin)."""
+    try:
+        info = yf.Ticker(ticker).info or {}
+    except Exception:
+        return None
+    price = info.get("currentPrice") or info.get("regularMarketPrice")
+    prev = info.get("regularMarketPreviousClose") or info.get("previousClose")
+    chg = None
+    if price and prev:
+        chg = round((price - prev) / prev * 100, 2)
+    return {
+        "ticker": ticker.upper(),
+        "name": info.get("shortName") or info.get("longName") or ticker.upper(),
+        "price": _round(price, 2),
+        "change_pct": chg,
+        "market_cap": info.get("marketCap"),
+        "trailing_pe": _round(info.get("trailingPE")),
+        "profit_margin": _round(info.get("profitMargins"), 4),
+        "revenue": info.get("totalRevenue"),
+    }
+
+
+def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
+    """Best-effort sector peers. Uses yfinance's recommendations when present,
+    otherwise returns just the queried ticker. Kept small to respect rate limits."""
+    symbols: list[str] = []
+    try:
+        rec = getattr(yf.Ticker(ticker), "recommendations", None)
+        # Some yfinance versions expose a 'recommendedSymbols' style payload.
+        if isinstance(rec, list):
+            for r in rec:
+                sym = (r or {}).get("symbol")
+                if sym:
+                    symbols.append(sym)
+    except Exception:
+        pass
+    # De-dupe, drop self, cap the count to limit API calls.
+    seen, peers_syms = set(), []
+    for s in symbols:
+        su = s.upper()
+        if su != ticker.upper() and su not in seen:
+            seen.add(su)
+            peers_syms.append(su)
+        if len(peers_syms) >= limit:
+            break
+
+    rows: list[dict] = []
+    self_row = _peer_snapshot(ticker)
+    if self_row:
+        rows.append(self_row)
+    for s in peers_syms:
+        row = _peer_snapshot(s)
+        if row:
+            rows.append(row)
+    return rows
+
+
 def _alpha_vantage_quote(ticker: str) -> float | None:
     """Optional fallback live quote via Alpha Vantage (stdlib only)."""
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "").strip()
@@ -233,6 +352,16 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
 
     series = _series_to_lists(frame.tail(lookback))
 
+    # Optional extras (best-effort; never fail the whole request on these).
+    try:
+        news = _get_news(ticker)
+    except Exception:
+        news = []
+    try:
+        peers = _get_peers(ticker, info)
+    except Exception:
+        peers = []
+
     return {
         "meta": meta,
         "quote": quote,
@@ -240,6 +369,8 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "fundamentals": fundamentals,
         "analyst": analyst,
         "series": series,
+        "news": news,
+        "peers": peers,
         "data_source": (
             "IBKR Client Portal — prices/history; Yahoo Finance — fundamentals & analyst consensus"
             if used_ibkr

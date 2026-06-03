@@ -18,10 +18,10 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # read backend/.env regardless of the current working directory
@@ -110,16 +110,38 @@ def analyze(ticker: str) -> dict:
     }
 
 
+class ChatTurn(BaseModel):
+    role: str = "user"
+    text: str = ""
+
+
 class ChatRequest(BaseModel):
     message: str
     ticker: str
+    history: list[ChatTurn] | None = None
 
 
 @app.post("/api/chat")
-async def chat_endpoint(req: ChatRequest) -> dict:
+def chat(req: ChatRequest) -> dict:
+    """Free-form Q&A about a ticker, grounded in a fresh market snapshot.
+
+    Requires an LLM provider to be configured (the rule-based engine can't hold a
+    conversation). Returns {"reply", "engine", "model", "ticker"}.
+    """
     ticker = (req.ticker or "").strip().upper()
-    if not ticker or len(ticker) > 12 or not ticker.replace(".", "").replace("-", "").isalnum():
-        raise HTTPException(status_code=400, detail="Enter a valid ticker symbol.")
+    question = (req.message or "").strip()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="A ticker is required for chat.")
+    if not question:
+        raise HTTPException(status_code=400, detail="Ask a question to chat.")
+    if not analyst.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "AI chat is unavailable: no LLM provider key is configured on the "
+                "server. Set an API key (e.g. Groq/OpenAI/Gemini) to enable chat."
+            ),
+        )
 
     try:
         snapshot = market_data.get_market_snapshot(ticker)
@@ -128,22 +150,19 @@ async def chat_endpoint(req: ChatRequest) -> dict:
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Could not fetch market data: {exc}")
 
-    if not analyst.is_configured():
-        return {
-            "response": (
-                "No AI provider is configured on this server. "
-                "Ask the site owner to set an API key (ANTHROPIC_API_KEY, OPENAI_API_KEY, "
-                "or OPENAI_COMPAT_API_KEY via Groq/OpenRouter)."
-            ),
-            "disclaimer": GLOBAL_DISCLAIMER,
-        }
-
+    history = [t.model_dump() for t in (req.history or [])]
     try:
-        response = analyst.chat(snapshot, req.message)
+        result = analyst.chat(snapshot, question, history)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Chat failed: {exc}")
+        raise HTTPException(status_code=502, detail=f"AI chat failed: {exc}")
 
-    return {"response": response, "disclaimer": GLOBAL_DISCLAIMER}
+    return {
+        "reply": result["reply"],
+        "engine": result["engine"],
+        "model": result["model"],
+        "ticker": ticker,
+        "disclaimer": GLOBAL_DISCLAIMER,
+    }
 
 
 # --------------------------------------------------------------------------- #

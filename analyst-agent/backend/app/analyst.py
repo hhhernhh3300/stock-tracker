@@ -447,3 +447,161 @@ def analyze(snap: dict) -> dict:
     result["engine"] = provider          # e.g. "anthropic"
     result["model"] = DEFAULT_MODELS[provider]
     return result
+
+
+# --------------------------------------------------------------------------- #
+# Conversational Q&A (free-form chat grounded in the snapshot)
+# --------------------------------------------------------------------------- #
+
+CHAT_SYSTEM_PROMPT = """You are a quantitative equity-research assistant answering a \
+user's questions about a single stock. You are given a compact data snapshot (price, \
+technical indicators, fundamentals, and Wall-Street analyst consensus) as context.
+
+Guidelines:
+- Ground every claim in the provided snapshot. Do NOT invent news, earnings dates, \
+guidance, or numbers that aren't in the data. If something isn't in the snapshot, say \
+you don't have that data rather than guessing.
+- Be concise and plain-English (a few short paragraphs or bullet points). The reader \
+may not be a professional investor.
+- Be balanced — surface both supportive and cautionary points where relevant.
+- You are NOT a licensed financial advisor; this is EDUCATIONAL/RESEARCH information \
+only, not financial advice or a personalized recommendation. Never tell the user to \
+buy or sell — frame everything as what the data suggests.
+- Respond in plain prose/markdown. Do NOT wrap your answer in JSON."""
+
+
+def _chat_context(snap: dict) -> str:
+    """Render a compact, model-friendly context block from the snapshot."""
+    meta = snap.get("meta", {}) or {}
+    quote = snap.get("quote", {}) or {}
+    fund = snap.get("fundamentals", {}) or {}
+    an = snap.get("analyst", {}) or {}
+    ind = snap.get("indicators", {}) or {}
+    lines = [
+        f"Ticker: {meta.get('ticker')} — {meta.get('name')}",
+        f"Sector/Industry: {_fmt(meta.get('sector'))} / {_fmt(meta.get('industry'))}",
+        f"Price: {_fmt(quote.get('price'))} {meta.get('currency', '')} "
+        f"(day change {_fmt(quote.get('day_change_pct'), suffix='%')})",
+        f"52-week range: {_fmt(quote.get('fifty_two_week_low'))} - "
+        f"{_fmt(quote.get('fifty_two_week_high'))}",
+        "--- Fundamentals ---",
+        f"Market cap: {_fmt(fund.get('market_cap'))}",
+        f"Trailing P/E: {_fmt(fund.get('trailing_pe'))}, Forward P/E: "
+        f"{_fmt(fund.get('forward_pe'))}, PEG: {_fmt(fund.get('peg_ratio'))}",
+        f"Profit margin: {_fmt(fund.get('profit_margin'), pct=True)}, "
+        f"Revenue growth: {_fmt(fund.get('revenue_growth'), pct=True)}, "
+        f"Earnings growth: {_fmt(fund.get('earnings_growth'), pct=True)}",
+        f"Beta: {_fmt(fund.get('beta'))}, Dividend yield: "
+        f"{_fmt(fund.get('dividend_yield'), pct=True)}",
+        "--- Technicals (latest) ---",
+        f"SMA50: {_fmt(ind.get('sma50'))}, SMA200: {_fmt(ind.get('sma200'))}, "
+        f"RSI: {_fmt(ind.get('rsi'))}, MACD: {_fmt(ind.get('macd'))} / signal "
+        f"{_fmt(ind.get('macd_signal'))}",
+        "--- Analyst consensus ---",
+        f"Recommendation: {_fmt(an.get('recommendation'))} "
+        f"({_fmt(an.get('num_analysts'))} analysts)",
+        f"Mean target: {_fmt(an.get('target_mean'))} "
+        f"(upside {_fmt(an.get('target_upside_pct'), suffix='%')}), "
+        f"low {_fmt(an.get('target_low'))} / high {_fmt(an.get('target_high'))}",
+    ]
+    return "\n".join(lines)
+
+
+def _chat_messages(snap: dict, question: str, history: list | None = None) -> list:
+    """Build the OpenAI-style message list shared by the chat dispatchers."""
+    context = _chat_context(snap)
+    msgs = [
+        {"role": "system", "content": CHAT_SYSTEM_PROMPT},
+        {
+            "role": "system",
+            "content": f"Data snapshot for the stock in question:\n{context}",
+        },
+    ]
+    for turn in (history or [])[-8:]:
+        role = turn.get("role")
+        text = (turn.get("text") or turn.get("content") or "").strip()
+        if not text:
+            continue
+        msgs.append({"role": "assistant" if role in ("ai", "assistant") else "user", "content": text})
+    msgs.append({"role": "user", "content": question})
+    return msgs
+
+
+def _chat_anthropic(messages: list) -> str:
+    import anthropic  # lazy import
+
+    system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+    convo = [m for m in messages if m["role"] != "system"]
+    client = anthropic.Anthropic(api_key=_key_for("anthropic"))
+    resp = client.messages.create(
+        model=DEFAULT_MODELS["anthropic"],
+        max_tokens=1200,
+        system=system,
+        messages=[{"role": m["role"], "content": m["content"]} for m in convo],
+    )
+    return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+
+
+def _chat_openai(messages: list) -> str:
+    from openai import OpenAI  # lazy import
+
+    client = OpenAI(api_key=_key_for("openai"))
+    resp = client.chat.completions.create(
+        model=DEFAULT_MODELS["openai"], max_tokens=1200, messages=messages
+    )
+    return (resp.choices[0].message.content or "").strip()
+
+
+def _chat_gemini(messages: list) -> str:
+    import google.generativeai as genai  # lazy import
+
+    system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
+    genai.configure(api_key=_key_for("gemini"))
+    model = genai.GenerativeModel(
+        model_name=DEFAULT_MODELS["gemini"], system_instruction=system
+    )
+    convo = [m for m in messages if m["role"] != "system"]
+    parts = [
+        {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
+        for m in convo
+    ]
+    resp = model.generate_content(parts)
+    return (resp.text or "").strip()
+
+
+def _chat_openai_compatible(messages: list) -> str:
+    from openai import OpenAI  # lazy import
+
+    base_url = _compat_base_url()
+    model = DEFAULT_MODELS["openai_compatible"]
+    if not base_url or not model:
+        raise RuntimeError(
+            "openai_compatible chat needs OPENAI_COMPAT_BASE_URL and OPENAI_COMPAT_MODEL."
+        )
+    client = OpenAI(api_key=_key_for("openai_compatible"), base_url=base_url)
+    resp = client.chat.completions.create(model=model, max_tokens=1200, messages=messages)
+    return (resp.choices[0].message.content or "").strip()
+
+
+_CHAT_DISPATCH = {
+    "anthropic": _chat_anthropic,
+    "openai": _chat_openai,
+    "gemini": _chat_gemini,
+    "openai_compatible": _chat_openai_compatible,
+}
+
+
+def chat(snap: dict, question: str, history: list | None = None) -> dict:
+    """Answer a free-form question about the stock, grounded in the snapshot.
+
+    Returns {"reply": str, "engine": provider, "model": model}. Raises RuntimeError
+    if no provider is configured, or the SDK/HTTP error if the call fails.
+    """
+    provider = resolve_provider()
+    if provider is None:
+        raise RuntimeError(
+            "No LLM provider configured. Set an API key (and optionally LLM_PROVIDER)."
+        )
+    messages = _chat_messages(snap, question, history)
+    reply = _CHAT_DISPATCH[provider](messages)
+    return {"reply": reply, "engine": provider, "model": DEFAULT_MODELS[provider]}
