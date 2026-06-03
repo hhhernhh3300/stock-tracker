@@ -586,6 +586,41 @@ def diag_peers(ticker: str) -> dict:
     except Exception as exc:
         out["recs_by_symbol_error"] = str(exc)
 
+    # Probe the chart endpoint (same one .history() uses — known to work on Render).
+    try:
+        churl = (
+            f"https://query2.finance.yahoo.com/v8/finance/chart/"
+            f"{urllib.parse.quote(tu)}?range=5d&interval=1d"
+        )
+        cdata = _yf_get_json(churl)
+        cmeta = (
+            ((cdata.get("chart", {}) or {}).get("result") or [{}])[0] or {}
+        ).get("meta", {}) or {}
+        out["chart_ok"] = bool(cmeta)
+        out["chart_price"] = cmeta.get("regularMarketPrice")
+        out["chart_prev"] = cmeta.get("chartPreviousClose") or cmeta.get("previousClose")
+    except Exception as exc:
+        out["chart_error"] = str(exc)
+
+    # Probe quoteSummary (carries sector/price via summaryProfile + price modules).
+    try:
+        qsurl = (
+            f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/"
+            f"{urllib.parse.quote(tu)}?modules=price,summaryProfile"
+        )
+        qsdata = _yf_get_json(qsurl)
+        qsres = (
+            ((qsdata.get("quoteSummary", {}) or {}).get("result") or [{}])[0] or {}
+        )
+        pr = qsres.get("price", {}) or {}
+        prof = qsres.get("summaryProfile", {}) or {}
+        out["qsummary_ok"] = bool(pr or prof)
+        rmp = pr.get("regularMarketPrice", {}) or {}
+        out["qsummary_price"] = rmp.get("raw") if isinstance(rmp, dict) else rmp
+        out["qsummary_sector"] = prof.get("sector")
+    except Exception as exc:
+        out["qsummary_error"] = str(exc)
+
     try:
         info = yf.Ticker(tu).info or {}
         out["info_keys"] = len(info)
