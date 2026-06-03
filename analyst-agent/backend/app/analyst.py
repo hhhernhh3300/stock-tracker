@@ -34,11 +34,50 @@ from pydantic import BaseModel, Field
 DEFAULT_MODELS = {
     "anthropic": os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
     "openai": os.environ.get("OPENAI_MODEL", "gpt-4o-2024-11-20"),
-    "gemini": os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
+    # NOTE: this is just the *preferred* Gemini model. Google rotates/deprecates
+    # model ids on the API, so the Gemini callers actually try a fallback chain
+    # (_gemini_candidates) and use the first one that works. Set GEMINI_MODEL to
+    # pin a specific id.
+    "gemini": os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
     # OpenAI-COMPATIBLE gateways (Groq, OpenRouter, Mistral, Cerebras, LiteLLM,
     # corporate gateways). No universal default model — set OPENAI_COMPAT_MODEL.
+    #   Groq examples:  llama-3.3-70b-versatile, llama-3.1-8b-instant,
+    #                   llama-4-scout-17b-16e-instruct, llama-4-maverick-17b-128e-instruct,
+    #                   mixtral-8x7b-32768
+    #   Mistral examples: mistral-large-latest, mistral-small-latest, open-mixtral-8x22b
     "openai_compatible": os.environ.get("OPENAI_COMPAT_MODEL", ""),
 }
+
+# Gemini fallback chain. Tried in order until one returns successfully. A pinned
+# GEMINI_MODEL (if set) is always tried first. Ordered newest/most-capable -> most
+# widely available so a single deprecated id can't take AI offline. Override the
+# whole list with GEMINI_MODELS (comma-separated).
+_GEMINI_FALLBACKS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-flash-latest",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash",
+    "gemini-pro-latest",
+]
+
+
+def _gemini_candidates() -> list[str]:
+    """Ordered, de-duplicated list of Gemini model ids to try."""
+    override = (os.environ.get("GEMINI_MODELS") or "").strip()
+    if override:
+        ids = [m.strip() for m in override.split(",") if m.strip()]
+    else:
+        ids = [DEFAULT_MODELS["gemini"], *_GEMINI_FALLBACKS]
+    seen: set[str] = set()
+    out: list[str] = []
+    for m in ids:
+        if m and m not in seen:
+            seen.add(m)
+            out.append(m)
+    return out
 
 # Map provider -> env var(s) that hold its key (checked in order).
 _PROVIDER_KEYS = {
@@ -280,13 +319,23 @@ def _call_gemini(user_msg: str) -> dict:
     import google.generativeai as genai  # lazy import
 
     genai.configure(api_key=_key_for("gemini"))
-    model = genai.GenerativeModel(
-        model_name=DEFAULT_MODELS["gemini"],
-        system_instruction=SYSTEM_PROMPT,
-        generation_config={"response_mime_type": "application/json"},
+    last_err: Exception | None = None
+    for model_name in _gemini_candidates():
+        try:
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=SYSTEM_PROMPT,
+                generation_config={"response_mime_type": "application/json"},
+            )
+            resp = model.generate_content(user_msg)
+            return _extract_json(resp.text)
+        except Exception as exc:  # 404 / not-found / unsupported -> try next id
+            last_err = exc
+            continue
+    raise RuntimeError(
+        f"All Gemini models failed ({', '.join(_gemini_candidates())}). "
+        f"Last error: {last_err}"
     )
-    resp = model.generate_content(user_msg)
-    return _extract_json(resp.text)
 
 
 def _call_openai_compatible(user_msg: str) -> dict:
@@ -338,87 +387,6 @@ _DISPATCH = {
     "gemini": _call_gemini,
     "openai_compatible": _call_openai_compatible,
 }
-
-
-# --------------------------------------------------------------------------- #
-# Conversational chat (plain-text responses)
-# --------------------------------------------------------------------------- #
-
-CHAT_SYSTEM_PROMPT = (
-    "You are a knowledgeable equity-research assistant. You have been given current "
-    "market data for a stock. Answer the user's question in a balanced, plain-English "
-    "way (2-4 paragraphs). Cite specific numbers from the data when relevant. Always "
-    "note that your response is for educational and research purposes only — not "
-    "personalized financial advice and not the output of a licensed advisor."
-)
-
-
-def _chat_anthropic(system: str, user_msg: str) -> str:
-    import anthropic
-    client = anthropic.Anthropic(api_key=_key_for("anthropic"))
-    resp = client.messages.create(
-        model=DEFAULT_MODELS["anthropic"],
-        max_tokens=1000,
-        system=system,
-        messages=[{"role": "user", "content": user_msg}],
-    )
-    return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
-
-
-def _chat_openai(system: str, user_msg: str) -> str:
-    from openai import OpenAI
-    client = OpenAI(api_key=_key_for("openai"))
-    resp = client.chat.completions.create(
-        model=DEFAULT_MODELS["openai"],
-        max_tokens=1000,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
-    )
-    return resp.choices[0].message.content
-
-
-def _chat_gemini(system: str, user_msg: str) -> str:
-    import google.generativeai as genai
-    genai.configure(api_key=_key_for("gemini"))
-    model = genai.GenerativeModel(model_name=DEFAULT_MODELS["gemini"], system_instruction=system)
-    return model.generate_content(user_msg).text
-
-
-def _chat_openai_compatible(system: str, user_msg: str) -> str:
-    from openai import OpenAI
-    base_url = _compat_base_url()
-    if not base_url:
-        raise RuntimeError("openai_compatible provider needs OPENAI_COMPAT_BASE_URL set.")
-    model = DEFAULT_MODELS["openai_compatible"]
-    if not model:
-        raise RuntimeError("openai_compatible provider needs OPENAI_COMPAT_MODEL set.")
-    client = OpenAI(api_key=_key_for("openai_compatible"), base_url=base_url)
-    resp = client.chat.completions.create(
-        model=model,
-        max_tokens=1000,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_msg}],
-    )
-    return resp.choices[0].message.content
-
-
-_CHAT_DISPATCH = {
-    "anthropic": _chat_anthropic,
-    "openai": _chat_openai,
-    "gemini": _chat_gemini,
-    "openai_compatible": _chat_openai_compatible,
-}
-
-
-def chat(snap: dict, message: str) -> str:
-    """Return a conversational plain-text response about the stock."""
-    provider = resolve_provider()
-    if provider is None:
-        raise RuntimeError(
-            "No LLM provider configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, "
-            "GEMINI_API_KEY, or OPENAI_COMPAT_API_KEY."
-        )
-    context = _build_user_message(snap)
-    system = CHAT_SYSTEM_PROMPT + "\n\n--- CURRENT MARKET DATA ---\n" + context
-    return _CHAT_DISPATCH[provider](system, message)
 
 
 # --------------------------------------------------------------------------- #
@@ -557,16 +525,26 @@ def _chat_gemini(messages: list) -> str:
 
     system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
     genai.configure(api_key=_key_for("gemini"))
-    model = genai.GenerativeModel(
-        model_name=DEFAULT_MODELS["gemini"], system_instruction=system
-    )
     convo = [m for m in messages if m["role"] != "system"]
     parts = [
         {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
         for m in convo
     ]
-    resp = model.generate_content(parts)
-    return (resp.text or "").strip()
+    last_err: Exception | None = None
+    for model_name in _gemini_candidates():
+        try:
+            model = genai.GenerativeModel(
+                model_name=model_name, system_instruction=system
+            )
+            resp = model.generate_content(parts)
+            return (resp.text or "").strip()
+        except Exception as exc:  # 404 / not-found / unsupported -> try next id
+            last_err = exc
+            continue
+    raise RuntimeError(
+        f"All Gemini models failed ({', '.join(_gemini_candidates())}). "
+        f"Last error: {last_err}"
+    )
 
 
 def _chat_openai_compatible(messages: list) -> str:

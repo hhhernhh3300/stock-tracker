@@ -219,25 +219,147 @@ def _peer_snapshot(ticker: str) -> dict | None:
     }
 
 
-def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
-    """Best-effort sector peers. Uses yfinance's recommendations when present,
-    otherwise returns just the queried ticker. Kept small to respect rate limits."""
-    symbols: list[str] = []
+# Browser-like headers; Yahoo's JSON endpoints reject requests without them.
+_YF_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+}
+
+
+def _yf_json(url: str) -> dict:
+    """GET a Yahoo Finance JSON endpoint (stdlib only). Returns {} on any error."""
+    try:
+        req = urllib.request.Request(url, headers=_YF_HEADERS)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8")) or {}
+    except Exception:
+        return {}
+
+
+def _peers_recommendations_by_symbol(ticker: str) -> list[str]:
+    """DYNAMIC peer discovery: ask Yahoo for the symbols related to *this* ticker.
+
+    Yahoo's ``recommendationsbysymbol`` endpoint returns the "people also follow"
+    list for whatever symbol is passed — i.e. peers are looked up live from the
+    searched ticker, with no hardcoded mapping."""
+    out: list[str] = []
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v6/finance/"
+            f"recommendationsbysymbol/{urllib.parse.quote(ticker)}"
+        )
+        data = _yf_json(url)
+        results = (
+            (data.get("finance", {}) or {}).get("result")
+            or data.get("recommendedSymbols")
+            or []
+        )
+        for entry in results:
+            for item in (entry or {}).get("recommendedSymbols", []) or []:
+                sym = (item or {}).get("symbol")
+                if sym:
+                    out.append(sym.upper())
+        if out:
+            break
+    return out
+
+
+def _peers_from_yf_recommendations(ticker: str) -> list[str]:
+    """Fallback: peer symbols from the yfinance ``.recommendations`` attribute."""
+    out: list[str] = []
     try:
         rec = getattr(yf.Ticker(ticker), "recommendations", None)
-        # Some yfinance versions expose a 'recommendedSymbols' style payload.
         if isinstance(rec, list):
             for r in rec:
                 sym = (r or {}).get("symbol")
                 if sym:
-                    symbols.append(sym)
+                    out.append(sym.upper())
     except Exception:
         pass
+    return out
+
+
+def _peers_by_sector_screen(base_info: dict, limit: int = 12) -> list[str]:
+    """Fallback: find tickers that share the searched symbol's sector/industry via
+    Yahoo's screener. Still driven by the searched symbol — its own sector/industry
+    is the filter, so no peer list is hardcoded."""
+    sector = (base_info or {}).get("sector")
+    industry = (base_info or {}).get("industry") or (base_info or {}).get("industryKey")
+    if not sector and not industry:
+        return []
+
+    # Yahoo's predefined screener requires its own sector keys; the free-form
+    # query screener lets us filter directly on the searched symbol's sector.
+    body = {
+        "size": limit,
+        "offset": 0,
+        "sortField": "intradaymarketcap",
+        "sortType": "DESC",
+        "quoteType": "EQUITY",
+        "query": {
+            "operator": "AND",
+            "operands": [
+                {"operator": "EQ", "operands": ["sector", sector]} if sector else None,
+                {"operator": "EQ", "operands": ["region", "us"]},
+            ],
+        },
+    }
+    body["query"]["operands"] = [op for op in body["query"]["operands"] if op]
+
+    out: list[str] = []
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v1/finance/screener?"
+            "crumb=&lang=en-US&region=US"
+        )
+        try:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(body).encode("utf-8"),
+                headers={**_YF_HEADERS, "Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8")) or {}
+        except Exception:
+            data = {}
+        results = (data.get("finance", {}) or {}).get("result") or []
+        for r in results:
+            for q in (r or {}).get("quotes", []) or []:
+                sym = (q or {}).get("symbol")
+                if sym:
+                    out.append(sym.upper())
+        if out:
+            break
+    return out
+
+
+def _get_peers(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
+    """Sector peers for the comparison table — discovered DYNAMICALLY from the
+    searched symbol (no hardcoded peer lists):
+
+      1. Yahoo ``recommendationsbysymbol`` ("people also follow" for this ticker).
+      2. yfinance ``.recommendations`` attribute (same idea, different transport).
+      3. Yahoo screener filtered by the searched symbol's own sector/industry.
+
+    The queried ticker is always the first row. Capped to ``limit`` to respect
+    rate limits."""
+    tu = ticker.upper()
+
+    candidates: list[str] = _peers_recommendations_by_symbol(ticker)
+    if not candidates:
+        candidates = _peers_from_yf_recommendations(ticker)
+    if not candidates:
+        candidates = _peers_by_sector_screen(base_info)
+
     # De-dupe, drop self, cap the count to limit API calls.
-    seen, peers_syms = set(), []
-    for s in symbols:
-        su = s.upper()
-        if su != ticker.upper() and su not in seen:
+    seen, peers_syms = {tu}, []
+    for s in candidates:
+        su = (s or "").upper()
+        if su and su not in seen:
             seen.add(su)
             peers_syms.append(su)
         if len(peers_syms) >= limit:
