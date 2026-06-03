@@ -3,6 +3,23 @@ uvicorn[standard]>=0.27
 yfinance>=0.2.50
 pandas>=2.0
 numpy>=1.24
-anthropic>=0.69
 python-dotenv>=1.0
 requests>=2.31
+pydantic>=2.6
+
+# --- LLM provider SDKs (optional) ---------------------------------------------
+# The analyst module imports these lazily, so you only need the one matching the
+# provider you set in .env (LLM_PROVIDER). Installing all is fine.
+#
+#   The "openai" package also powers EVERY OpenAI-COMPATIBLE gateway
+#   (LLM_PROVIDER=openai_compatible) via OPENAI_BASE_URL. That single path covers
+#   the popular FREE-tier providers:
+#       Groq        -> https://api.groq.com/openai/v1        (console.groq.com/keys)
+#       OpenRouter  -> https://openrouter.ai/api/v1          (openrouter.ai/keys, ":free" models)
+#       Mistral     -> https://api.mistral.ai/v1             (console.mistral.ai)
+#       Cerebras    -> https://api.cerebras.ai/v1            (cloud.cerebras.ai)
+#       LiteLLM / corporate gateways (any /v1 endpoint)
+#
+anthropic>=0.69          # LLM_PROVIDER=anthropic
+openai>=1.40             # LLM_PROVIDER=openai | openai_compatible (Groq/OpenRouter/Mistral/Cerebras/...)
+google-generativeai>=0.7 # LLM_PROVIDER=gemini  (FREE tier: aistudio.google.com/app/apikey)

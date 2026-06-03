@@ -2,9 +2,21 @@
 
 An educational "financial analyst agent." Enter a ticker → the backend pulls market
 data, computes technical indicators (50/200-day SMA, RSI, MACD), aggregates fundamentals
-and Wall-Street analyst consensus, and asks **Claude** to produce a structured
-**buy / sell / hold** read for the upcoming trading days, with reasoning and a risk level.
-A React dashboard shows the AI summary plus a price chart with moving averages and an RSI panel.
+and Wall-Street analyst consensus, and produces a structured **buy / sell / hold** read
+for the upcoming trading days, with reasoning and a risk level.
+A React dashboard shows the summary plus a price chart with moving averages and an RSI panel.
+
+The assessment can be generated two ways:
+
+- **Free, no key, default** — a transparent, deterministic rule-based engine
+  ([`rules.py`](backend/app/rules.py)) scores the indicators/fundamentals/consensus locally.
+- **AI-written (optional)** — bring **your own** LLM API key and the app uses an LLM for
+  richer natural-language reasoning. It is **provider-agnostic**: Anthropic, OpenAI,
+  Google Gemini, or any OpenAI-compatible gateway (Groq, OpenRouter, Mistral, Cerebras,
+  LiteLLM, corporate gateways). Several of these have a **free tier**.
+
+> 🔑 **You supply your own key.** Put it in `backend/.env` (git-ignored). Never commit a
+> key or paste it anywhere public — providers auto-revoke leaked keys.
 
 > ⚠️ **Educational and research use only.** This is **not** financial advice, **not** a
 > personalized recommendation, and **not** the output of a licensed financial advisor.
@@ -53,9 +65,17 @@ is structured with an adapter pattern so you can plug in a paid provider later.
 
 ## Prerequisites
 
-- **Python 3.10+** (the backend uses pandas / yfinance / the Anthropic SDK)
+- **Python 3.10+** (the backend uses pandas / yfinance)
 - **Node.js 18+** (for the React frontend)
-- An **Anthropic API key** → https://console.anthropic.com/settings/keys
+- **(Optional) an LLM API key** — only if you want AI-written analysis. Without one,
+  the app uses the free rule-based engine. Pick whichever you like:
+  | Provider | Get a key | Cost |
+  |---|---|---|
+  | **Google Gemini** | https://aistudio.google.com/app/apikey | **Free tier** |
+  | **Groq** (OpenAI-compatible) | https://console.groq.com/keys | **Free tier** |
+  | **OpenRouter** (OpenAI-compatible) | https://openrouter.ai/keys | **Free** `:free` models |
+  | OpenAI | https://platform.openai.com/api-keys | Paid (pennies/call) |
+  | Anthropic | https://console.anthropic.com/settings/keys | Paid (pennies/call) |
 
 ---
 
@@ -73,19 +93,28 @@ venv\Scripts\activate
 
 pip install -r requirements.txt
 
-# configure your key
+# configure (optional — leave keys blank to use the FREE rule-based engine)
 copy .env.example .env        # Windows  (macOS/Linux: cp .env.example .env)
-# then edit .env and set ANTHROPIC_API_KEY=sk-ant-...
+# then edit .env. Pick ONE of:
+#   FREE, no AI        -> leave all keys blank
+#   FREE Gemini AI     -> LLM_PROVIDER=gemini  + GEMINI_API_KEY=...
+#   FREE Groq AI       -> LLM_PROVIDER=openai_compatible
+#                         OPENAI_COMPAT_API_KEY=...  (from console.groq.com/keys)
+#                         OPENAI_COMPAT_BASE_URL=https://api.groq.com/openai/v1
+#                         OPENAI_COMPAT_MODEL=llama-3.3-70b-versatile
+#   Paid OpenAI/Claude -> OPENAI_API_KEY=... / ANTHROPIC_API_KEY=...
 
 # run the API (http://localhost:8000)
 uvicorn app.main:app --reload --port 8000
 ```
 
-Quick check: open http://localhost:8000/api/health → `{"status":"ok","ai_configured":true}`.
+Quick check: open http://localhost:8000/api/health → e.g.
+`{"status":"ok","ai_configured":true,"llm_provider":"gemini","llm_model":"gemini-1.5-flash","rules_fallback":true}`.
+If no key is set you'll see `"ai_configured":false` and the app uses the rule-based engine.
 Try http://localhost:8000/api/analyze/AAPL to see the raw JSON.
 
-> If `pip install` complains about the `anthropic` version, run `pip install -U anthropic`
-> (structured outputs need a recent SDK).
+> The provider SDKs are imported lazily — you only need the package for the provider you
+> chose. `pip install -r requirements.txt` installs all of them so any provider works.
 
 ## 2) Frontend — React + Tailwind
 
@@ -103,19 +132,44 @@ The frontend talks to `http://localhost:8000` by default; override with
 
 ---
 
-## How the AI call works (`analyst.py`)
+## How the assessment works (`analyst.py` + `rules.py`)
 
-- Model: **`claude-opus-4-8`** with **adaptive thinking**.
-- **Structured outputs** — the response is validated against the `StockAssessment` schema
-  (`signal`, `conviction`, `risk_level`, `time_horizon`, `summary`, `bullish_factors`,
-  `bearish_factors`, `technical_read`, `reasoning`, `disclaimer`), so the frontend always gets
-  clean, typed JSON.
-- **Prompt caching** on the static system prompt → cheaper/faster repeat calls.
+**Engine selection** (in `main.py`):
+
+1. If an LLM key is configured, the LLM writes the assessment.
+2. Otherwise (or if the LLM call fails and `ALLOW_RULES_FALLBACK=true`, the default),
+   the free deterministic engine in [`rules.py`](backend/app/rules.py) produces it.
+
+The returned `assessment` carries an `engine` field (`anthropic` / `openai` / `gemini` /
+`openai_compatible` / `rules`) so you always know which produced it.
+
+**Provider-agnostic LLM layer** (`analyst.py`):
+
+- One `analyze(snap)` entrypoint dispatches to the provider chosen by `LLM_PROVIDER`
+  (or auto-detected from whichever key is present).
+- Supported: **Anthropic**, **OpenAI**, **Google Gemini**, and **any OpenAI-compatible
+  gateway** (Groq, OpenRouter, Mistral, Cerebras, LiteLLM, corporate gateways) via
+  `OPENAI_COMPAT_BASE_URL`.
+- The model is asked for **JSON only** and the response is validated against the
+  `StockAssessment` Pydantic schema (`signal`, `conviction`, `risk_level`, `time_horizon`,
+  `summary`, `bullish_factors`, `bearish_factors`, `technical_read`, `reasoning`,
+  `disclaimer`), so the frontend always gets clean, typed JSON.
 - The system prompt hard-codes the compliance rule: educational only, not advice, never a
   buy/sell instruction.
+- SDKs are imported lazily and keys are read **only** from the environment — nothing is
+  hardcoded, and `.env` is git-ignored.
 
-If the AI call fails (e.g. missing key, rate limit), the API still returns the market data and
-charts and surfaces the error in `ai_error` — the dashboard degrades gracefully.
+If the AI call fails (missing key, rate limit, bad model id), the API still returns the
+market data and charts; it falls back to the rule-based engine and surfaces the cause in
+`ai_error` — the dashboard degrades gracefully.
+
+### Bringing your own key (security)
+
+- Put the key in `backend/.env` only. **Never** commit it or paste it into chats, issues,
+  or screenshots — providers scan public sources and auto-revoke leaked keys within minutes.
+- If a key is ever exposed, **rotate it** in the provider console immediately.
+- Only use a gateway key (e.g. a corporate/LiteLLM gateway) if you are **authorized** to
+  use it for this purpose.
 
 ---
 
