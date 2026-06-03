@@ -1,0 +1,26 @@
+# Cloudflare Pages config for the Analyst Agent frontend.
+#
+# Cloudflare Pages serves the static Vite build (./dist) on a free, global CDN URL
+# like https://analyst-agent.pages.dev. The FastAPI backend is NOT hosted here
+# (Cloudflare has no Python server runtime) — it stays on Render/Railway/Fly, and
+# the frontend reaches it via either:
+#   (a) VITE_API_URL pointing at the backend's public https URL (needs CORS), or
+#   (b) the optional Pages Function in ./functions/api/[[path]].js, which proxies
+#       /api/* to the backend so the app is SAME-ORIGIN (no CORS). For (b), set the
+#       BACKEND_URL environment variable in the Pages dashboard instead of VITE_API_URL.
+#
+# Deploy options:
+#   - Dashboard: Cloudflare → Workers & Pages → Create → Pages → connect this repo.
+#       Root directory:  analyst-agent/frontend
+#       Build command:   npm run build
+#       Output dir:      dist
+#   - CLI: from analyst-agent/frontend run:  npx wrangler pages deploy dist
+
+name = "analyst-agent"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-11-01"
+
+# Environment variables for the build/runtime are best set in the Pages dashboard
+# (Settings → Environment variables), e.g.:
+#   VITE_API_URL = https://analyst-agent-api.onrender.com   (option a)
+#   BACKEND_URL  = https://analyst-agent-api.onrender.com   (option b, used by the proxy)

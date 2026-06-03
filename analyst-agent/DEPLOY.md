@@ -67,6 +67,48 @@ build `npm run build`, publish `dist`, env `VITE_API_URL=...`.
 
 ---
 
+## Option C — Cloudflare Pages (frontend) + Python backend elsewhere
+
+Cloudflare is excellent for the **frontend** (Pages = free global CDN). Important: it
+has **no traditional Python server**, so the FastAPI backend can't run on Cloudflare as
+written — keep it on Render/Railway/Fly (use [`render.yaml`](render.yaml)). The repo
+includes [`frontend/wrangler.toml`](frontend/wrangler.toml) and an optional proxy
+Function at `frontend/functions/api/[[path]].js`.
+
+**C1 — Pages + same-origin proxy (recommended, no CORS):**
+1. Deploy the backend somewhere (e.g. Render) → note its URL, e.g.
+   `https://analyst-agent-api.onrender.com`.
+2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → pick
+   `hhhernhh3300/stock-tracker`.
+   - **Root directory:** `analyst-agent/frontend`
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+3. **Settings → Environment variables** → add `BACKEND_URL = https://analyst-agent-api.onrender.com`.
+   (Do **not** set `VITE_API_URL` for this option — the app calls relative `/api/...`,
+   which the included Pages Function proxies to `BACKEND_URL`. Same origin → no CORS.)
+4. Save & deploy. Your website is `https://<project>.pages.dev`. Done. ✅
+
+**C2 — Pages calling the backend directly (no proxy):**
+1. Same Pages setup as above, but set `VITE_API_URL = https://<backend-url>` instead of
+   `BACKEND_URL`, and delete/ignore the proxy Function.
+2. On the backend set `CORS_ORIGINS = https://<project>.pages.dev`.
+
+**CLI alternative (Wrangler):**
+```bash
+cd analyst-agent/frontend
+npm install
+npm run build
+npx wrangler pages deploy dist           # first run prompts you to log in
+# then add BACKEND_URL (C1) or VITE_API_URL (C2) in the Pages project settings
+```
+
+> Running the FastAPI app as a **Cloudflare Python Worker** is technically possible
+> (Workers Python is in beta) but **not supported here** — it can't use `pandas`/
+> `yfinance`, so you'd have to reimplement the data layer with `fetch`. Stick with a
+> Python host for the backend.
+
+---
+
 ## Other free backend hosts
 
 The backend is a standard FastAPI/uvicorn app, so it also runs on:
