@@ -187,10 +187,14 @@ def _get_info(ticker: str) -> dict:
     info: dict = {}
 
     # ── Tier 1: yfinance .info ───────────────────────────────────────────────
-    try:
-        info = yf.Ticker(ticker).info or {}
-    except Exception:
-        info = {}
+    # Skip when the auth breaker is open (IP throttled): .info hangs the longest
+    # under throttle and would only fail slowly. Currency/price still come from
+    # the chart endpoint, so we degrade fast instead of timing out the request.
+    if not _auth_breaker_open():
+        try:
+            info = yf.Ticker(ticker).info or {}
+        except Exception:
+            info = {}
 
     # ── Tier 2: direct quoteSummary (if .info is thin) ──────────────────────
     if not _info_is_rich(info):
@@ -400,26 +404,52 @@ def _yf_get_json(url: str) -> dict:
 # on shared cloud IPs) came back empty. This completes the handshake ourselves #
 # so the fallback tiers actually return data for global symbols.              #
 # ─────────────────────────────────────────────────────────────────────────── #
-_CRUMB_STATE: dict = {"session": None, "crumb": None}
+# `retry_after` negative-caches a failed handshake so we don't repeat the slow
+# fc.yahoo.com + getcrumb round-trip on every call (and every peer) while Yahoo
+# is throttling this IP — that was turning one throttled request into 18-30s.
+_CRUMB_STATE: dict = {"session": None, "crumb": None, "retry_after": 0.0}
+
+# Circuit breaker: after several consecutive auth-fetch failures we assume the
+# IP is throttled and short-circuit the expensive crumb path for a cooldown,
+# so requests fail FAST (price + currency still come from the chart endpoint).
+_AUTH_BREAKER: dict = {"until": 0.0, "fails": 0}
+_AUTH_FAIL_THRESHOLD = 3
+_AUTH_COOLDOWN = 120.0  # seconds
+
+
+def _auth_breaker_open() -> bool:
+    return time.time() < _AUTH_BREAKER["until"]
+
+
+def _auth_record(success: bool) -> None:
+    if success:
+        _AUTH_BREAKER["fails"] = 0
+        _AUTH_BREAKER["until"] = 0.0
+    else:
+        _AUTH_BREAKER["fails"] += 1
+        if _AUTH_BREAKER["fails"] >= _AUTH_FAIL_THRESHOLD:
+            _AUTH_BREAKER["until"] = time.time() + _AUTH_COOLDOWN
 
 
 def _yf_crumb_session():
     """Return (requests.Session, crumb) authenticated against Yahoo, or (None, None).
 
-    Cached after the first successful handshake. The session carries the Yahoo
-    consent cookies; the crumb is the per-session token Yahoo requires on its
-    data endpoints."""
+    Cached after a successful handshake; NEGATIVE-cached for 90s after a failure
+    so we don't repeat the slow handshake on every call during a throttle window.
+    Short timeouts keep a throttled handshake from hanging the request."""
     if _CRUMB_STATE["session"] is not None and _CRUMB_STATE["crumb"]:
         return _CRUMB_STATE["session"], _CRUMB_STATE["crumb"]
+    if time.time() < _CRUMB_STATE["retry_after"]:
+        return None, None  # negative-cached: skip the handshake for now
     try:
         import requests  # in requirements.txt
 
         s = requests.Session()
         s.headers.update(_YF_HEADERS)
-        # 1. obtain consent cookies
+        # 1. obtain consent cookies (short timeout — fail fast under throttle)
         for cookie_url in ("https://fc.yahoo.com", "https://finance.yahoo.com"):
             try:
-                s.get(cookie_url, timeout=10)
+                s.get(cookie_url, timeout=5)
                 break
             except Exception:
                 continue
@@ -427,18 +457,21 @@ def _yf_crumb_session():
         for host in ("query2", "query1"):
             try:
                 r = s.get(
-                    f"https://{host}.finance.yahoo.com/v1/test/getcrumb", timeout=10
+                    f"https://{host}.finance.yahoo.com/v1/test/getcrumb", timeout=5
                 )
                 crumb = (r.text or "").strip()
                 # A valid crumb is short and not an HTML error page.
                 if crumb and "<" not in crumb and len(crumb) < 40:
                     _CRUMB_STATE["session"] = s
                     _CRUMB_STATE["crumb"] = crumb
+                    _CRUMB_STATE["retry_after"] = 0.0
                     return s, crumb
             except Exception:
                 continue
     except Exception:
         pass
+    # Handshake failed — don't retry it for 90s.
+    _CRUMB_STATE["retry_after"] = time.time() + 90.0
     return None, None
 
 
@@ -490,9 +523,15 @@ def _yf_auth_json(url: str) -> dict:
       1. yfinance curl_cffi session + its crumb  (best — proven to work on Render)
       2. plain requests session + own handshake  (independent fallback path)
       3. bare yfinance session, no crumb          (last resort)
-    Each strategy only short-circuits when it returns REAL results, so a stale
-    crumb on one path can't block a working one. Crumbs are refreshed on 401/403."""
+    Each strategy only short-circuits when it returns REAL results. A circuit
+    breaker skips strategies 1-2 entirely after repeated failures (IP throttled)
+    so requests fail FAST instead of hanging on every fallback timeout."""
     sep = "&" if "?" in url else "?"
+
+    # Breaker open → IP looks throttled. Skip the slow auth path; the bare
+    # endpoint still serves cached/price data and returns quickly.
+    if _auth_breaker_open():
+        return _yf_get_json(url)
 
     # ── Strategy 1: yfinance session + its own crumb ───────────────────────
     ysess, ycrumb = _yf_session_crumb()
@@ -500,6 +539,7 @@ def _yf_auth_json(url: str) -> dict:
         try:
             data = ysess.get_raw_json(f"{url}{sep}crumb={urllib.parse.quote(ycrumb)}")
             if _yf_payload_ok(data):
+                _auth_record(True)
                 return data
         except Exception:
             pass
@@ -509,22 +549,27 @@ def _yf_auth_json(url: str) -> dict:
     if session is not None and crumb:
         full = f"{url}{sep}crumb={urllib.parse.quote(crumb)}"
         try:
-            r = session.get(full, timeout=12)
+            r = session.get(full, timeout=7)
             if r.status_code == 200:
                 data = r.json() or {}
                 if _yf_payload_ok(data):
+                    _auth_record(True)
                     return data
             if r.status_code in (401, 403):
                 _reset_crumb()
                 session, crumb = _yf_crumb_session()
                 if session is not None and crumb:
-                    r = session.get(f"{url}{sep}crumb={urllib.parse.quote(crumb)}", timeout=12)
+                    r = session.get(f"{url}{sep}crumb={urllib.parse.quote(crumb)}", timeout=7)
                     if r.status_code == 200:
                         data = r.json() or {}
                         if _yf_payload_ok(data):
+                            _auth_record(True)
                             return data
         except Exception:
             pass
+
+    # Both auth strategies failed → count toward the breaker.
+    _auth_record(False)
 
     # ── Strategy 3: bare session, no crumb (may still be cached) ───────────
     return _yf_get_json(url)
