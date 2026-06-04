@@ -1269,7 +1269,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         # raises the rate-limit message, so the request can't hang the gateway.
         _hist_fut = _NET_POOL.submit(get_history, ticker)
         try:
-            df = _hist_fut.result(timeout=12)
+            df = _hist_fut.result(timeout=9)
         except concurrent.futures.TimeoutError:
             raise ValueError(
                 f"Market data for '{ticker}' timed out (provider is rate-limiting). "
@@ -1292,9 +1292,12 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     f_news = _NET_POOL.submit(_get_news, ticker)
     f_peers = _NET_POOL.submit(_get_peers_safe, ticker, {})
 
-    # All four share ONE 14s wall-clock deadline, so the whole bundle is bounded
-    # at ~14s total no matter the collection order.
-    _deadline = time.monotonic() + 14.0
+    # All four share ONE 9s wall-clock deadline, so the whole bundle is bounded
+    # no matter the collection order. Kept short on purpose: under throttle the
+    # fundamentals fail regardless, and the request still has a price-history fetch
+    # (<=9s) AND a downstream LLM assessment call to fit under Render's gateway
+    # limit — so the data fetch must stay tight to avoid a 502.
+    _deadline = time.monotonic() + 9.0
 
     def _await(fut, default):
         remaining = max(0.1, _deadline - time.monotonic())
