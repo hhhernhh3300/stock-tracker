@@ -1,11 +1,15 @@
 fastapi>=0.110
 uvicorn[standard]>=0.27
-yfinance>=0.2.50
+yfinance>=0.2.58
 pandas>=2.0
 numpy>=1.24
 python-dotenv>=1.0
 requests>=2.31
 pydantic>=2.6
+# curl_cffi enables yfinance's browser-impersonation session (TLS fingerprint +
+# Yahoo cookie/crumb handshake).  Without it, all Yahoo calls fall back to plain
+# urllib which is heavily rate-limited from shared cloud IPs like Render.
+curl_cffi>=0.7
 
 # --- LLM provider SDKs (optional) ---------------------------------------------
 # The analyst module imports these lazily, so you only need the one matching the

@@ -1,15 +1,19 @@
-"""Market-data aggregation.
+"""Market-data aggregation — multi-source, resilient on shared cloud IPs.
 
-Primary source: Yahoo Finance via the `yfinance` library — prices, fundamentals,
-and Wall-Street analyst consensus (Yahoo aggregates ratings/price targets from
-many brokerages). Optional fallback: Alpha Vantage for a live quote.
+Primary:  Yahoo Finance via yfinance (prices, fundamentals, analyst consensus).
+          Three-tier fallback so metrics still populate when Yahoo rate-limits:
+            1. yf.Ticker().info          — richest, most throttled on Render
+            2. /v10/finance/quoteSummary — same richness, different code-path
+            3. /v7/finance/quote batch   — lighter but covers price/cap/PE/sector
 
-NOTE ON DATA SOURCES: brokerage platforms (Webull, IBKR, moomoo, Tiger,
-Robinhood) require authenticated accounts, and Bloomberg / WSJ / Reuters /
-Seeking Alpha are paywalled — none expose a free, aggregatable market-data API,
-and scraping them violates their terms. So this module standardizes on Yahoo
-Finance (free, broad coverage, includes analyst consensus). `_alpha_vantage_quote`
-shows the adapter pattern for plugging in another provider; add more the same way.
+Optional: set any of these env vars for additional data enrichment:
+  ALPHAVANTAGE_API_KEY  — Alpha Vantage OVERVIEW (fundamentals, analyst targets)
+                          free tier: 25 req/day  https://www.alphavantage.co
+  FMP_API_KEY           — Financial Modeling Prep profile + key metrics
+                          free tier: 250 req/day  https://financialmodelingprep.com
+
+NOTE: brokerage APIs (Webull, IBKR, moomoo), Bloomberg, Reuters, Seeking Alpha
+are either auth-gated or paywalled and cannot be used without user credentials.
 """
 from __future__ import annotations
 
@@ -129,47 +133,108 @@ def _derive_latest(frame: pd.DataFrame) -> dict:
     }
 
 
-def _get_info(ticker: str) -> dict:
-    """Fundamentals/consensus for the searched symbol.
+def _info_is_rich(info: dict) -> bool:
+    """Return True when `info` carries meaningful fundamental data."""
+    return bool(
+        info.get("sector")
+        and (info.get("trailingPE") or info.get("marketCap"))
+        and info.get("profitMargins") is not None
+    )
 
-    Primary: ``Ticker.info`` (richest payload). On a shared cloud IP (Render)
-    Yahoo aggressively rate-limits ``.info`` — when it comes back empty or thin
-    (e.g. no ``sector``), we merge in the lighter ``/v7/finance/quote`` payload so
-    sector, price, market cap and P/E still populate. The quote fields use the
-    same key names as ``.info`` for these overlapping fields, so downstream code
-    is unchanged."""
+
+def _merge_missing(dst: dict, src: dict, keys: tuple) -> None:
+    """Copy src[key] → dst[key] only when dst[key] is absent/falsy."""
+    for k in keys:
+        if not dst.get(k) and src.get(k) is not None:
+            dst[k] = src[k]
+
+
+_COMMON_KEYS = (
+    "sector", "industry", "shortName", "longName",
+    "currentPrice", "regularMarketPrice", "regularMarketPreviousClose",
+    "regularMarketChangePercent", "previousClose",
+    "marketCap", "trailingPE", "forwardPE", "pegRatio",
+    "beta", "fiftyTwoWeekHigh", "fiftyTwoWeekLow",
+    "currency", "fullExchangeName", "exchange",
+    "profitMargins", "revenueGrowth", "earningsGrowth",
+    "dividendYield", "trailingAnnualDividendYield",
+    "targetMeanPrice", "targetHighPrice", "targetLowPrice",
+    "numberOfAnalystOpinions", "recommendationKey", "recommendationMean",
+)
+
+
+def _get_info(ticker: str) -> dict:
+    """Fundamentals + analyst consensus — three-tier Yahoo fallback chain.
+
+    Tier 1  yf.Ticker().info
+            Richest payload; internally calls quoteSummary but cached by
+            yfinance.  Most aggressively rate-limited on shared cloud IPs.
+
+    Tier 2  /v10/finance/quoteSummary
+            Direct call with the same modules yfinance uses internally.
+            Different URL path → often succeeds when .info is throttled.
+            Covers all fundamentals, analyst targets, and sector/industry.
+
+    Tier 3  /v7/finance/quote (batch)
+            Lighter; covers price, market cap, P/E, beta, 52w range, sector.
+            Does NOT carry profit margins / growth rates / analyst consensus,
+            but keeps the basic fact sheet populated if both tiers 1 & 2 fail.
+
+    Optional enrichment layers (applied after Yahoo tiers):
+      Alpha Vantage OVERVIEW  when ALPHAVANTAGE_API_KEY is set
+      FMP profile + metrics   when FMP_API_KEY is set
+    """
     info: dict = {}
+
+    # ── Tier 1: yfinance .info ───────────────────────────────────────────────
     try:
         info = yf.Ticker(ticker).info or {}
     except Exception:
         info = {}
 
-    # If the heavy .info call was throttled (no sector / no price), backfill from
-    # the lightweight batch-quote endpoint (routed through the YfData session).
+    # ── Tier 2: direct quoteSummary (if .info is thin) ──────────────────────
+    if not _info_is_rich(info):
+        try:
+            qs = _yf_quote_summary(ticker)
+            if qs:
+                _merge_missing(info, qs, _COMMON_KEYS)
+        except Exception:
+            pass
+
+    # ── Tier 3: batch /v7 quote (fill remaining price/cap/sector gaps) ───────
     if not info.get("sector") or not (
         info.get("currentPrice") or info.get("regularMarketPrice")
     ):
         try:
             q = _yf_quote_batch([ticker]).get(ticker.upper()) or {}
+            _merge_missing(info, q, _COMMON_KEYS + (
+                "trailingAnnualDividendYield", "priceToBook",
+            ))
         except Exception:
-            q = {}
-        for key in (
-            "sector",
-            "industry",
-            "shortName",
-            "longName",
-            "regularMarketPrice",
-            "regularMarketPreviousClose",
-            "regularMarketChangePercent",
-            "marketCap",
-            "trailingPE",
-            "fiftyTwoWeekHigh",
-            "fiftyTwoWeekLow",
-            "currency",
-            "fullExchangeName",
-        ):
-            if not info.get(key) and q.get(key) is not None:
-                info[key] = q[key]
+            pass
+
+    # dividendYield alias: some endpoints use trailingAnnualDividendYield
+    if not info.get("dividendYield") and info.get("trailingAnnualDividendYield"):
+        info["dividendYield"] = info["trailingAnnualDividendYield"]
+
+    # ── Optional: Alpha Vantage OVERVIEW ────────────────────────────────────
+    if not _info_is_rich(info):
+        try:
+            av = _alpha_vantage_overview(ticker)
+            if av:
+                _merge_missing(info, av, _COMMON_KEYS)
+        except Exception:
+            pass
+
+    # ── Optional: Financial Modeling Prep ───────────────────────────────────
+    if not _info_is_rich(info):
+        try:
+            fmp = _fmp_fundamentals(ticker)
+            if fmp:
+                _merge_missing(info, fmp, _COMMON_KEYS)
+        except Exception:
+            pass
+
     return info
 
 
@@ -326,6 +391,226 @@ def _yf_get_json(url: str) -> dict:
     return _yf_json(url)
 
 
+# ─────────────────────────────────────────────────────────────────────────── #
+# Yahoo quoteSummary — rich fundamentals + analyst data in one call           #
+# ─────────────────────────────────────────────────────────────────────────── #
+_SUMMARY_MODULES = (
+    "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile"
+)
+
+
+def _raw(v):
+    """Unwrap a Yahoo {"raw": n, "fmt": "…"} wrapper or return v unchanged."""
+    if isinstance(v, dict) and "raw" in v:
+        return v["raw"]
+    return v
+
+
+def _yf_quote_summary(ticker: str) -> dict:
+    """Call Yahoo's /v10/finance/quoteSummary endpoint directly.
+
+    This endpoint returns the same rich payload as ``Ticker.info`` but uses a
+    different code-path that is less aggressively rate-limited on Render's shared
+    IPs.  All numeric values are returned as {"raw": n, "fmt": "…"} wrappers
+    which we unwrap, producing a flat dict with the same key names that
+    ``get_market_snapshot`` already looks up in the `info` dict.
+
+    Modules pulled:
+      price              — regularMarketPrice, marketCap, currency, name
+      summaryDetail      — beta, 52-week hi/lo, previousClose, dividendYield
+      defaultKeyStatistics — trailingPE, forwardPE, pegRatio
+      financialData      — profitMargins, revenueGrowth, earningsGrowth,
+                           analyst target / recommendation / # analysts
+      assetProfile       — sector, industry
+    """
+    quoted = urllib.parse.quote(ticker)
+    modules = urllib.parse.quote(_SUMMARY_MODULES)
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v10/finance/quoteSummary/"
+            f"{quoted}?modules={modules}"
+        )
+        data = _yf_get_json(url)
+        result_list = (data.get("quoteSummary", {}) or {}).get("result") or []
+        if not result_list:
+            continue
+        merged: dict = {}
+        # Flatten all modules into a single dict; later modules override earlier
+        # ones only for missing keys (summaryDetail.beta vs defaultKeyStatistics.beta
+        # — both are fine; we take whichever arrives first).
+        for module_data in result_list[0].values():
+            if not isinstance(module_data, dict):
+                continue
+            for k, v in module_data.items():
+                if k not in merged and v is not None:
+                    merged[k] = _raw(v)
+        if merged:
+            return merged
+    return {}
+
+
+# ─────────────────────────────────────────────────────────────────────────── #
+# Alpha Vantage OVERVIEW — optional fundamentals + analyst enrichment         #
+# Set ALPHAVANTAGE_API_KEY to activate. Free tier: 25 req/day.               #
+# ─────────────────────────────────────────────────────────────────────────── #
+
+# Maps Alpha Vantage OVERVIEW keys → yfinance-style info keys used downstream
+_AV_KEY_MAP = {
+    "MarketCapitalization": "marketCap",
+    "TrailingPE":           "trailingPE",
+    "ForwardPE":            "forwardPE",
+    "PEGRatio":             "pegRatio",
+    "Beta":                 "beta",
+    "52WeekHigh":           "fiftyTwoWeekHigh",
+    "52WeekLow":            "fiftyTwoWeekLow",
+    "DividendYield":        "dividendYield",
+    "ProfitMargin":         "profitMargins",
+    "QuarterlyEarningsGrowthYOY": "earningsGrowth",
+    "QuarterlyRevenueGrowthYOY":  "revenueGrowth",
+    "AnalystTargetPrice":   "targetMeanPrice",
+    "Sector":               "sector",
+    "Industry":             "industry",
+    "Name":                 "longName",
+    "Symbol":               "symbol",
+    # analyst rating counts — aggregate below
+    "AnalystRatingStrongBuy":  "_av_strong_buy",
+    "AnalystRatingBuy":        "_av_buy",
+    "AnalystRatingHold":       "_av_hold",
+    "AnalystRatingSell":       "_av_sell",
+    "AnalystRatingStrongSell": "_av_strong_sell",
+}
+
+
+def _alpha_vantage_overview(ticker: str) -> dict:
+    """Fetch the Alpha Vantage OVERVIEW endpoint and return an info-compatible dict.
+
+    Activated when ALPHAVANTAGE_API_KEY is set. Free tier: 25 API calls/day.
+    Returns {} if the key is not set or the call fails."""
+    key = os.environ.get("ALPHAVANTAGE_API_KEY", "").strip()
+    if not key:
+        return {}
+    try:
+        qs = urllib.parse.urlencode(
+            {"function": "OVERVIEW", "symbol": ticker, "apikey": key}
+        )
+        with urllib.request.urlopen(
+            f"https://www.alphavantage.co/query?{qs}", timeout=15
+        ) as resp:
+            raw = json.loads(resp.read().decode("utf-8"))
+        if not raw or "Symbol" not in raw:
+            return {}
+        out: dict = {}
+        for av_key, info_key in _AV_KEY_MAP.items():
+            v = raw.get(av_key)
+            if v in (None, "", "None", "N/A", "-"):
+                continue
+            try:
+                numeric = float(v)
+                out[info_key] = numeric
+            except (TypeError, ValueError):
+                out[info_key] = v  # keep string (sector, industry, name)
+        # Derive analyst counts + recommendation_mean from rating breakdown
+        try:
+            sb = float(raw.get("AnalystRatingStrongBuy", 0) or 0)
+            b  = float(raw.get("AnalystRatingBuy",       0) or 0)
+            h  = float(raw.get("AnalystRatingHold",      0) or 0)
+            s  = float(raw.get("AnalystRatingSell",      0) or 0)
+            ss = float(raw.get("AnalystRatingStrongSell",0) or 0)
+            total = sb + b + h + s + ss
+            if total > 0:
+                out["numberOfAnalystOpinions"] = int(total)
+                # Weighted mean: 1=strong buy … 5=strong sell
+                mean = (sb*1 + b*2 + h*3 + s*4 + ss*5) / total
+                out["recommendationMean"] = round(mean, 2)
+                if mean <= 1.5:
+                    out["recommendationKey"] = "strong_buy"
+                elif mean <= 2.5:
+                    out["recommendationKey"] = "buy"
+                elif mean <= 3.5:
+                    out["recommendationKey"] = "hold"
+                elif mean <= 4.5:
+                    out["recommendationKey"] = "sell"
+                else:
+                    out["recommendationKey"] = "strong_sell"
+        except (TypeError, ValueError):
+            pass
+        # Remove internal keys
+        for k in list(out):
+            if k.startswith("_av_"):
+                del out[k]
+        return out
+    except Exception:
+        return {}
+
+
+# ─────────────────────────────────────────────────────────────────────────── #
+# Financial Modeling Prep — optional fundamentals enrichment                  #
+# Set FMP_API_KEY to activate. Free tier: 250 req/day.                       #
+# ─────────────────────────────────────────────────────────────────────────── #
+
+def _fmp_fundamentals(ticker: str) -> dict:
+    """Fetch FMP profile + key-metrics-TTM and return an info-compatible dict.
+
+    Activated when FMP_API_KEY is set. Free tier: 250 API calls/day.
+    FMP profile covers: price, marketCap, beta, 52w range, sector/industry.
+    Key-metrics-TTM covers: P/E, P/B, EV/EBITDA, profit margin, ROE, ROA.
+    Returns {} if the key is not set or the call fails."""
+    key = os.environ.get("FMP_API_KEY", "").strip()
+    if not key:
+        return {}
+    base = "https://financialmodelingprep.com/api/v3"
+    out: dict = {}
+    try:
+        # --- profile ---
+        url = f"{base}/profile/{urllib.parse.quote(ticker)}?apikey={key}"
+        req = urllib.request.Request(url, headers=_YF_HEADERS)
+        with urllib.request.urlopen(req, timeout=12) as r:
+            profiles = json.loads(r.read().decode("utf-8")) or []
+        p = profiles[0] if profiles else {}
+        _fmp_set(out, p, "companyName",     "longName")
+        _fmp_set(out, p, "sector",          "sector")
+        _fmp_set(out, p, "industry",        "industry")
+        _fmp_set(out, p, "mktCap",          "marketCap",    numeric=True)
+        _fmp_set(out, p, "price",           "regularMarketPrice", numeric=True)
+        _fmp_set(out, p, "beta",            "beta",         numeric=True)
+        _fmp_set(out, p, "lastDiv",         "dividendYield",numeric=True)
+        _fmp_set(out, p, "currency",        "currency")
+        _fmp_set(out, p, "exchangeShortName","fullExchangeName")
+    except Exception:
+        pass
+    try:
+        # --- key metrics TTM ---
+        url = f"{base}/key-metrics-ttm/{urllib.parse.quote(ticker)}?apikey={key}"
+        req = urllib.request.Request(url, headers=_YF_HEADERS)
+        with urllib.request.urlopen(req, timeout=12) as r:
+            km_list = json.loads(r.read().decode("utf-8")) or []
+        km = km_list[0] if km_list else {}
+        _fmp_set(out, km, "peRatioTTM",             "trailingPE",   numeric=True)
+        _fmp_set(out, km, "pegRatioTTM",            "pegRatio",     numeric=True)
+        _fmp_set(out, km, "netProfitMarginTTM",     "profitMargins",numeric=True)
+        _fmp_set(out, km, "revenueGrowthTTM",       "revenueGrowth",numeric=True)
+    except Exception:
+        pass
+    return out
+
+
+def _fmp_set(out: dict, src: dict, src_key: str, dst_key: str,
+             numeric: bool = False) -> None:
+    """Copy src[src_key] into out[dst_key] only when the destination is empty."""
+    if out.get(dst_key) is not None:
+        return
+    v = src.get(src_key)
+    if v in (None, "", "N/A"):
+        return
+    if numeric:
+        try:
+            out[dst_key] = float(v)
+            return
+        except (TypeError, ValueError):
+            return
+    out[dst_key] = v
+
+
 # --- batch quote ----------------------------------------------------------- #
 # Yahoo's /v7/finance/quote returns price, change, market cap, P/E, name AND
 # sector for MANY symbols in a SINGLE request. That matters in production:
@@ -334,7 +619,10 @@ def _yf_get_json(url: str) -> dict:
 # (instead of one ``.info`` call per peer) is far more resilient on Render.
 _QUOTE_FIELDS = (
     "symbol,shortName,longName,regularMarketPrice,regularMarketPreviousClose,"
-    "regularMarketChangePercent,marketCap,trailingPE,sector,industry"
+    "regularMarketChangePercent,marketCap,trailingPE,forwardPE,beta,"
+    "fiftyTwoWeekHigh,fiftyTwoWeekLow,sector,industry,currency,fullExchangeName,"
+    "trailingAnnualDividendYield,priceToBook,epsTrailingTwelveMonths,epsForward,"
+    "profitMargins,pegRatio"
 )
 
 
@@ -413,7 +701,9 @@ def _row_from_quote(sym: str, q: dict) -> dict:
         "change_pct": _round(chg, 2),
         "market_cap": q.get("marketCap"),
         "trailing_pe": _round(q.get("trailingPE")),
-        "profit_margin": None,  # not in the lightweight quote payload
+        # profitMargins is now in the expanded _QUOTE_FIELDS; may still be None
+        # for some symbols if Yahoo omits it from the batch endpoint.
+        "profit_margin": _round(q.get("profitMargins"), 4),
         "revenue": None,
     }
 
@@ -624,7 +914,7 @@ def _get_peers_safe(ticker: str, base_info: dict, limit: int = 6) -> list[dict]:
 
 
 def _alpha_vantage_quote(ticker: str) -> float | None:
-    """Optional fallback live quote via Alpha Vantage (stdlib only)."""
+    """Optional fallback live quote via Alpha Vantage GLOBAL_QUOTE endpoint."""
     key = os.environ.get("ALPHAVANTAGE_API_KEY", "").strip()
     if not key:
         return None
@@ -663,7 +953,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
 
     frame = _indicator_frame(df)
     latest = _derive_latest(frame)
-    info = _get_info(ticker)  # fundamentals + analyst consensus (always Yahoo)
+    info = _get_info(ticker)  # fundamentals + analyst consensus (multi-source)
 
     # --- live price: IBKR snapshot first when in use, then Yahoo, then fallbacks ---
     price = ibkr.snapshot_price(ticker) if used_ibkr else None
@@ -731,6 +1021,18 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     except Exception:
         peers = []
 
+    # Build a human-readable data-source label for the status bar
+    sources = []
+    if used_ibkr:
+        sources.append("IBKR (prices/history)")
+    else:
+        sources.append("Yahoo Finance")
+    if os.environ.get("ALPHAVANTAGE_API_KEY") and _info_is_rich(info):
+        sources.append("Alpha Vantage")
+    if os.environ.get("FMP_API_KEY") and _info_is_rich(info):
+        sources.append("FMP")
+    data_source_label = " + ".join(sources)
+
     return {
         "meta": meta,
         "quote": quote,
@@ -740,10 +1042,6 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "series": series,
         "news": news,
         "peers": peers,
-        "data_source": (
-            "IBKR Client Portal — prices/history; Yahoo Finance — fundamentals & analyst consensus"
-            if used_ibkr
-            else "Yahoo Finance (prices, fundamentals, analyst consensus)"
-        ),
+        "data_source": data_source_label,
         "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }
