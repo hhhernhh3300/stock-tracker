@@ -35,7 +35,9 @@ from . import ibkr, indicators
 # internal HTTP calls have their own long timeouts we can't always cap, so we
 # run the network-heavy steps in a worker and abandon them if they overrun —
 # guaranteeing the API responds well within Render's gateway limit (no 502s).
-_NET_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+# Sized generously so abandoned (orphaned) calls that are still draining can't
+# starve fresh requests of a worker during a throttle window.
+_NET_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=32)
 
 
 def _run_budget(fn, timeout, default, *args, **kwargs):
@@ -80,8 +82,13 @@ def _round(value, digits=2):
 # Yahoo Finance access
 # --------------------------------------------------------------------------- #
 def get_history(ticker: str, period: str = "2y", interval: str = "1d") -> pd.DataFrame:
-    """Daily OHLCV history. 2y is enough to seed a valid 200-day SMA."""
-    df = yf.Ticker(ticker).history(period=period, interval=interval, auto_adjust=False)
+    """Daily OHLCV history. 2y is enough to seed a valid 200-day SMA.
+
+    Passes an explicit per-request timeout so a throttled chart endpoint can't
+    hang indefinitely (which would hold a pool worker as an orphan thread)."""
+    df = yf.Ticker(ticker).history(
+        period=period, interval=interval, auto_adjust=False, timeout=10
+    )
     if df is None or df.empty:
         raise ValueError(f"No price history found for '{ticker}'. Check the symbol.")
     return df.dropna(subset=["Close"])
@@ -1257,7 +1264,17 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
                 raise
             df = None  # auto: fall through to Yahoo
     if df is None:
-        df = get_history(ticker)  # Yahoo Finance
+        # Hard 12s budget on the price history too. A genuine "bad symbol" error
+        # from get_history propagates normally (-> 404); only a real timeout
+        # raises the rate-limit message, so the request can't hang the gateway.
+        _hist_fut = _NET_POOL.submit(get_history, ticker)
+        try:
+            df = _hist_fut.result(timeout=12)
+        except concurrent.futures.TimeoutError:
+            raise ValueError(
+                f"Market data for '{ticker}' timed out (provider is rate-limiting). "
+                "Please try again in a moment."
+            )
 
     frame = _indicator_frame(df)
     latest = _derive_latest(frame)
