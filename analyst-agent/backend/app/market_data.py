@@ -392,6 +392,69 @@ def _yf_get_json(url: str) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────── #
+# Live symbol search (autocomplete) — Yahoo /v1/finance/search               #
+# ─────────────────────────────────────────────────────────────────────────── #
+
+# Map Yahoo quoteType → a short, friendly label for the dropdown.
+_TYPE_LABEL = {
+    "EQUITY": "Stock",
+    "ETF": "ETF",
+    "MUTUALFUND": "Fund",
+    "INDEX": "Index",
+    "CURRENCY": "FX",
+    "CRYPTOCURRENCY": "Crypto",
+    "FUTURE": "Future",
+    "OPTION": "Option",
+}
+
+
+def search_symbols(query: str, limit: int = 12) -> list[dict]:
+    """Live symbol search across global exchanges via Yahoo's search endpoint.
+
+    Powers the search-as-you-type box: a user types a company name or a partial
+    ticker and gets back matching symbols with their exchange and instrument
+    type.  Yahoo's search index spans essentially every listing it tracks
+    worldwide — US (NYSE/NASDAQ/AMEX), London, Euronext, Toronto, Hong Kong,
+    Tokyo, Frankfurt, Australia, India, etc. — plus ETFs, indices, FX and crypto.
+
+    Routed through the browser-impersonating YfData session so it works from
+    Render's shared cloud IP.  Returns a list of:
+        {symbol, name, exchange, type}
+    Empty list on an empty query or any failure (never raises)."""
+    q = (query or "").strip()
+    if not q:
+        return []
+    quoted = urllib.parse.quote(q)
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v1/finance/search?"
+            f"q={quoted}&quotesCount={limit}&newsCount=0&listsCount=0&"
+            "enableFuzzyQuery=false&quotesQueryId=tss_match_phrase_query"
+        )
+        data = _yf_get_json(url)
+        quotes = data.get("quotes") or []
+        if not quotes:
+            continue
+        out: list[dict] = []
+        for item in quotes:
+            sym = (item or {}).get("symbol")
+            if not sym:
+                continue
+            qtype = (item.get("quoteType") or "").upper()
+            out.append({
+                "symbol": sym.upper(),
+                "name": item.get("longname") or item.get("shortname") or sym,
+                "exchange": item.get("exchDisp") or item.get("exchange") or "",
+                "type": _TYPE_LABEL.get(qtype, item.get("typeDisp") or qtype.title()),
+            })
+            if len(out) >= limit:
+                break
+        if out:
+            return out
+    return []
+
+
+# ─────────────────────────────────────────────────────────────────────────── #
 # Yahoo quoteSummary — rich fundamentals + analyst data in one call           #
 # ─────────────────────────────────────────────────────────────────────────── #
 _SUMMARY_MODULES = (

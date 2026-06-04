@@ -93,6 +93,23 @@ def health() -> dict:
     }
 
 
+@app.get("/api/search")
+def search(q: str = "") -> dict:
+    """Live symbol search for the autocomplete box.
+
+    Returns up to ~12 matching symbols (stocks, ETFs, indices, FX, crypto) from
+    Yahoo's global search index for the partial name/ticker in `q`. Best-effort:
+    returns an empty list rather than erroring on a bad/empty query."""
+    query = (q or "").strip()
+    if not query:
+        return {"query": "", "results": []}
+    try:
+        results = market_data.search_symbols(query)
+    except Exception:
+        results = []
+    return {"query": query, "results": results}
+
+
 @app.get("/api/analyze/{ticker}")
 def analyze(ticker: str) -> dict:
     ticker = (ticker or "").strip().upper()

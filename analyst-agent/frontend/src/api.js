@@ -40,6 +40,22 @@ export async function analyzeTicker(ticker) {
   return res.json()
 }
 
+// Live symbol search for the autocomplete dropdown. Returns an array of
+// { symbol, name, exchange, type }. Never throws — returns [] on any failure so
+// a transient search hiccup never blocks the user from typing/searching.
+export async function searchSymbols(query) {
+  const q = (query || '').trim()
+  if (!q) return []
+  try {
+    const res = await fetch(`${BASE}/api/search?q=${encodeURIComponent(q)}`)
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.results) ? data.results : []
+  } catch {
+    return []
+  }
+}
+
 // Free-form Q&A about a ticker, grounded in a fresh server-side snapshot.
 // `history` is an optional array of { role: 'user'|'ai', text } turns.
 export async function chatAboutTicker(ticker, message, history = []) {

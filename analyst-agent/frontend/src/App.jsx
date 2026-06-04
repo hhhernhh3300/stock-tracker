@@ -3,7 +3,7 @@ import {
   AreaChart, Area, ComposedChart, Bar, Line,
   XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell,
 } from 'recharts'
-import { analyzeTicker, chatAboutTicker } from './api'
+import { analyzeTicker, chatAboutTicker, searchSymbols } from './api'
 
 /* ───────────── design tokens ───────────── */
 const T = {
@@ -1238,9 +1238,17 @@ export default function App() {
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('overview')
 
+  // ── autocomplete state ──
+  const [suggest, setSuggest] = useState([])
+  const [showSuggest, setShowSuggest] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const suggestTimer = useRef(null)
+  const suggestSeq = useRef(0)
+
   async function run(sym) {
     const s = (sym ?? search).trim().toUpperCase()
     if (!s) return
+    setShowSuggest(false); setSuggest([])
     setLoading(true); setError(null)
     try {
       const result = await analyzeTicker(s)
@@ -1253,6 +1261,42 @@ export default function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Debounced live symbol search as the user types.
+  function onSearchChange(val) {
+    setSearch(val)
+    setActiveIdx(-1)
+    if (suggestTimer.current) clearTimeout(suggestTimer.current)
+    const q = val.trim()
+    if (q.length < 1) { setSuggest([]); setShowSuggest(false); return }
+    const seq = ++suggestSeq.current
+    suggestTimer.current = setTimeout(async () => {
+      const results = await searchSymbols(q)
+      // Ignore out-of-order responses (a later keystroke already fired).
+      if (seq !== suggestSeq.current) return
+      setSuggest(results)
+      setShowSuggest(results.length > 0)
+    }, 180)
+  }
+
+  function pickSuggestion(sym) {
+    setSearch(sym)
+    setShowSuggest(false)
+    setSuggest([])
+    run(sym)
+  }
+
+  function onSearchKeyDown(e) {
+    if (showSuggest && suggest.length) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggest.length - 1)); return }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); return }
+      if (e.key === 'Escape')    { setShowSuggest(false); return }
+      if (e.key === 'Enter' && activeIdx >= 0 && suggest[activeIdx]) {
+        e.preventDefault(); pickSuggestion(suggest[activeIdx].symbol); return
+      }
+    }
+    if (e.key === 'Enter') run()
   }
 
   const quote = data?.quote
@@ -1320,14 +1364,38 @@ export default function App() {
           <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 18, color: T.amber }}>ANALYST</span>
           <span style={{ fontFamily: T.head, fontSize: 18, color: T.muted }}>AGENT</span>
         </div>
-        <div className="aa-nav-search">
-          <input value={search} onChange={e => setSearch(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && run()}
-            placeholder="Ticker — AAPL, TSLA, NVDA…"
+        <div className="aa-nav-search" style={{ position: 'relative' }}>
+          <input value={search}
+            onChange={e => onSearchChange(e.target.value)}
+            onKeyDown={onSearchKeyDown}
+            onFocus={() => suggest.length && setShowSuggest(true)}
+            onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+            placeholder="Search any stock — name or ticker…"
+            autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck="false"
             style={{ flex: 1, background: '#0f121a', border: `1px solid ${T.border}`, borderRadius: 6, padding: '7px 12px', color: T.text, fontSize: 13, fontFamily: T.mono, outline: 'none', minWidth: 0 }} />
           <button onClick={() => run()} disabled={loading}
             style={{ background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: '7px 14px', color: T.amber, fontSize: 12, fontFamily: T.mono, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
             {loading ? '…' : 'GO'}
           </button>
+          {showSuggest && suggest.length > 0 && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: T.surface, border: `1px solid ${T.borderMid}`, borderRadius: 8,
+              overflow: 'hidden', zIndex: 200, maxHeight: 360, overflowY: 'auto',
+              boxShadow: '0 8px 28px rgba(0,0,0,0.55)' }}>
+              {suggest.map((s, i) => (
+                <div key={s.symbol + i}
+                  onMouseDown={e => { e.preventDefault(); pickSuggestion(s.symbol) }}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                    cursor: 'pointer', borderBottom: i < suggest.length - 1 ? `1px solid ${T.border}` : 'none',
+                    background: i === activeIdx ? T.amberDim : 'transparent' }}>
+                  <span style={{ fontFamily: T.mono, fontWeight: 700, color: T.amber, fontSize: 12, minWidth: 58, flexShrink: 0 }}>{s.symbol}</span>
+                  <span style={{ fontSize: 12, color: T.text, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+                  <span style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, whiteSpace: 'nowrap', flexShrink: 0 }}>{[s.exchange, s.type].filter(Boolean).join(' · ')}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="aa-nav-status">
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, animation: 'pulse 2s infinite', display: 'inline-block' }} />
