@@ -228,6 +228,333 @@ function buildIndicatorCards(i, q) {
   return cards
 }
 
+/* ═══════════════════════════════════════════════════════════
+   QUANTITATIVE RISK / OPPORTUNITY ENGINE
+   Each metric is scored on two independent 0-10 axes:
+     risk  — downside / valuation stretch / structural weakness
+     opp   — upside / mean-reversion / entry quality
+   R/R ratio = opp / risk  (higher = better risk-adjusted reward)
+═══════════════════════════════════════════════════════════ */
+function computeROR(data) {
+  const f   = data.fundamentals || {}
+  const i   = data.indicators   || {}
+  const a   = data.analyst      || {}
+  const q   = data.quote        || {}
+  const n   = v => (v != null && !Number.isNaN(Number(v))) ? Number(v) : null
+  const asPct = v => { const x = n(v); if (x == null) return null; return Math.abs(x) < 1.5 ? x * 100 : x }
+
+  const valItems = [], techItems = [], fundItems = [], sentItems = []
+
+  // ── VALUATION ────────────────────────────────────
+  const pe = n(f.trailing_pe)
+  if (pe != null && pe > 0) {
+    let r, o, v, c
+    if      (pe > 80) { r=5; o=0; v='high-risk';   c='Extreme valuation (P/E>80). Requires sustained hypergrowth — any earnings miss risks sharp multiple compression. Asymmetric downside.' }
+    else if (pe > 50) { r=3; o=0; v='caution';     c='Rich valuation (P/E>50). Priced for perfection. Downside risk is asymmetric if growth slows even slightly.' }
+    else if (pe > 30) { r=2; o=1; v='caution';     c='Elevated multiple (P/E>30). Growth premium is baked in. Only justified for high-quality compounders with durable, visible earnings.' }
+    else if (pe > 15) { r=1; o=2; v='neutral';     c='Fair-to-reasonable valuation (P/E 15-30). Neither deeply cheap nor dangerously expensive. Balanced risk/reward depends on growth quality.' }
+    else              { r=0; o=4; v='opportunity';  c='Cheap valuation (P/E<15). Market is pricing in risk — if fears are overdone, meaningful re-rating potential exists. Classic value opportunity.' }
+    valItems.push({ metric: 'Trailing P/E', value: pe.toFixed(1)+'×', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const peg = n(f.peg_ratio)
+  if (peg != null && peg > 0) {
+    let r, o, v, c
+    if      (peg > 3)   { r=3; o=0; v='high-risk';   c='Highly growth-adjusted expensive (PEG>3). Paying 3× the growth rate — historically associated with poor forward 3-year returns and high drawdown risk.' }
+    else if (peg > 2)   { r=2; o=0; v='caution';     c='Growth premium elevated (PEG 2-3). Risk increases significantly if growth disappoints even modestly. Earnings revisions could be sharp.' }
+    else if (peg > 1.2) { r=1; o=1; v='neutral';     c='Moderate growth premium (PEG 1.2-2). Acceptable for quality compounders with predictable earnings trajectories.' }
+    else if (peg > 0.5) { r=0; o=2; v='opportunity'; c='GARP zone (PEG 0.5-1.2). Growth at a reasonable price — strong risk/reward for growth-oriented portfolios.' }
+    else                { r=0; o=3; v='opportunity'; c='Deep growth value (PEG<0.5). Growth significantly underpriced. Primary opportunity: earnings re-rating as growth re-accelerates.' }
+    valItems.push({ metric: 'PEG Ratio', value: peg.toFixed(2), rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const fpe = n(f.forward_pe)
+  if (fpe != null && pe != null && pe > 0 && fpe > 0) {
+    const diff = pe - fpe
+    let r, o, v, c
+    if      (diff > 10) { r=0; o=3; v='opportunity'; c='Strong earnings expansion: forward P/E ('+fpe.toFixed(1)+'×) well below trailing ('+pe.toFixed(1)+'×). Growing into the multiple — reduces valuation risk over time.' }
+    else if (diff > 3)  { r=0; o=2; v='opportunity'; c='Positive earnings momentum: forward P/E ('+fpe.toFixed(1)+'×) below trailing ('+pe.toFixed(1)+'×). Gradual multiple compression expected as earnings grow.' }
+    else if (diff > -3) { r=1; o=1; v='neutral';     c='Flat earnings: forward P/E ('+fpe.toFixed(1)+'×) in line with trailing ('+pe.toFixed(1)+'×). Growth must re-accelerate to sustain current multiples.' }
+    else                { r=3; o=0; v='high-risk';   c='Earnings expected to DECLINE: forward P/E ('+fpe.toFixed(1)+'×) ABOVE trailing ('+pe.toFixed(1)+'×). Deteriorating EPS at premium multiples is a high-risk configuration.' }
+    valItems.push({ metric: 'Fwd vs TTM P/E', value: pe.toFixed(1)+'× → '+fpe.toFixed(1)+'×', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  // ── TECHNICAL ────────────────────────────────────
+  const rsi = n(i.rsi); const zone = (i.rsi_zone || '').toLowerCase()
+  if (rsi != null) {
+    let r, o, v, c
+    if      (zone === 'overbought') { r=3; o=0; v='caution';     c='RSI '+rsi.toFixed(1)+' — overbought (>70). Entry risk is elevated. Near-term pullback probability is high. Favours waiting for RSI to cool or using smaller position sizes.' }
+    else if (rsi > 60)              { r=1; o=2; v='opportunity'; c='RSI '+rsi.toFixed(1)+' — bullish momentum zone (60-70). Healthy trending territory, not yet overextended. Good risk/reward for trend-following entries.' }
+    else if (rsi > 45)              { r=0; o=1; v='neutral';     c='RSI '+rsi.toFixed(1)+' — neutral (45-60). No strong directional edge. Favours systematic accumulation over momentum entry.' }
+    else if (rsi > 30)              { r=2; o=2; v='neutral';     c='RSI '+rsi.toFixed(1)+' — weakening (30-45). Bearish short term but approaching mean-reversion zone. Wait for RSI to stabilise above 40 before acting on the opportunity.' }
+    else                            { r=2; o=3; v='opportunity'; c='RSI '+rsi.toFixed(1)+' — oversold (<30). High mean-reversion opportunity potential. Risk: oversold can persist in downtrends. Require fundamental support before entering.' }
+    techItems.push({ metric: 'RSI (14)', value: rsi.toFixed(1), rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const macdState = (i.macd_state || '').toLowerCase()
+  if (macdState) {
+    const bull = macdState.includes('bull')
+    techItems.push({ metric: 'MACD Momentum', value: bull ? 'Bullish' : 'Bearish',
+      rPts: bull ? 0 : 2, oPts: bull ? 2 : 0,
+      verdict: bull ? 'opportunity' : 'caution',
+      ctx: bull
+        ? 'MACD bullish configuration: positive momentum with lower near-term correction risk. Favours trend-following strategies and supports holding existing positions.'
+        : 'MACD bearish: negative momentum. Higher near-term correction risk. Reduces attractiveness of immediate entries — wait for a momentum confirmation (histogram turning positive) before adding.'
+    })
+  }
+
+  const trend = (i.trend || '').toLowerCase()
+  if (trend) {
+    const golden = trend.includes('golden')
+    techItems.push({ metric: 'Trend Structure', value: golden ? 'Golden Cross' : 'Death Cross',
+      rPts: golden ? 0 : 3, oPts: golden ? 2 : 0,
+      verdict: golden ? 'opportunity' : 'high-risk',
+      ctx: golden
+        ? 'Golden cross (50d > 200d): long-term bullish structure intact. Institutional flows historically favour stocks in golden cross configurations. Lower structural drawdown risk.'
+        : 'Death cross (50d < 200d): long-term bearish structure. Significantly elevated drawdown risk. Institutional selling pressure is likely until the 50-day recaptures the 200-day.'
+    })
+  }
+
+  const hi52 = n(q.fifty_two_week_high), lo52 = n(q.fifty_two_week_low), price = n(q.price)
+  if (hi52 && lo52 && price && hi52 > lo52) {
+    const pctR = (price - lo52) / (hi52 - lo52) * 100
+    let r, o, v, c
+    if      (pctR >= 90) { r=3; o=0; v='caution';     c='Near 52-week high ('+pctR.toFixed(0)+'th percentile). Late-cycle entry risk. Limited upside to historical resistance. Favourable only if breaking to new highs on strong volume.' }
+    else if (pctR >= 60) { r=1; o=2; v='opportunity'; c='Upper-middle of range ('+pctR.toFixed(0)+'th percentile). Constructive zone — stock has held gains without being at an extreme. Supports trend-following thesis.' }
+    else if (pctR >= 30) { r=1; o=1; v='neutral';     c='Mid-range ('+pctR.toFixed(0)+'th percentile). Balanced entry — neither chasing highs nor catching a falling knife. Fundamentals are the primary driver.' }
+    else                 { r=2; o=3; v='opportunity'; c='Near 52-week low ('+pctR.toFixed(0)+'th percentile). Contrarian opportunity zone. High reward if fundamentals are intact; high risk if the decline reflects permanent impairment.' }
+    techItems.push({ metric: '52-Week Position', value: pctR.toFixed(0)+'th %ile', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  // ── FUNDAMENTAL ──────────────────────────────────
+  const rg = asPct(f.revenue_growth)
+  if (rg != null) {
+    let r, o, v, c
+    if      (rg > 25)  { r=0; o=4; v='opportunity'; c='Strong revenue growth ('+rg.toFixed(0)+'% YoY). Top-line acceleration is the most reliable driver of long-term returns. Growing into current multiples reduces valuation risk organically.' }
+    else if (rg > 10)  { r=0; o=2; v='opportunity'; c='Solid revenue growth ('+rg.toFixed(0)+'% YoY). Healthy expansion supporting current multiples and providing a buffer against multiple compression.' }
+    else if (rg > 0)   { r=1; o=1; v='neutral';     c='Modest revenue growth ('+rg.toFixed(0)+'% YoY). Growing but slowly. At premium multiples this is a risk; at low multiples it may still represent value.' }
+    else if (rg > -10) { r=3; o=0; v='caution';     c='Revenue declining ('+rg.toFixed(0)+'% YoY). Demand headwinds or structural challenges. Multiple compression risk is elevated unless the decline is clearly transient.' }
+    else               { r=5; o=0; v='high-risk';   c='Significant revenue contraction ('+rg.toFixed(0)+'% YoY). Major red flag. Severe declines create compounding operational leverage and balance sheet stress.' }
+    fundItems.push({ metric: 'Revenue Growth', value: (rg >= 0 ? '+' : '')+rg.toFixed(1)+'%', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const pm = asPct(f.profit_margin)
+  if (pm != null) {
+    let r, o, v, c
+    if      (pm > 20) { r=0; o=3; v='opportunity'; c='High-quality business (margin '+pm.toFixed(1)+'%). Strong margins provide earnings stability, pricing power, and a cushion against revenue shocks. Key quality moat indicator.' }
+    else if (pm > 10) { r=0; o=2; v='opportunity'; c='Solid margins ('+pm.toFixed(1)+'%). Healthy profitability that can fund growth and weather downturns. Supports the fundamental quality of the investment.' }
+    else if (pm > 5)  { r=1; o=1; v='neutral';     c='Thin margins ('+pm.toFixed(1)+'%). Operational leverage cuts both ways — cost inflation or revenue miss can quickly erode profitability.' }
+    else if (pm > 0)  { r=2; o=0; v='caution';     c='Very thin margins ('+pm.toFixed(1)+'%). Minimal buffer against headwinds. One bad quarter can erase annual profits and trigger sell-side downgrades.' }
+    else              { r=4; o=0; v='high-risk';   c='Negative margins ('+pm.toFixed(1)+'%). Cash-burning business. Risk depends on burn rate, cash runway, and credible path to profitability.' }
+    fundItems.push({ metric: 'Net Profit Margin', value: pm.toFixed(1)+'%', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const beta = n(f.beta)
+  if (beta != null) {
+    let r, o, v, c
+    if      (beta > 2)   { r=4; o=0; v='high-risk';   c='High beta ('+beta.toFixed(2)+'). 2×+ market volatility. Amplifies both gains and losses. Requires smaller position sizes, tighter stops, and disciplined risk management.' }
+    else if (beta > 1.5) { r=2; o=1; v='caution';     c='Elevated beta ('+beta.toFixed(2)+'). Significantly more volatile than the market. Suitable for higher risk-tolerance portfolios with conservatively sized positions.' }
+    else if (beta > 1.1) { r=1; o=1; v='neutral';     c='Moderate beta ('+beta.toFixed(2)+'). Slightly above market volatility. Standard equity risk applies — no unusual volatility concerns.' }
+    else if (beta > 0.7) { r=0; o=2; v='opportunity'; c='Market-like volatility (beta '+beta.toFixed(2)+'). Moves broadly with the index. Lower idiosyncratic risk than average individual stocks.' }
+    else                 { r=0; o=2; v='opportunity'; c='Low-beta, defensive (beta '+beta.toFixed(2)+'). Less sensitive to market swings. Provides portfolio stability. Particularly valuable in uncertain macro environments.' }
+    fundItems.push({ metric: 'Beta (Volatility)', value: beta.toFixed(2), rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const eg = asPct(f.earnings_growth)
+  if (eg != null) {
+    let r, o, v, c
+    if      (eg > 20) { r=0; o=3; v='opportunity'; c='Strong earnings growth ('+eg.toFixed(0)+'% YoY). Accelerating EPS is the ultimate long-term share price driver. Supports or expands current multiples.' }
+    else if (eg > 5)  { r=0; o=2; v='opportunity'; c='Solid earnings growth ('+eg.toFixed(0)+'% YoY). Consistent EPS expansion reduces multiple compression risk and validates the valuation thesis.' }
+    else if (eg > 0)  { r=1; o=1; v='neutral';     c='Flat earnings ('+eg.toFixed(0)+'% YoY). Growing but barely. At elevated multiples this creates valuation risk unless revenue re-accelerates.' }
+    else              { r=4; o=0; v='high-risk';   c='Earnings declining ('+eg.toFixed(0)+'% YoY). Contracting EPS at premium multiples is a high-risk combination. Multiple compression is likely without a clear reversal catalyst.' }
+    fundItems.push({ metric: 'Earnings Growth', value: (eg >= 0 ? '+' : '')+eg.toFixed(1)+'%', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  // ── SENTIMENT ────────────────────────────────────
+  const upside = n(a.target_upside_pct)
+  if (upside != null) {
+    let r, o, v, c
+    if      (upside > 30) { r=0; o=4; v='opportunity'; c='Analysts see '+upside.toFixed(0)+'% upside to mean target. Strong consensus the stock is undervalued. Catalysts: earnings beats, multiple expansion, or positive news flow.' }
+    else if (upside > 15) { r=0; o=2; v='opportunity'; c='Analysts see '+upside.toFixed(0)+'% upside. Exceeds typical annual market returns if achieved. Constructive risk/reward from the consensus view.' }
+    else if (upside > 5)  { r=1; o=1; v='neutral';     c='Analysts see '+upside.toFixed(0)+'% upside. Limited cushion above consensus — requires a positive earnings surprise to outperform meaningfully.' }
+    else if (upside > -5) { r=2; o=0; v='caution';     c='Price near analyst mean target ('+upside.toFixed(0)+'%). Limited upside headroom. Risk of downgrades if next earnings disappoints the street.' }
+    else                  { r=4; o=0; v='high-risk';   c='Price EXCEEDS analyst target by '+Math.abs(upside).toFixed(0)+'%. Trading above consensus fair value. Elevated risk of target cuts and downward earnings revisions.' }
+    sentItems.push({ metric: 'Analyst Target Upside', value: (upside >= 0 ? '+' : '')+upside.toFixed(1)+'%', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  const recMean = n(a.recommendation_mean)
+  if (recMean != null) {
+    let r, o, v, c
+    if      (recMean <= 1.5) { r=0; o=3; v='opportunity'; c='Strong buy consensus ('+recMean.toFixed(1)+'/5). Broad agreement on attractive risk/reward. Caution: monitor for crowded positioning in widely-followed names.' }
+    else if (recMean <= 2.2) { r=0; o=2; v='opportunity'; c='Buy-leaning consensus ('+recMean.toFixed(1)+'/5). Majority of analysts see opportunity. Asymmetric risk/reward is tilted constructively.' }
+    else if (recMean <= 3.0) { r=1; o=1; v='neutral';     c='Hold consensus ('+recMean.toFixed(1)+'/5). Analysts are mixed. Stock appears fairly priced. Company-specific execution will drive differentiated outcomes.' }
+    else if (recMean <= 3.8) { r=2; o=0; v='caution';     c='Sell-leaning consensus ('+recMean.toFixed(1)+'/5). More analysts recommend reducing than buying. May reflect structural valuation or business model concerns.' }
+    else                     { r=3; o=0; v='high-risk';   c='Strong sell consensus ('+recMean.toFixed(1)+'/5). Broad analyst agreement on downside. Rarely a contrarian buy — usually reflects real fundamental problems.' }
+    sentItems.push({ metric: 'Analyst Consensus', value: recMean.toFixed(1)+' / 5', rPts: r, oPts: o, verdict: v, ctx: c })
+  }
+
+  // ── NORMALIZE 0-10 ───────────────────────────────
+  const sumR = xs => xs.reduce((s, x) => s + x.rPts, 0)
+  const sumO = xs => xs.reduce((s, x) => s + x.oPts, 0)
+  const norm = (v, max) => max > 0 ? Math.min(10, (v / max) * 10) : 0
+
+  const cats = {
+    valuation:   { risk: norm(sumR(valItems),  11), opp: norm(sumO(valItems),  9),  items: valItems  },
+    technical:   { risk: norm(sumR(techItems), 11), opp: norm(sumO(techItems), 9),  items: techItems },
+    fundamental: { risk: norm(sumR(fundItems), 16), opp: norm(sumO(fundItems), 12), items: fundItems },
+    sentiment:   { risk: norm(sumR(sentItems),  7), opp: norm(sumO(sentItems),  7), items: sentItems },
+  }
+
+  const allItems = [...valItems, ...techItems, ...fundItems, ...sentItems]
+  const totalR = norm(sumR(allItems), 45)
+  const totalO = norm(sumO(allItems), 37)
+  const ratio  = totalR > 0.1 ? (totalO / totalR).toFixed(2) : '∞'
+
+  let label, verdict
+  if      (totalO >= 7 && totalR <= 3) { verdict = 'opportunity'; label = 'STRONG OPPORTUNITY' }
+  else if (totalO >= 5 && totalR <= 5) { verdict = 'opportunity'; label = 'MODERATE OPPORTUNITY' }
+  else if (totalR >= 7 && totalO <= 3) { verdict = 'high-risk';   label = 'HIGH RISK / LOW OPP' }
+  else if (totalR >= 5)                { verdict = 'caution';     label = 'ELEVATED RISK' }
+  else                                 { verdict = 'neutral';     label = 'BALANCED R/R' }
+
+  return { overall: { risk: totalR, opp: totalO, ratio, label, verdict }, ...cats }
+}
+
+/* ── verdict helpers ── */
+const VDCT_C = { opportunity: '#2dd4a0', neutral: '#e6a72a', caution: '#f97316', 'high-risk': '#f16a6a' }
+const vc = v => VDCT_C[v] || '#5e6573'
+
+const VerBadge = ({ verdict, label }) => {
+  const c = vc(verdict)
+  const lbl = label || { opportunity: 'OPPORTUNITY', neutral: 'NEUTRAL', caution: 'CAUTION', 'high-risk': 'HIGH RISK' }[verdict] || verdict
+  return (
+    <span style={{ fontSize: 10, fontFamily: T.mono, fontWeight: 700, color: c, background: c + '1a',
+      border: `1px solid ${c}44`, padding: '1px 7px', borderRadius: 3, letterSpacing: '0.04em',
+      whiteSpace: 'nowrap', textTransform: 'uppercase' }}>{lbl}</span>
+  )
+}
+
+/* dual-axis bar — green from left (opportunity), red from right (risk) */
+const DualBar = ({ label, risk, opp }) => (
+  <div>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center' }}>
+      <span style={{ fontSize: 11, color: T.muted, fontFamily: T.mono }}>{label}</span>
+      <span style={{ fontSize: 10, fontFamily: T.mono }}>
+        <span style={{ color: T.green }}>OPP {opp.toFixed(1)}</span>
+        <span style={{ color: T.dim }}> · </span>
+        <span style={{ color: T.red }}>RISK {risk.toFixed(1)}</span>
+      </span>
+    </div>
+    <div style={{ height: 5, background: T.surface, borderRadius: 4, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${opp * 10}%`, background: T.green, opacity: 0.7, borderRadius: 4 }} />
+      <div style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: `${risk * 10}%`, background: T.red, opacity: 0.7, borderRadius: 4 }} />
+    </div>
+  </div>
+)
+
+/* mini risk/opp scorecard — used in Overview and RiskOppTab */
+const RiskOppDashboard = ({ ror, compact }) => {
+  const c = vc(ror.overall.verdict)
+  const cats = [
+    { key: 'valuation',   label: 'Valuation'   },
+    { key: 'technical',   label: 'Technical'   },
+    { key: 'fundamental', label: 'Fundamental' },
+    { key: 'sentiment',   label: 'Sentiment'   },
+  ]
+  return (
+    <div style={{ border: `1px solid ${c}55`, background: c + '09', borderRadius: 8, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 5 }}>RISK / OPPORTUNITY</div>
+          <VerBadge verdict={ror.overall.verdict} label={ror.overall.label} />
+        </div>
+        <div style={{ display: 'flex', gap: 22 }}>
+          {[
+            { lbl: 'OPPORTUNITY', val: ror.overall.opp, clr: T.green },
+            { lbl: 'RISK',        val: ror.overall.risk, clr: T.red  },
+            { lbl: 'R/R RATIO',   val: ror.overall.ratio, clr: c     },
+          ].map(({ lbl, val, clr }) => (
+            <div key={lbl}>
+              <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 2 }}>{lbl}</div>
+              <div style={{ fontSize: 20, fontFamily: T.mono, fontWeight: 700, color: clr, lineHeight: 1 }}>
+                {typeof val === 'number' ? val.toFixed(1) : val}
+                {typeof val === 'number' && <span style={{ fontSize: 11, color: T.dim }}>/10</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'grid', gap: 9 }}>
+        {cats.map(({ key, label }) => <DualBar key={key} label={label} risk={ror[key].risk} opp={ror[key].opp} />)}
+      </div>
+    </div>
+  )
+}
+
+/* expandable metric row with risk/opp scores */
+const RiskMetricRow = ({ metric, value, rPts, oPts, verdict, ctx }) => {
+  const [open, setOpen] = useState(false)
+  const c = vc(verdict)
+  return (
+    <div style={{ borderBottom: `1px solid ${T.border}` }}>
+      <div onClick={() => setOpen(o => !o)}
+           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: T.muted, fontFamily: T.mono }}>{metric}</span>
+          <VerBadge verdict={verdict} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 10, fontFamily: T.mono, color: T.green }}>+{oPts} OPP</span>
+          <span style={{ fontSize: 10, fontFamily: T.mono, color: T.red }}>−{rPts} RISK</span>
+          <span style={{ fontSize: 13, fontFamily: T.mono, fontWeight: 700, color: T.text }}>{value}</span>
+          <span style={{ fontSize: 10, color: T.dim }}>{open ? '▲' : '▼'}</span>
+        </div>
+      </div>
+      {open && (
+        <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: 'flex', gap: 14, margin: '8px 0 6px' }}>
+            <span style={{ fontSize: 10, fontFamily: T.mono, color: T.green, background: T.green + '18', border: `1px solid ${T.green}33`, padding: '2px 8px', borderRadius: 3 }}>
+              +{oPts} Opportunity pts
+            </span>
+            <span style={{ fontSize: 10, fontFamily: T.mono, color: T.red, background: T.red + '18', border: `1px solid ${T.red}33`, padding: '2px 8px', borderRadius: 3 }}>
+              −{rPts} Risk pts
+            </span>
+          </div>
+          <div style={{ fontSize: 12, lineHeight: 1.7, color: T.muted, fontFamily: T.mono }}>{ctx}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* expandable fundamentals row with inline verdict */
+const FundRow = ({ m, v, ann }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderBottom: `1px solid ${T.border}` }}>
+      <div onClick={() => ann && setOpen(o => !o)}
+           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+             padding: '8px 13px', cursor: ann ? 'pointer' : 'default' }}>
+        <span style={{ fontSize: 12, color: T.muted, fontFamily: T.mono }}>{m}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {ann && <VerBadge verdict={ann.verdict} />}
+          <span style={{ fontSize: 13, color: T.text, fontFamily: T.mono, fontWeight: 700 }}>{v}</span>
+          {ann && <span style={{ fontSize: 10, color: T.dim }}>{open ? '▲' : '▼'}</span>}
+        </div>
+      </div>
+      {ann && open && (
+        <div style={{ padding: '0 13px 10px', borderTop: `1px solid ${T.border}` }}>
+          <div style={{ display: 'flex', gap: 10, margin: '6px 0 6px' }}>
+            <span style={{ fontSize: 10, fontFamily: T.mono, color: T.green }}>+{ann.oPts} opportunity pts</span>
+            <span style={{ fontSize: 10, fontFamily: T.mono, color: T.red }}>−{ann.rPts} risk pts</span>
+          </div>
+          <div style={{ fontSize: 11, lineHeight: 1.65, color: T.dim, fontFamily: T.mono }}>{ann.ctx}</div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ───────────── charts ───────────── */
 function PriceChart({ data, cur, showSMA, showBB, height = 200 }) {
   if (!data.length) return null
@@ -302,8 +629,18 @@ function OverviewTab({ data, chart }) {
   const { meta, quote, fundamentals: f, analyst: a, indicators: ind } = data
   const cur = meta.currency
   const [showSMA] = useState({ sma50: true, sma200: true })
+  const ror = computeROR(data)
+
+  // 52-week position gauge
+  const hi52 = num(quote.fifty_two_week_high), lo52 = num(quote.fifty_two_week_low), px = num(quote.price)
+  const pctRange = (hi52 && lo52 && px && hi52 > lo52) ? ((px - lo52) / (hi52 - lo52) * 100) : null
+
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      {/* Risk / Opportunity Dashboard */}
+      <RiskOppDashboard ror={ror} />
+
+      {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 8 }}>
         <KPI label="MARKET CAP" value={fmtCap(f.market_cap)} />
         <KPI label="P/E (TTM)" value={fmtMult(f.trailing_pe)} />
@@ -312,6 +649,29 @@ function OverviewTab({ data, chart }) {
         <KPI label="52W HIGH" value={fmtMoney(quote.fifty_two_week_high, cur)} />
         <KPI label="52W LOW" value={fmtMoney(quote.fifty_two_week_low, cur)} />
       </div>
+
+      {/* 52-week range gauge */}
+      {pctRange != null && (
+        <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: '12px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 10, color: T.muted, fontFamily: T.mono }}>52-WEEK PRICE RANGE</span>
+            <span style={{ fontSize: 11, fontFamily: T.mono, color: T.amber }}>
+              {pctRange.toFixed(0)}th percentile — {pctRange >= 90 ? 'Near high · Entry risk' : pctRange >= 60 ? 'Upper range · Constructive' : pctRange >= 30 ? 'Mid range · Balanced' : 'Near low · Contrarian opp'}
+            </span>
+          </div>
+          <div style={{ height: 8, background: T.bg, borderRadius: 10, position: 'relative' }}>
+            <div style={{ position: 'absolute', left: 0, height: '100%', width: '100%', borderRadius: 10,
+              background: `linear-gradient(to right, ${T.green}60, ${T.amber}60, ${T.red}60)` }} />
+            <div style={{ position: 'absolute', left: `${Math.min(97, Math.max(3, pctRange))}%`, top: '-3px', transform: 'translateX(-50%)',
+              width: 14, height: 14, borderRadius: '50%', background: T.amber, border: `2px solid ${T.bg}` }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 10, fontFamily: T.mono, color: T.dim }}>
+            <span>52W Low {fmtMoney(quote.fifty_two_week_low, cur)}</span>
+            <span>52W High {fmtMoney(quote.fifty_two_week_high, cur)}</span>
+          </div>
+        </div>
+      )}
+
       <Panel title={`Price — last ${chart.length} sessions`}>
         <div style={{ padding: 10 }}><PriceChart data={chart} cur={cur} showSMA={showSMA} showBB={false} /></div>
       </Panel>
@@ -336,25 +696,42 @@ function OverviewTab({ data, chart }) {
 }
 
 function FundamentalsTab({ data }) {
-  const f = data.fundamentals
+  const f   = data.fundamentals
+  const ror = computeROR(data)
+
+  // Build annotation lookup by metric label
+  const annMap = {}
+  ;[...ror.valuation.items, ...ror.fundamental.items].forEach(x => { annMap[x.metric] = x })
+
   const rows = [
-    ['Market Cap', fmtCap(f.market_cap)],
-    ['Trailing P/E', fmtMult(f.trailing_pe)],
-    ['Forward P/E', fmtMult(f.forward_pe)],
-    ['PEG Ratio', fmt(f.peg_ratio)],
-    ['Beta', fmt(f.beta)],
-    ['Profit Margin', fmtFrac(f.profit_margin)],
-    ['Revenue Growth (YoY)', fmtFrac(f.revenue_growth)],
-    ['Earnings Growth (YoY)', fmtFrac(f.earnings_growth)],
-    ['Dividend Yield', f.dividend_yield != null ? fmtFrac(f.dividend_yield) : '—'],
+    { m: 'Market Cap',           v: fmtCap(f.market_cap) },
+    { m: 'Trailing P/E',         v: fmtMult(f.trailing_pe),     ann: annMap['Trailing P/E'] },
+    { m: 'Forward P/E',          v: fmtMult(f.forward_pe),      ann: annMap['Fwd vs TTM P/E'] },
+    { m: 'PEG Ratio',            v: fmt(f.peg_ratio),           ann: annMap['PEG Ratio'] },
+    { m: 'Beta',                 v: fmt(f.beta),                ann: annMap['Beta (Volatility)'] },
+    { m: 'Profit Margin',        v: fmtFrac(f.profit_margin),   ann: annMap['Net Profit Margin'] },
+    { m: 'Revenue Growth (YoY)', v: fmtFrac(f.revenue_growth),  ann: annMap['Revenue Growth'] },
+    { m: 'Earnings Growth (YoY)',v: fmtFrac(f.earnings_growth), ann: annMap['Earnings Growth'] },
+    { m: 'Dividend Yield',       v: f.dividend_yield != null ? fmtFrac(f.dividend_yield) : '—' },
   ]
+
   return (
-    <Panel title="Fundamentals">
-      {rows.map(([m, v]) => <Row key={m} m={m} v={v} />)}
-      <div style={{ padding: '8px 13px', fontSize: 10, color: T.dim, fontFamily: T.mono }}>
-        Source: {data.data_source}. Fields shown as “—” are not provided by the free data feed.
+    <div style={{ display: 'grid', gap: 14 }}>
+      {/* Mini valuation R/O bars */}
+      <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: '12px 16px' }}>
+        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 10 }}>FUNDAMENTAL RISK / OPPORTUNITY (click any row below to expand context)</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          <DualBar label="Valuation" risk={ror.valuation.risk} opp={ror.valuation.opp} />
+          <DualBar label="Fundamental Quality" risk={ror.fundamental.risk} opp={ror.fundamental.opp} />
+        </div>
       </div>
-    </Panel>
+      <Panel title="Fundamentals — click any row for risk/opportunity context">
+        {rows.map(({ m, v, ann }) => <FundRow key={m} m={m} v={v} ann={ann} />)}
+        <div style={{ padding: '8px 13px', fontSize: 10, color: T.dim, fontFamily: T.mono }}>
+          Source: {data.data_source}. Fields shown as "—" are not provided by the free data feed.
+        </div>
+      </Panel>
+    </div>
   )
 }
 
@@ -552,6 +929,99 @@ function PeersTab({ data }) {
   )
 }
 
+function RiskOppTab({ data }) {
+  const ror = computeROR(data)
+  const [section, setSection] = useState('all')
+
+  const cats = [
+    { key: 'all',        label: 'ALL METRICS' },
+    { key: 'valuation',  label: 'VALUATION'   },
+    { key: 'technical',  label: 'TECHNICAL'   },
+    { key: 'fundamental',label: 'FUNDAMENTAL' },
+    { key: 'sentiment',  label: 'SENTIMENT'   },
+  ]
+
+  const activeItems = section === 'all'
+    ? [...ror.valuation.items, ...ror.technical.items, ...ror.fundamental.items, ...ror.sentiment.items]
+    : (ror[section]?.items || [])
+
+  const catRisk = activeItems.reduce((s, x) => s + x.rPts, 0)
+  const catOpp  = activeItems.reduce((s, x) => s + x.oPts, 0)
+  const highRisk = activeItems.filter(x => x.verdict === 'high-risk')
+  const opps     = activeItems.filter(x => x.verdict === 'opportunity')
+
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      {/* Full R/O Dashboard */}
+      <RiskOppDashboard ror={ror} />
+
+      {/* Section filter */}
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {cats.map(({ key, label }) => (
+          <button key={key} onClick={() => setSection(key)} style={{
+            fontSize: 10, fontFamily: T.mono, fontWeight: 700, cursor: 'pointer',
+            border: `1px solid ${section === key ? T.amber : T.border}`,
+            background: section === key ? T.amberDim : 'transparent',
+            color: section === key ? T.amber : T.muted, padding: '4px 10px', borderRadius: 3,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Key signal highlights */}
+      {(highRisk.length > 0 || opps.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 10 }}>
+          {opps.length > 0 && (
+            <div style={{ background: T.green + '0d', border: `1px solid ${T.green}33`, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, color: T.green, fontFamily: T.mono, fontWeight: 700, marginBottom: 8 }}>⬆ OPPORTUNITY SIGNALS ({opps.length})</div>
+              {opps.map((x, idx) => (
+                <div key={idx} style={{ fontSize: 12, color: T.text, fontFamily: T.mono, padding: '3px 0', borderBottom: idx < opps.length - 1 ? `1px solid ${T.green}22` : 'none' }}>
+                  <span style={{ color: T.green, marginRight: 6 }}>+{x.oPts}</span>{x.metric} — {x.value}
+                </div>
+              ))}
+            </div>
+          )}
+          {highRisk.length > 0 && (
+            <div style={{ background: T.red + '0d', border: `1px solid ${T.red}33`, borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, color: T.red, fontFamily: T.mono, fontWeight: 700, marginBottom: 8 }}>⬇ HIGH RISK SIGNALS ({highRisk.length})</div>
+              {highRisk.map((x, idx) => (
+                <div key={idx} style={{ fontSize: 12, color: T.text, fontFamily: T.mono, padding: '3px 0', borderBottom: idx < highRisk.length - 1 ? `1px solid ${T.red}22` : 'none' }}>
+                  <span style={{ color: T.red, marginRight: 6 }}>−{x.rPts}</span>{x.metric} — {x.value}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Score tally for active filter */}
+      <div style={{ display: 'flex', gap: 16, padding: '8px 14px', background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: T.muted, fontFamily: T.mono }}>
+          {activeItems.length} metrics · Click any row to expand context
+        </span>
+        <span style={{ fontSize: 11, fontFamily: T.mono, color: T.green, marginLeft: 'auto' }}>
+          Total opportunity pts: {catOpp}
+        </span>
+        <span style={{ fontSize: 11, fontFamily: T.mono, color: T.red }}>
+          Total risk pts: {catRisk}
+        </span>
+      </div>
+
+      {/* Metric cards */}
+      <Panel title={cats.find(c => c.key === section)?.label + ' — RISK / OPPORTUNITY BREAKDOWN'}>
+        {activeItems.length === 0
+          ? <div style={{ padding: 16, fontSize: 12, color: T.muted }}>No data available for this category.</div>
+          : activeItems.map((item, idx) => <RiskMetricRow key={idx} {...item} />)
+        }
+      </Panel>
+
+      <div style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>
+        Risk/Opportunity scores are quantitative signals computed from live market data for educational purposes only — not financial advice.
+        Scores are relative indicators, not absolute forecasts. Past metrics do not guarantee future returns.
+      </div>
+    </div>
+  )
+}
+
 function ChatTab({ ticker, aiConfigured }) {
   const [msgs, setMsgs] = useState([])
   const [input, setInput] = useState('')
@@ -620,16 +1090,56 @@ function ChatTab({ ticker, aiConfigured }) {
   )
 }
 
+/* ───────────── hero bar (extracted so ror is computed in a component) ───────────── */
+function HeroBar({ data, quote, pos }) {
+  const ror = computeROR(data)
+  const rc  = vc(ror.overall.verdict)
+  return (
+    <div style={{ background: T.nav, borderBottom: `1px solid ${T.border}`, padding: '13px 24px', display: 'flex', alignItems: 'center', gap: 30, flexWrap: 'wrap' }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+          <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 28, color: T.amber }}>{data.meta.ticker}</span>
+          <span style={{ fontSize: 13, color: T.muted }}>{data.meta.name}</span>
+        </div>
+        <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono }}>{[data.meta.exchange, data.meta.sector].filter(Boolean).join(' · ')}</div>
+      </div>
+      <div style={{ borderLeft: `1px solid ${T.border}`, paddingLeft: 30 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+          <span style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 30, color: T.text }}>{fmtMoney(quote.price, data.meta.currency)}</span>
+          <div style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 14, color: pos ? T.green : T.red }}>{fmtPct(quote.day_change_pct)}</div>
+        </div>
+      </div>
+      <div style={{ borderLeft: `1px solid ${T.border}`, paddingLeft: 24 }}>
+        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 4 }}>RISK / REWARD</div>
+        <VerBadge verdict={ror.overall.verdict} label={ror.overall.label} />
+        <div style={{ fontSize: 11, fontFamily: T.mono, marginTop: 4 }}>
+          <span style={{ color: T.green }}>OPP {ror.overall.opp.toFixed(1)}</span>
+          <span style={{ color: T.dim }}> · </span>
+          <span style={{ color: T.red }}>RISK {ror.overall.risk.toFixed(1)}</span>
+          <span style={{ color: T.dim }}> · R/R </span>
+          <span style={{ color: rc }}>{ror.overall.ratio}</span>
+        </div>
+      </div>
+      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 3 }}>ANALYST CONSENSUS</div>
+        <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 17, color: T.green }}>{(data.analyst.recommendation || '—').toUpperCase()}</div>
+        <div style={{ fontSize: 11, color: T.muted, fontFamily: T.mono }}>{fmt(data.analyst.num_analysts, 0)} analysts · PT {fmt(data.analyst.target_mean)}</div>
+      </div>
+    </div>
+  )
+}
+
 /* ───────────── main app ───────────── */
 const TABS = [
-  { id: 'overview', label: 'OVERVIEW' },
-  { id: 'fundamentals', label: 'FUNDAMENTALS' },
-  { id: 'technicals', label: 'TECHNICALS' },
-  { id: 'charts', label: 'CHARTS' },
-  { id: 'news', label: 'NEWS' },
-  { id: 'peers', label: 'PEERS' },
-  { id: 'assessment', label: 'ASSESSMENT' },
-  { id: 'chat', label: '⚡ AI ANALYST' },
+  { id: 'overview',     label: 'OVERVIEW'      },
+  { id: 'risk',         label: '⚖ RISK / OPP'  },
+  { id: 'fundamentals', label: 'FUNDAMENTALS'  },
+  { id: 'technicals',   label: 'TECHNICALS'    },
+  { id: 'charts',       label: 'CHARTS'        },
+  { id: 'news',         label: 'NEWS'          },
+  { id: 'peers',        label: 'PEERS'         },
+  { id: 'assessment',   label: 'ASSESSMENT'    },
+  { id: 'chat',         label: '⚡ AI ANALYST'  },
 ]
 
 export default function App() {
@@ -694,28 +1204,7 @@ export default function App() {
       </div>
 
       {/* hero bar */}
-      {data && (
-        <div style={{ background: T.nav, borderBottom: `1px solid ${T.border}`, padding: '13px 24px', display: 'flex', alignItems: 'center', gap: 30, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 28, color: T.amber }}>{data.meta.ticker}</span>
-              <span style={{ fontSize: 13, color: T.muted }}>{data.meta.name}</span>
-            </div>
-            <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono }}>{[data.meta.exchange, data.meta.sector].filter(Boolean).join(' · ')}</div>
-          </div>
-          <div style={{ borderLeft: `1px solid ${T.border}`, paddingLeft: 30 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-              <span style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 30, color: T.text }}>{fmtMoney(quote.price, data.meta.currency)}</span>
-              <div style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 14, color: pos ? T.green : T.red }}>{fmtPct(quote.day_change_pct)}</div>
-            </div>
-          </div>
-          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 3 }}>ANALYST CONSENSUS</div>
-            <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 17, color: T.green }}>{(data.analyst.recommendation || '—').toUpperCase()}</div>
-            <div style={{ fontSize: 11, color: T.muted, fontFamily: T.mono }}>{fmt(data.analyst.num_analysts, 0)} analysts · PT {fmt(data.analyst.target_mean)}</div>
-          </div>
-        </div>
-      )}
+      {data && <HeroBar data={data} quote={quote} pos={pos} />}
 
       {/* tabs */}
       {data && (
@@ -740,13 +1229,14 @@ export default function App() {
         )}
         {data && (
           <>
-            {tab === 'overview' && <OverviewTab data={data} chart={chart} />}
+            {tab === 'overview'     && <OverviewTab data={data} chart={chart} />}
+            {tab === 'risk'         && <RiskOppTab data={data} />}
             {tab === 'fundamentals' && <FundamentalsTab data={data} />}
-            {tab === 'technicals' && <TechnicalsTab data={data} />}
-            {tab === 'charts' && <ChartsTab data={data} chart={chart} />}
-            {tab === 'news' && <NewsTab data={data} />}
-            {tab === 'peers' && <PeersTab data={data} />}
-            {tab === 'assessment' && <AssessmentTab data={data} />}
+            {tab === 'technicals'   && <TechnicalsTab data={data} />}
+            {tab === 'charts'       && <ChartsTab data={data} chart={chart} />}
+            {tab === 'news'         && <NewsTab data={data} />}
+            {tab === 'peers'        && <PeersTab data={data} />}
+            {tab === 'assessment'   && <AssessmentTab data={data} />}
             {tab === 'chat' && <ChatTab ticker={data.meta.ticker} aiConfigured={!!data.engine && data.engine !== 'rules'} />}
           </>
         )}
