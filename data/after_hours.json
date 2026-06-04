@@ -1,205 +1,22 @@
 {
-  "updated_at": "2026-06-03 23:16 UTC",
+  "updated_at": "2026-06-04 22:51 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "CSCO",
-      "regular_close": 126.5,
-      "ext_price": 129.25,
-      "ah_pct": 2.17,
-      "name": "Cisco Systems, Inc."
-    },
-    {
-      "symbol": "DHR",
-      "regular_close": 178.08,
-      "ext_price": 181.94,
-      "ah_pct": 2.17,
-      "name": "Danaher Corporation"
-    },
-    {
-      "symbol": "LNT",
-      "regular_close": 70.79,
-      "ext_price": 72.3,
-      "ah_pct": 2.13,
-      "name": "Alliant Energy Corporation"
-    },
-    {
-      "symbol": "MAR",
-      "regular_close": 376.75,
-      "ext_price": 384.33,
-      "ah_pct": 2.01,
-      "name": "Marriott International"
-    }
-  ],
+  "surges": [],
   "drops": [
     {
-      "symbol": "AVGO",
-      "regular_close": 479.23,
-      "ext_price": 417.5,
-      "ah_pct": -12.88,
-      "name": "Broadcom Inc."
-    },
-    {
-      "symbol": "CRWD",
-      "regular_close": 747.61,
-      "ext_price": 668.79,
-      "ah_pct": -10.54,
-      "name": "CrowdStrike Holdings, Inc."
+      "symbol": "LULU",
+      "regular_close": 124.92,
+      "ext_price": 111.19,
+      "ah_pct": -10.99,
+      "name": "lululemon athletica inc."
     },
     {
       "symbol": "MRVL",
-      "regular_close": 301.65,
-      "ext_price": 281.78,
-      "ah_pct": -6.59,
-      "name": "Marvell Technology, Inc."
-    },
-    {
-      "symbol": "INOD",
-      "regular_close": 108.27,
-      "ext_price": 102.56,
-      "ah_pct": -5.27,
-      "name": "Innodata Inc."
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 411.83,
-      "ext_price": 391.14,
-      "ah_pct": -5.02,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "ORCL",
-      "regular_close": 230.33,
-      "ext_price": 219.61,
-      "ah_pct": -4.65,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "NET",
-      "regular_close": 265.33,
-      "ext_price": 254.08,
-      "ah_pct": -4.24,
-      "name": "Cloudflare, Inc."
-    },
-    {
-      "symbol": "ANET",
-      "regular_close": 174.37,
-      "ext_price": 167.5,
-      "ah_pct": -3.94,
-      "name": "Arista Networks, Inc."
-    },
-    {
-      "symbol": "IBM",
-      "regular_close": 305.63,
-      "ext_price": 294.06,
-      "ah_pct": -3.79,
-      "name": "International Business Machines"
-    },
-    {
-      "symbol": "VRT",
-      "regular_close": 331.44,
-      "ext_price": 320.01,
+      "regular_close": 316.43,
+      "ext_price": 305.51,
       "ah_pct": -3.45,
-      "name": "Vertiv Holdings, LLC"
-    },
-    {
-      "symbol": "CIBR",
-      "regular_close": 91.67,
-      "ext_price": 88.7,
-      "ah_pct": -3.24,
-      "name": "First Trust NASDAQ Cybersecurit"
-    },
-    {
-      "symbol": "RKLB",
-      "regular_close": 114.7,
-      "ext_price": 111.01,
-      "ah_pct": -3.22,
-      "name": "Rocket Lab Corporation"
-    },
-    {
-      "symbol": "DELL",
-      "regular_close": 421.08,
-      "ext_price": 407.6,
-      "ah_pct": -3.2,
-      "name": "Dell Technologies Inc."
-    },
-    {
-      "symbol": "BTDR",
-      "regular_close": 19.71,
-      "ext_price": 19.1,
-      "ah_pct": -3.09,
-      "name": "Bitdeer Technologies Group"
-    },
-    {
-      "symbol": "ASTS",
-      "regular_close": 107.73,
-      "ext_price": 104.51,
-      "ah_pct": -2.99,
-      "name": "AST SpaceMobile, Inc."
-    },
-    {
-      "symbol": "AMD",
-      "regular_close": 542.52,
-      "ext_price": 527.17,
-      "ah_pct": -2.83,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "PANW",
-      "regular_close": 280.43,
-      "ext_price": 272.87,
-      "ah_pct": -2.7,
-      "name": "Palo Alto Networks, Inc."
-    },
-    {
-      "symbol": "QCOM",
-      "regular_close": 250.01,
-      "ext_price": 243.4,
-      "ah_pct": -2.64,
-      "name": "QUALCOMM Incorporated"
-    },
-    {
-      "symbol": "NOW",
-      "regular_close": 117.9,
-      "ext_price": 115.0,
-      "ah_pct": -2.46,
-      "name": "ServiceNow, Inc."
-    },
-    {
-      "symbol": "SNOW",
-      "regular_close": 241.28,
-      "ext_price": 235.51,
-      "ah_pct": -2.39,
-      "name": "Snowflake Inc."
-    },
-    {
-      "symbol": "MU",
-      "regular_close": 1079.57,
-      "ext_price": 1053.84,
-      "ah_pct": -2.38,
-      "name": "Micron Technology, Inc."
-    },
-    {
-      "symbol": "SMH",
-      "regular_close": 637.9,
-      "ext_price": 623.0,
-      "ah_pct": -2.34,
-      "name": "VanEck Semiconductor ETF"
-    },
-    {
-      "symbol": "MDB",
-      "regular_close": 368.32,
-      "ext_price": 360.0,
-      "ah_pct": -2.26,
-      "name": "MongoDB, Inc."
-    },
-    {
-      "symbol": "HOOD",
-      "regular_close": 82.85,
-      "ext_price": 81.15,
-      "ah_pct": -2.05,
-      "name": "Robinhood Markets, Inc."
+      "name": "Marvell Technology, Inc."
     }
   ]
 }
