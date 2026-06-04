@@ -392,6 +392,144 @@ def _yf_get_json(url: str) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────── #
+# Cookie + crumb authenticated fetch                                          #
+# Yahoo's data endpoints (/v7/quote, /v10/quoteSummary) return 401 without a   #
+# cookie + crumb. yfinance's .info handles this internally, but our DIRECT     #
+# fallback calls did not — so non-US tickers (whose .info often gets throttled #
+# on shared cloud IPs) came back empty. This completes the handshake ourselves #
+# so the fallback tiers actually return data for global symbols.              #
+# ─────────────────────────────────────────────────────────────────────────── #
+_CRUMB_STATE: dict = {"session": None, "crumb": None}
+
+
+def _yf_crumb_session():
+    """Return (requests.Session, crumb) authenticated against Yahoo, or (None, None).
+
+    Cached after the first successful handshake. The session carries the Yahoo
+    consent cookies; the crumb is the per-session token Yahoo requires on its
+    data endpoints."""
+    if _CRUMB_STATE["session"] is not None and _CRUMB_STATE["crumb"]:
+        return _CRUMB_STATE["session"], _CRUMB_STATE["crumb"]
+    try:
+        import requests  # in requirements.txt
+
+        s = requests.Session()
+        s.headers.update(_YF_HEADERS)
+        # 1. obtain consent cookies
+        for cookie_url in ("https://fc.yahoo.com", "https://finance.yahoo.com"):
+            try:
+                s.get(cookie_url, timeout=10)
+                break
+            except Exception:
+                continue
+        # 2. obtain the crumb tied to those cookies
+        for host in ("query2", "query1"):
+            try:
+                r = s.get(
+                    f"https://{host}.finance.yahoo.com/v1/test/getcrumb", timeout=10
+                )
+                crumb = (r.text or "").strip()
+                # A valid crumb is short and not an HTML error page.
+                if crumb and "<" not in crumb and len(crumb) < 40:
+                    _CRUMB_STATE["session"] = s
+                    _CRUMB_STATE["crumb"] = crumb
+                    return s, crumb
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None, None
+
+
+def _reset_crumb() -> None:
+    _CRUMB_STATE["session"] = None
+    _CRUMB_STATE["crumb"] = None
+
+
+def _yf_session_crumb():
+    """Best-effort crumb from the yfinance YfData (curl_cffi) session.
+
+    yfinance already completes Yahoo's cookie/crumb handshake using browser
+    impersonation that works from Render's shared IP. Reusing its crumb — and
+    fetching through its session — is the most Render-robust path. Returns
+    (session, crumb) or (None, None)."""
+    session = _yf_data_session()
+    if session is None:
+        return None, None
+    crumb = None
+    try:
+        if hasattr(session, "_get_crumb"):
+            crumb = session._get_crumb()
+    except Exception:
+        crumb = None
+    if not crumb:
+        crumb = getattr(session, "_crumb", None) or getattr(session, "crumb", None)
+    return (session, crumb) if crumb else (None, None)
+
+
+def _yf_payload_ok(data: dict) -> bool:
+    """True only when `data` carries real results (not an error/empty payload)."""
+    if not isinstance(data, dict):
+        return False
+    for top, key in (("quoteSummary", "result"), ("quoteResponse", "result"),
+                     ("finance", "result")):
+        node = data.get(top)
+        if isinstance(node, dict):
+            if node.get("error"):
+                return False
+            if node.get(key):
+                return True
+    return bool(data.get("quotes"))  # /v1/search shape
+
+
+def _yf_auth_json(url: str) -> dict:
+    """GET a Yahoo JSON endpoint WITH cookie + crumb auth (for /quote, /quoteSummary).
+
+    Strategy, in order of Render-robustness:
+      1. yfinance curl_cffi session + its crumb  (best — proven to work on Render)
+      2. plain requests session + own handshake  (independent fallback path)
+      3. bare yfinance session, no crumb          (last resort)
+    Each strategy only short-circuits when it returns REAL results, so a stale
+    crumb on one path can't block a working one. Crumbs are refreshed on 401/403."""
+    sep = "&" if "?" in url else "?"
+
+    # ── Strategy 1: yfinance session + its own crumb ───────────────────────
+    ysess, ycrumb = _yf_session_crumb()
+    if ysess is not None and ycrumb:
+        try:
+            data = ysess.get_raw_json(f"{url}{sep}crumb={urllib.parse.quote(ycrumb)}")
+            if _yf_payload_ok(data):
+                return data
+        except Exception:
+            pass
+
+    # ── Strategy 2: requests session + our own crumb handshake ─────────────
+    session, crumb = _yf_crumb_session()
+    if session is not None and crumb:
+        full = f"{url}{sep}crumb={urllib.parse.quote(crumb)}"
+        try:
+            r = session.get(full, timeout=12)
+            if r.status_code == 200:
+                data = r.json() or {}
+                if _yf_payload_ok(data):
+                    return data
+            if r.status_code in (401, 403):
+                _reset_crumb()
+                session, crumb = _yf_crumb_session()
+                if session is not None and crumb:
+                    r = session.get(f"{url}{sep}crumb={urllib.parse.quote(crumb)}", timeout=12)
+                    if r.status_code == 200:
+                        data = r.json() or {}
+                        if _yf_payload_ok(data):
+                            return data
+        except Exception:
+            pass
+
+    # ── Strategy 3: bare session, no crumb (may still be cached) ───────────
+    return _yf_get_json(url)
+
+
+# ─────────────────────────────────────────────────────────────────────────── #
 # Live symbol search (autocomplete) — Yahoo /v1/finance/search               #
 # ─────────────────────────────────────────────────────────────────────────── #
 
@@ -493,7 +631,7 @@ def _yf_quote_summary(ticker: str) -> dict:
             f"https://{host}.finance.yahoo.com/v10/finance/quoteSummary/"
             f"{quoted}?modules={modules}"
         )
-        data = _yf_get_json(url)
+        data = _yf_auth_json(url)
         result_list = (data.get("quoteSummary", {}) or {}).get("result") or []
         if not result_list:
             continue
@@ -704,7 +842,7 @@ def _yf_quote_batch(symbols: list[str]) -> dict[str, dict]:
                 f"https://{host}.finance.yahoo.com/v7/finance/quote?"
                 f"symbols={joined}&fields={urllib.parse.quote(_QUOTE_FIELDS)}"
             )
-            data = _yf_get_json(url)
+            data = _yf_auth_json(url)
             results = (data.get("quoteResponse", {}) or {}).get("result") or []
             if results:
                 for q in results:
