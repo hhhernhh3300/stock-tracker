@@ -60,6 +60,25 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def _no_store_api(request, call_next):
+    """Stop browsers/webviews caching live market data.
+
+    /api/analyze/{ticker} is a GET with no Cache-Control header, so a browser
+    (especially a mobile webview) is free to heuristically cache it and re-serve
+    a stale snapshot — e.g. an empty payload captured during a Yahoo rate-limit
+    window — even after the backend recovers. Forcing `no-store` on every API
+    response guarantees each search hits the live endpoint and gets fresh data.
+    Static assets (the hashed JS/CSS bundle) are unaffected and stay cacheable.
+    """
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 @app.get("/api/health")
 def health() -> dict:
     provider = analyst.resolve_provider()
