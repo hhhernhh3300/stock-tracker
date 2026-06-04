@@ -17,6 +17,7 @@ are either auth-gated or paywalled and cannot be used without user credentials.
 """
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import math
 import os
@@ -29,6 +30,24 @@ import pandas as pd
 import yfinance as yf
 
 from . import ibkr, indicators
+
+# Thread pool for hard wall-clock timeouts on slow network calls. yfinance's
+# internal HTTP calls have their own long timeouts we can't always cap, so we
+# run the network-heavy steps in a worker and abandon them if they overrun —
+# guaranteeing the API responds well within Render's gateway limit (no 502s).
+_NET_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+
+
+def _run_budget(fn, timeout, default, *args, **kwargs):
+    """Run fn(*args) with a hard wall-clock `timeout` (seconds).
+
+    Returns the result if it finishes in time, otherwise `default`. An overrunning
+    call keeps running in its worker thread but its result is discarded — the API
+    request returns immediately instead of hanging on a throttled Yahoo endpoint."""
+    try:
+        return _NET_POOL.submit(fn, *args, **kwargs).result(timeout=timeout)
+    except Exception:
+        return default
 
 # Where price/history come from: "yahoo" (default), "ibkr", or "auto"
 # ("auto" = IBKR when its gateway is authenticated, otherwise Yahoo).
@@ -429,6 +448,13 @@ def _auth_record(success: bool) -> None:
         _AUTH_BREAKER["fails"] += 1
         if _AUTH_BREAKER["fails"] >= _AUTH_FAIL_THRESHOLD:
             _AUTH_BREAKER["until"] = time.time() + _AUTH_COOLDOWN
+
+
+def _trip_breaker() -> None:
+    """Force the breaker open — used when a budgeted fetch overruns its deadline,
+    so subsequent requests skip the slow auth path during the cooldown."""
+    _AUTH_BREAKER["fails"] = _AUTH_FAIL_THRESHOLD
+    _AUTH_BREAKER["until"] = time.time() + _AUTH_COOLDOWN
 
 
 def _yf_crumb_session():
@@ -1235,13 +1261,40 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
 
     frame = _indicator_frame(df)
     latest = _derive_latest(frame)
-    info = _get_info(ticker)  # fundamentals + analyst consensus (multi-source)
 
-    # Always-available chart meta (currency/exchange/name/price). This endpoint
-    # keeps working even when the authenticated fundamental endpoints are rate-
-    # limited, so it GUARANTEES the correct currency rather than defaulting a
-    # Singapore/Malaysia/etc. stock to a misleading 'USD'.
-    cmeta = _chart_meta(ticker)
+    # Fire the four independent network-heavy fetches CONCURRENTLY, each with a
+    # hard wall-clock deadline, so the total wait is the slowest one (~13s worst
+    # case) rather than their sum — and a throttled Yahoo endpoint can never push
+    # the response past Render's gateway timeout (no 502s).
+    #   info   — fundamentals + analyst consensus (multi-source)
+    #   cmeta  — chart meta: currency/exchange/name (always-available endpoint)
+    #   news   — recent headlines
+    #   peers  — sector comparison table
+    f_info = _NET_POOL.submit(_get_info, ticker)
+    f_cmeta = _NET_POOL.submit(_chart_meta, ticker)
+    f_news = _NET_POOL.submit(_get_news, ticker)
+    f_peers = _NET_POOL.submit(_get_peers_safe, ticker, {})
+
+    # All four share ONE 14s wall-clock deadline, so the whole bundle is bounded
+    # at ~14s total no matter the collection order.
+    _deadline = time.monotonic() + 14.0
+
+    def _await(fut, default):
+        remaining = max(0.1, _deadline - time.monotonic())
+        try:
+            return fut.result(timeout=remaining)
+        except Exception:
+            return default
+
+    info = _await(f_info, None)
+    if info is None:
+        _trip_breaker()  # overran → skip the slow auth path on the next request
+        info = {}
+
+    # Chart meta GUARANTEES the correct currency even when the authenticated
+    # fundamental endpoints are throttled (so an SGX/KLSE/etc. stock never falls
+    # back to a misleading 'USD').
+    cmeta = _await(f_cmeta, {}) or {}
     if cmeta:
         if not info.get("currency") and cmeta.get("currency"):
             info["currency"] = cmeta["currency"]
@@ -1312,15 +1365,10 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
 
     series = _series_to_lists(frame.tail(lookback))
 
-    # Optional extras (best-effort; never fail the whole request on these).
-    try:
-        news = _get_news(ticker)
-    except Exception:
-        news = []
-    try:
-        peers = _get_peers_safe(ticker, info)
-    except Exception:
-        peers = []
+    # News + peers were dispatched concurrently above; collect them under the
+    # same shared deadline (best-effort — never fail the request on these).
+    news = _await(f_news, []) or []
+    peers = _await(f_peers, []) or []
 
     # Build a human-readable data-source label for the status bar
     sources = []
