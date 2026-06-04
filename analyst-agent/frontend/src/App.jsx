@@ -128,6 +128,106 @@ const KPI = ({ label, value }) => (
 
 const tip = { background: T.surfaceRaised, border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 11, fontFamily: T.mono, color: T.text }
 
+/* ───────────── indicator assessment card ───────────── */
+const AssessCard = ({ label, value, signal, note, assess }) => {
+  const c = sc(signal)
+  return (
+    <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '9px 14px', background: 'rgba(255,255,255,0.022)', borderBottom: `1px solid ${T.border}` }}>
+        <span style={{ fontSize: 11, fontFamily: T.mono, fontWeight: 700, color: T.amber,
+          letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {note && <span style={{ fontSize: 11, color: T.dim, fontFamily: T.mono }}>{note}</span>}
+          <span style={{ fontSize: 17, fontFamily: T.mono, fontWeight: 700, color: T.text }}>{value}</span>
+          {signal && <Badge s={signal} />}
+        </div>
+      </div>
+      {assess && (
+        <div style={{ padding: '10px 14px', fontSize: 12, lineHeight: 1.78, color: T.muted, fontFamily: T.mono }}>
+          {assess}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function buildIndicatorCards(i, q) {
+  const rsi   = i.rsi   != null ? Number(i.rsi)   : null
+  const zone  = (i.rsi_zone   || '').toLowerCase()
+  const macd  = i.macd  != null ? Number(i.macd)  : null
+  const sigV  = i.macd_signal != null ? Number(i.macd_signal) : null
+  const state = (i.macd_state || '').toLowerCase()
+  const trend = (i.trend || '').toLowerCase()
+  const p50   = i.price_vs_sma50_pct  != null ? Number(i.price_vs_sma50_pct)  : null
+  const p200  = i.price_vs_sma200_pct != null ? Number(i.price_vs_sma200_pct) : null
+  const fmtV  = v => v != null ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'
+  const cards = []
+
+  if (rsi != null) {
+    let signal = 'hold', assess = ''
+    if (zone === 'overbought') {
+      signal = 'sell'
+      assess = `RSI at ${rsi.toFixed(1)} is in overbought territory (>70). The stock has strong momentum but may be due for a short-term pullback or consolidation. Watch for a bearish divergence (price rising while RSI falls) or a drop back below 70 as the first caution signal. Overbought readings can persist in strong uptrends.`
+    } else if (zone === 'oversold') {
+      signal = 'buy'
+      assess = `RSI at ${rsi.toFixed(1)} is in oversold territory (<30). Heavy selling has driven the stock to a statistically low-momentum reading — a mean-reversion bounce is possible. Wait for RSI to cross back above 30 as confirmation rather than catching a falling knife.`
+    } else if (rsi > 55) {
+      signal = 'buy'
+      assess = `RSI at ${rsi.toFixed(1)} is in the neutral-to-bullish zone (55–70). Momentum is positive without being stretched — a constructive zone for an ongoing uptrend. Bulls are in control. Watch for RSI to push above 70 (extension risk) or slip back below 50 (momentum loss).`
+    } else if (rsi < 45) {
+      signal = 'sell'
+      assess = `RSI at ${rsi.toFixed(1)} is in the neutral-to-bearish zone (30–50). Momentum is softening — buyers have not regained the upper hand. A recovery above 50 would signal momentum turning constructive again. Below 50 the path of least resistance is lower.`
+    } else {
+      assess = `RSI at ${rsi.toFixed(1)} is in the neutral zone (45–55). No strong directional signal. Watch for a break above 55 (bullish) or below 45 (bearish) for the next momentum cue.`
+    }
+    cards.push({ label: 'RSI (14)', value: rsi.toFixed(1), signal, note: zone || null, assess })
+  }
+
+  if (macd != null) {
+    const isBull = state.includes('bull')
+    const hist   = macd - (sigV ?? macd)
+    const signal = isBull ? 'buy' : 'sell'
+    const assess = isBull
+      ? `MACD line (${fmtV(macd)}) is above the signal line (${fmtV(sigV)}), histogram ${hist >= 0 ? '+' : ''}${hist.toFixed(3)}. Bullish momentum configuration. Watch whether histogram bars are growing (accelerating) or shrinking (decelerating but still positive) — a histogram moving toward zero warns of a potential bearish crossover ahead.`
+      : `MACD line (${fmtV(macd)}) is below the signal line (${fmtV(sigV)}), histogram ${hist.toFixed(3)}. Momentum is bearish. In this configuration rallies tend to be shallow. A sustained move of the MACD line back above the signal line is needed to confirm recovery.`
+    cards.push({ label: 'MACD (12,26,9)', value: fmtV(macd), signal, note: state || null, assess })
+  }
+
+  if (trend) {
+    const isGolden = trend.includes('golden')
+    const signal   = isGolden ? 'buy' : 'sell'
+    const assess   = isGolden
+      ? `The 50-day SMA (${fmtV(i.sma50)}) is above the 200-day SMA (${fmtV(i.sma200)}) — a golden cross. This long-term bullish structure means recent momentum is outpacing the longer-term trend. Institutional investors use this as a trend confirmation signal. As long as this structure holds, the path of least resistance is higher.`
+      : `The 50-day SMA (${fmtV(i.sma50)}) is below the 200-day SMA (${fmtV(i.sma200)}) — a death cross. This is a long-term bearish signal; recent momentum has fallen below the longer-term trend. Recovery above the 200-day SMA would be the first step toward a structural reversal.`
+    cards.push({ label: 'Trend (SMA 50 / 200)', value: isGolden ? 'Golden Cross' : 'Death Cross', signal, note: null, assess })
+  }
+
+  if (p50 != null) {
+    const above  = p50 > 0
+    const signal = above ? 'buy' : 'sell'
+    let assess = ''
+    if (above && p50 > 15) assess = `Price is ${p50.toFixed(1)}% above its 50-day SMA (${fmtV(i.sma50)}). A significant extension from the short-term average — the stock has strong momentum but may be due for consolidation. In a persistent trend the 50-day rises to close the gap, but the risk/reward for new entries is more stretched at these levels.`
+    else if (above) assess = `Price is ${p50.toFixed(1)}% above its 50-day SMA (${fmtV(i.sma50)}). Intermediate-term bullish — the 50-day acts as dynamic support on pullbacks. This reading is constructive without being over-extended.`
+    else if (p50 > -10) assess = `Price is ${Math.abs(p50).toFixed(1)}% below its 50-day SMA (${fmtV(i.sma50)}). Short-term momentum is negative; the 50-day is now acting as overhead resistance. A recovery back above it on strong volume would reassert a bullish short-term bias.`
+    else assess = `Price is ${Math.abs(p50).toFixed(1)}% below its 50-day SMA (${fmtV(i.sma50)}). A meaningful breakdown from the short-term average. Until price recaptures the 50-day, rallies are likely to face resistance at that level.`
+    cards.push({ label: 'Price vs SMA 50', value: `${p50 >= 0 ? '+' : ''}${p50.toFixed(1)}%`, signal, note: null, assess })
+  }
+
+  if (p200 != null) {
+    const above  = p200 > 0
+    const signal = above ? 'buy' : 'sell'
+    let assess = ''
+    if (above && p200 > 30) assess = `Price is ${p200.toFixed(1)}% above its 200-day SMA (${fmtV(i.sma200)}). An extreme reading indicating a powerful long-term uptrend. The 200-day rising beneath the price is the hallmark of a genuine secular bull run. As long as price holds above it, the long-term trend is decisively up.`
+    else if (above) assess = `Price is ${p200.toFixed(1)}% above its 200-day SMA (${fmtV(i.sma200)}). The single most important long-term trend confirmation signal — bulls have structural control. This is the ultimate support line: as long as the stock holds above it, the multi-month trend is constructively up.`
+    else if (p200 > -10) assess = `Price is ${Math.abs(p200).toFixed(1)}% below its 200-day SMA (${fmtV(i.sma200)}). The stock has lost its long-term bullish structure. Trading below the 200-day is a significant warning. A weekly close back above it is the minimum to reassert a bullish long-term view.`
+    else assess = `Price is ${Math.abs(p200).toFixed(1)}% below its 200-day SMA (${fmtV(i.sma200)}). A deep breakdown from the 200-day SMA signals that the long-term trend has turned decidedly bearish. Recovery typically takes months and requires a substantial catalyst or valuation reset.`
+    cards.push({ label: 'Price vs SMA 200', value: `${p200 >= 0 ? '+' : ''}${p200.toFixed(1)}%`, signal, note: null, assess })
+  }
+
+  return cards
+}
+
 /* ───────────── charts ───────────── */
 function PriceChart({ data, cur, showSMA, showBB, height = 200 }) {
   if (!data.length) return null
@@ -259,33 +359,85 @@ function FundamentalsTab({ data }) {
 }
 
 function TechnicalsTab({ data }) {
-  const i = data.indicators || {}
-  const cur = data.meta.currency
-  const cards = [
-    ['RSI (14)', fmt(i.rsi, 1), i.rsi_zone],
-    ['MACD', fmt(i.macd, 3), i.macd_state ? (i.macd_state.startsWith('bull') ? 'buy' : 'sell') : null],
-    ['Trend', i.trend ? i.trend.split(' ')[0] : '—', i.trend?.startsWith('golden') ? 'buy' : i.trend ? 'sell' : null],
-  ]
-  const levels = [
-    ['SMA 50', fmtMoney(i.sma50, cur), i.price_vs_sma50_pct],
+  const i    = data.indicators || {}
+  const cur  = data.meta.currency
+  const [view, setView] = useState('assessed')
+
+  const indCards = buildIndicatorCards(i, data.quote || {})
+  const bullN    = indCards.filter(c => c.signal === 'buy').length
+  const bearN    = indCards.filter(c => c.signal === 'sell').length
+  const netScore = bullN - bearN
+  const overall  = netScore >= 2 ? 'buy' : netScore <= -2 ? 'sell' : 'hold'
+  const overallC = sc(overall)
+
+  const smaLevels = [
+    ['SMA 50',  fmtMoney(i.sma50,  cur), i.price_vs_sma50_pct],
     ['SMA 200', fmtMoney(i.sma200, cur), i.price_vs_sma200_pct],
   ]
+
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
-        {cards.map(([l, v, s]) => (
-          <div key={l} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, padding: '12px 14px' }}>
-            <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 6 }}>{l}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 18, color: T.text, fontFamily: T.mono, fontWeight: 700 }}>{v}</span>
-              {s && <Badge s={s} />}
-            </div>
+      {/* Composite score banner */}
+      <div style={{ border: `1px solid ${overallC}44`, background: overallC + '0d', borderRadius: 8,
+        padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 4 }}>TECHNICAL COMPOSITE</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Badge s={overall} label={overall.toUpperCase()} />
+            <span style={{ fontSize: 12, color: T.muted, fontFamily: T.mono }}>
+              {bullN} bullish · {bearN} bearish · {indCards.length - bullN - bearN} neutral
+            </span>
           </div>
-        ))}
+        </div>
+        <div style={{ display: 'flex', gap: 3, flex: 1, minWidth: 80 }}>
+          {indCards.map((c, idx) => (
+            <div key={idx} title={c.label} style={{ flex: 1, height: 5, background: sc(c.signal), borderRadius: 2, opacity: 0.8 }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 5 }}>
+          {['assessed', 'compact'].map(v => (
+            <button key={v} onClick={() => setView(v)} style={{
+              fontSize: 10, fontFamily: T.mono, cursor: 'pointer',
+              border: `1px solid ${view === v ? T.amber : T.border}`,
+              background: view === v ? T.amberDim : 'transparent',
+              color: view === v ? T.amber : T.muted, padding: '2px 8px', borderRadius: 3,
+            }}>{v === 'assessed' ? 'ASSESSED' : 'COMPACT'}</button>
+          ))}
+        </div>
       </div>
-      <Panel title="Moving Averages">
-        {levels.map(([m, v, pct]) => <Row key={m} m={m} v={v} note={pct != null ? `price ${fmtPct(pct)}` : ''} />)}
-      </Panel>
+
+      {/* Assessed view — one card per indicator with explanation */}
+      {view === 'assessed' && (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {indCards.map((c, idx) => <AssessCard key={idx} {...c} />)}
+        </div>
+      )}
+
+      {/* Compact view — original table layout */}
+      {view === 'compact' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8 }}>
+            {[
+              { l: 'RSI (14)', v: fmt(i.rsi, 1), s: i.rsi_zone },
+              { l: 'MACD',    v: fmt(i.macd, 3), s: i.macd_state?.startsWith('bull') ? 'buy' : i.macd_state ? 'sell' : null },
+              { l: 'Trend',   v: i.trend ? i.trend.split(' ')[0] : '—', s: i.trend?.startsWith('golden') ? 'buy' : i.trend ? 'sell' : null },
+            ].map(({ l, v, s }) => (
+              <div key={l} style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 6 }}>{l}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18, color: T.text, fontFamily: T.mono, fontWeight: 700 }}>{v}</span>
+                  {s && <Badge s={s} />}
+                </div>
+              </div>
+            ))}
+          </div>
+          <Panel title="Moving Averages">
+            {smaLevels.map(([m, v, pct]) => (
+              <Row key={m} m={m} v={v} note={pct != null ? `price ${fmtPct(pct)}` : ''} />
+            ))}
+          </Panel>
+        </>
+      )}
     </div>
   )
 }
