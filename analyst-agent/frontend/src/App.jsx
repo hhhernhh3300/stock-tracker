@@ -31,12 +31,27 @@ const fmtPct = (v, d = 2) => { const n = num(v); return n == null ? '—' : `${n
 // fraction (0.55) -> "55.0%"; already-percent values pass through if >1.5
 const fmtFrac = v => { const n = num(v); if (n == null) return '—'; const p = Math.abs(n) < 1.5 ? n * 100 : n; return `${p.toFixed(1)}%` }
 const fmtMult = v => { const n = num(v); return n == null ? '—' : `${n.toFixed(1)}×` }
-const fmtCap = v => {
+
+// Currency symbol map — disambiguates the many "$" currencies (US$, S$, HK$, A$…)
+// and covers the major exchanges this app reaches. Unknown codes fall back to the
+// ISO code as a prefix (e.g. "PLN 1.2B") so nothing is ever mislabelled as USD.
+const CUR_SYM = {
+  USD: '$', EUR: '€', GBP: '£', GBp: 'p', JPY: '¥', CNY: '¥', CNH: '¥',
+  HKD: 'HK$', SGD: 'S$', MYR: 'RM', IDR: 'Rp', THB: '฿', INR: '₹', PHP: '₱',
+  VND: '₫', TWD: 'NT$', KRW: '₩', AUD: 'A$', CAD: 'C$', NZD: 'NZ$', CHF: 'CHF ',
+  SEK: 'kr ', NOK: 'kr ', DKK: 'kr ', ZAR: 'R', BRL: 'R$', MXN: 'MX$',
+  AED: 'AED ', SAR: 'SAR ', TRY: '₺', RUB: '₽', PLN: 'zł ',
+}
+const curSym = c => CUR_SYM[c] || (c ? c + ' ' : '$')
+
+// Market cap with the correct currency symbol (defaults to USD only if unknown).
+const fmtCap = (v, cur = 'USD') => {
   const n = num(v); if (n == null) return '—'
-  if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`
-  return `$${n.toLocaleString()}`
+  const s = curSym(cur)
+  if (n >= 1e12) return `${s}${(n / 1e12).toFixed(2)}T`
+  if (n >= 1e9) return `${s}${(n / 1e9).toFixed(2)}B`
+  if (n >= 1e6) return `${s}${(n / 1e6).toFixed(2)}M`
+  return `${s}${n.toLocaleString()}`
 }
 const fmtMoney = (v, cur = '') => { const n = num(v); return n == null ? '—' : `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${cur ? ' ' + cur : ''}` }
 
@@ -701,7 +716,7 @@ function OverviewTab({ data, chart }) {
 
       {/* KPIs */}
       <div className="aa-kpi-grid">
-        <KPI label="MARKET CAP" value={fmtCap(f.market_cap)} />
+        <KPI label="MARKET CAP" value={fmtCap(f.market_cap, cur)} />
         <KPI label="P/E (TTM)" value={fmtMult(f.trailing_pe)} />
         <KPI label="FORWARD P/E" value={fmtMult(f.forward_pe)} />
         <KPI label="BETA" value={fmt(f.beta)} />
@@ -761,6 +776,7 @@ function OverviewTab({ data, chart }) {
 
 function FundamentalsTab({ data }) {
   const f   = data.fundamentals
+  const cur = data.meta.currency
   const ror = computeROR(data)
 
   // Build annotation lookup by metric label
@@ -768,7 +784,7 @@ function FundamentalsTab({ data }) {
   ;[...ror.valuation.items, ...ror.fundamental.items].forEach(x => { annMap[x.metric] = x })
 
   const rows = [
-    { m: 'Market Cap',           v: fmtCap(f.market_cap) },
+    { m: 'Market Cap',           v: fmtCap(f.market_cap, cur) },
     { m: 'Trailing P/E',         v: fmtMult(f.trailing_pe),     ann: annMap['Trailing P/E'] },
     { m: 'Forward P/E',          v: fmtMult(f.forward_pe),      ann: annMap['Fwd vs TTM P/E'] },
     { m: 'PEG Ratio',            v: fmt(f.peg_ratio),           ann: annMap['PEG Ratio'] },
@@ -975,17 +991,20 @@ function PeersTab({ data }) {
             </tr>
           </thead>
           <tbody>
-            {peers.map((p, i) => (
+            {peers.map((p, i) => {
+              const pc = p.currency || data.meta.currency
+              return (
               <tr key={i} style={{ borderBottom: `1px solid ${T.border}`, background: p.ticker === data.meta.ticker ? T.amberDim : 'transparent' }}>
                 <td style={{ padding: '9px 13px', fontSize: 13, fontFamily: T.mono, color: T.amber, fontWeight: 700 }}>{p.ticker}</td>
                 <td style={{ padding: '9px 13px', fontSize: 12, color: T.text, whiteSpace: 'nowrap' }}>{p.name}</td>
-                <td style={{ padding: '9px 13px', fontSize: 13, fontFamily: T.mono, color: T.text, fontWeight: 700 }}>{fmt(p.price)}</td>
+                <td style={{ padding: '9px 13px', fontSize: 13, fontFamily: T.mono, color: T.text, fontWeight: 700, whiteSpace: 'nowrap' }}>{p.price != null ? `${curSym(pc)}${fmt(p.price)}` : '—'}</td>
                 <td style={{ padding: '9px 13px', fontSize: 12, fontFamily: T.mono, fontWeight: 700, color: num(p.change_pct) >= 0 ? T.green : T.red }}>{fmtPct(p.change_pct)}</td>
-                <td style={{ padding: '9px 13px', fontSize: 12, fontFamily: T.mono, color: T.muted }}>{fmtCap(p.market_cap)}</td>
+                <td style={{ padding: '9px 13px', fontSize: 12, fontFamily: T.mono, color: T.muted, whiteSpace: 'nowrap' }}>{fmtCap(p.market_cap, pc)}</td>
                 <td style={{ padding: '9px 13px', fontSize: 12, fontFamily: T.mono, color: T.muted }}>{fmtMult(p.trailing_pe)}</td>
                 <td style={{ padding: '9px 13px', fontSize: 12, fontFamily: T.mono, color: T.muted }}>{fmtFrac(p.profit_margin)}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>

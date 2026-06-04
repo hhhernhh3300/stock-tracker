@@ -319,6 +319,7 @@ def _peer_snapshot(ticker: str) -> dict | None:
         "trailing_pe": _round(info.get("trailingPE")),
         "profit_margin": _round(info.get("profitMargins"), 4),
         "revenue": info.get("totalRevenue"),
+        "currency": info.get("currency"),
     }
 
 
@@ -906,6 +907,9 @@ def _row_from_quote(sym: str, q: dict) -> dict:
         # for some symbols if Yahoo omits it from the batch endpoint.
         "profit_margin": _round(q.get("profitMargins"), 4),
         "revenue": None,
+        # Per-peer currency so the UI labels each row correctly (peers can be
+        # cross-listed in a different currency than the searched symbol).
+        "currency": q.get("currency"),
     }
 
 
