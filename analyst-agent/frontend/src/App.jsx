@@ -40,6 +40,65 @@ const fmtCap = v => {
 }
 const fmtMoney = (v, cur = '') => { const n = num(v); return n == null ? '—' : `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}${cur ? ' ' + cur : ''}` }
 
+/* ───────────── analyst-coverage classification ───────────── */
+// Distinguishes "no/thin analyst coverage" (small-caps Wall St doesn't follow)
+// from "data is broken". A blank consensus on a 2-analyst micro-cap is expected,
+// not an error — surface that so users read "—" correctly.
+function coverageInfo(numAnalysts) {
+  const c = num(numAnalysts)
+  if (c == null || c === 0) {
+    return {
+      level: 'none', label: 'NOT COVERED', color: '#5e6573',
+      note: 'No Wall-Street analysts currently publish ratings or price targets for this stock. ' +
+            'Analyst-consensus metrics are simply unavailable — lean on the technical and ' +
+            'fundamental data instead. This is normal for micro-caps, foreign listings, and ETFs.',
+    }
+  }
+  if (c < 5) {
+    return {
+      level: 'low', label: 'LOW COVERAGE', color: '#f97316',
+      note: `Only ${c} analyst${c === 1 ? '' : 's'} cover${c === 1 ? 's' : ''} this stock. ` +
+            'Consensus figures (recommendation, mean target) come from a very small sample, so they ' +
+            'can be volatile or unrepresentative — weight them lightly and prioritise the fundamentals.',
+    }
+  }
+  if (c < 10) {
+    return {
+      level: 'moderate', label: 'MODERATE COVERAGE', color: '#e6a72a',
+      note: `${c} analysts cover this stock — a modest sample. Consensus is meaningful but not deep; ` +
+            'a single rating change can move the average.',
+    }
+  }
+  return { level: 'good', label: null, color: '#2dd4a0', note: null }
+}
+
+const CoverageBanner = ({ numAnalysts, compact }) => {
+  const cov = coverageInfo(numAnalysts)
+  if (!cov.note) return null  // good coverage → no banner
+  return (
+    <div style={{ background: cov.color + '12', border: `1px solid ${cov.color}40`, borderRadius: 8,
+      padding: compact ? '8px 12px' : '10px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <span style={{ fontSize: 13, lineHeight: 1.2, flexShrink: 0 }}>{cov.level === 'none' ? '○' : '⚠'}</span>
+      <div>
+        <span style={{ fontSize: 10, fontFamily: T.mono, fontWeight: 700, color: cov.color,
+          letterSpacing: '0.04em', textTransform: 'uppercase' }}>{cov.label}</span>
+        <div style={{ fontSize: 11, lineHeight: 1.65, color: T.muted, fontFamily: T.mono, marginTop: 3 }}>{cov.note}</div>
+      </div>
+    </div>
+  )
+}
+
+// Small inline coverage chip for the hero bar / panel headers.
+const CoverageChip = ({ numAnalysts }) => {
+  const cov = coverageInfo(numAnalysts)
+  if (!cov.label) return null
+  return (
+    <span style={{ fontSize: 9, fontFamily: T.mono, fontWeight: 700, color: cov.color,
+      background: cov.color + '1a', border: `1px solid ${cov.color}44`, padding: '1px 6px',
+      borderRadius: 3, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{cov.label}</span>
+  )
+}
+
 /* ───────────── client-side indicator derivation ───────────── */
 function sma(arr, p) {
   const out = Array(arr.length).fill(null)
@@ -684,7 +743,12 @@ function OverviewTab({ data, chart }) {
           <Row m="Dividend Yield" v={f.dividend_yield != null ? fmtFrac(f.dividend_yield) : '—'} />
         </Panel>
         <Panel title="Analyst Consensus">
-          <Row m="Recommendation" v={(a.recommendation || '—').toUpperCase()} />
+          {coverageInfo(a.num_analysts).note && (
+            <div style={{ padding: '10px 13px', borderBottom: `1px solid ${T.border}` }}>
+              <CoverageBanner numAnalysts={a.num_analysts} compact />
+            </div>
+          )}
+          <Row m="Recommendation" v={a.recommendation && a.recommendation !== 'none' ? a.recommendation.toUpperCase() : (num(a.num_analysts) ? '—' : 'NOT COVERED')} />
           <Row m="# Analysts" v={fmt(a.num_analysts, 0)} />
           <Row m="Mean Target" v={fmtMoney(a.target_mean, cur)} />
           <Row m="Implied Upside" v={fmtPct(a.target_upside_pct)} s={num(a.target_upside_pct) >= 0 ? 'buy' : 'sell'} />
@@ -950,10 +1014,16 @@ function RiskOppTab({ data }) {
   const highRisk = activeItems.filter(x => x.verdict === 'high-risk')
   const opps     = activeItems.filter(x => x.verdict === 'opportunity')
 
+  const showCovNote = coverageInfo(data.analyst?.num_analysts).note &&
+    (section === 'all' || section === 'sentiment')
+
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       {/* Full R/O Dashboard */}
       <RiskOppDashboard ror={ror} />
+
+      {/* Low-coverage explainer (Sentiment scores depend on analyst data) */}
+      {showCovNote && <CoverageBanner numAnalysts={data.analyst.num_analysts} />}
 
       {/* Section filter */}
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -1128,8 +1198,15 @@ function HeroBar({ data, quote, pos }) {
       {/* Analyst consensus — on mobile becomes full-width row */}
       <div className="aa-hero-consensus">
         <div>
-          <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 2 }}>ANALYST CONSENSUS</div>
-          <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 15, color: T.green }}>{(data.analyst.recommendation || '—').toUpperCase()}</div>
+          <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+            ANALYST CONSENSUS <CoverageChip numAnalysts={data.analyst.num_analysts} />
+          </div>
+          <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 15,
+            color: data.analyst.recommendation && data.analyst.recommendation !== 'none' ? T.green : T.muted }}>
+            {data.analyst.recommendation && data.analyst.recommendation !== 'none'
+              ? data.analyst.recommendation.toUpperCase()
+              : (num(data.analyst.num_analysts) ? '—' : 'NOT COVERED')}
+          </div>
         </div>
         <div style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, marginTop: 1 }}>
           {fmt(data.analyst.num_analysts, 0)} analysts · PT {fmt(data.analyst.target_mean)}
