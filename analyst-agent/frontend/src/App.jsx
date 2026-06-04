@@ -453,7 +453,7 @@ const DualBar = ({ label, risk, opp }) => (
 )
 
 /* mini risk/opp scorecard — used in Overview and RiskOppTab */
-const RiskOppDashboard = ({ ror, compact }) => {
+const RiskOppDashboard = ({ ror }) => {
   const c = vc(ror.overall.verdict)
   const cats = [
     { key: 'valuation',   label: 'Valuation'   },
@@ -462,29 +462,29 @@ const RiskOppDashboard = ({ ror, compact }) => {
     { key: 'sentiment',   label: 'Sentiment'   },
   ]
   return (
-    <div style={{ border: `1px solid ${c}55`, background: c + '09', borderRadius: 8, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 14 }}>
+    <div style={{ border: `1px solid ${c}55`, background: c + '09', borderRadius: 8, padding: '12px 14px' }}>
+      <div className="aa-ror-header">
         <div>
           <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 5 }}>RISK / OPPORTUNITY</div>
           <VerBadge verdict={ror.overall.verdict} label={ror.overall.label} />
         </div>
-        <div style={{ display: 'flex', gap: 22 }}>
+        <div className="aa-ror-scores">
           {[
             { lbl: 'OPPORTUNITY', val: ror.overall.opp, clr: T.green },
             { lbl: 'RISK',        val: ror.overall.risk, clr: T.red  },
             { lbl: 'R/R RATIO',   val: ror.overall.ratio, clr: c     },
           ].map(({ lbl, val, clr }) => (
             <div key={lbl}>
-              <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 2 }}>{lbl}</div>
-              <div style={{ fontSize: 20, fontFamily: T.mono, fontWeight: 700, color: clr, lineHeight: 1 }}>
+              <div style={{ fontSize: 9, color: T.muted, fontFamily: T.mono, marginBottom: 2 }}>{lbl}</div>
+              <div style={{ fontSize: 18, fontFamily: T.mono, fontWeight: 700, color: clr, lineHeight: 1 }}>
                 {typeof val === 'number' ? val.toFixed(1) : val}
-                {typeof val === 'number' && <span style={{ fontSize: 11, color: T.dim }}>/10</span>}
+                {typeof val === 'number' && <span style={{ fontSize: 10, color: T.dim }}>/10</span>}
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{ display: 'grid', gap: 9 }}>
+      <div style={{ display: 'grid', gap: 8 }}>
         {cats.map(({ key, label }) => <DualBar key={key} label={label} risk={ror[key].risk} opp={ror[key].opp} />)}
       </div>
     </div>
@@ -641,7 +641,7 @@ function OverviewTab({ data, chart }) {
       <RiskOppDashboard ror={ror} />
 
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 8 }}>
+      <div className="aa-kpi-grid">
         <KPI label="MARKET CAP" value={fmtCap(f.market_cap)} />
         <KPI label="P/E (TTM)" value={fmtMult(f.trailing_pe)} />
         <KPI label="FORWARD P/E" value={fmtMult(f.forward_pe)} />
@@ -675,7 +675,7 @@ function OverviewTab({ data, chart }) {
       <Panel title={`Price — last ${chart.length} sessions`}>
         <div style={{ padding: 10 }}><PriceChart data={chart} cur={cur} showSMA={showSMA} showBB={false} /></div>
       </Panel>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+      <div className="aa-two-col">
         <Panel title="Snapshot">
           <Row m="Sector" v={meta.sector || '—'} />
           <Row m="Industry" v={meta.industry || '—'} />
@@ -849,14 +849,14 @@ function AssessmentTab({ data }) {
   if (!a) return <Panel title="AI Assessment"><div style={{ padding: 16, color: T.muted, fontSize: 13 }}>{data.ai_error || 'No assessment available.'}</div></Panel>
   return (
     <div style={{ display: 'grid', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 8 }}>
+      <div className="aa-assess-kpis">
         <KPI label="SIGNAL" value={(a.signal || '—').toUpperCase()} />
         <KPI label="CONVICTION" value={(a.conviction || '—').toUpperCase()} />
         <KPI label="RISK LEVEL" value={(a.risk_level || '—').toUpperCase()} />
         <KPI label="HORIZON" value={a.time_horizon || '—'} />
       </div>
       <Panel title="Summary"><div style={{ padding: 14, fontSize: 13, lineHeight: 1.7, color: T.text }}>{a.summary}</div></Panel>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
+      <div className="aa-two-col">
         <Panel title="Bullish Factors">
           {(a.bullish_factors || []).map((x, i) => <div key={i} style={{ padding: '8px 13px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.border}` }}>↗ {x}</div>)}
         </Panel>
@@ -969,7 +969,7 @@ function RiskOppTab({ data }) {
 
       {/* Key signal highlights */}
       {(highRisk.length > 0 || opps.length > 0) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 10 }}>
+        <div className="aa-two-col">
           {opps.length > 0 && (
             <div style={{ background: T.green + '0d', border: `1px solid ${T.green}33`, borderRadius: 8, padding: '12px 14px' }}>
               <div style={{ fontSize: 10, color: T.green, fontFamily: T.mono, fontWeight: 700, marginBottom: 8 }}>⬆ OPPORTUNITY SIGNALS ({opps.length})</div>
@@ -1056,7 +1056,7 @@ function ChatTab({ ticker, aiConfigured }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 540, gap: 10 }}>
+    <div className="aa-chat">
       {!aiConfigured && (
         <div style={{ background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: '8px 12px', fontSize: 12, color: T.amber, fontFamily: T.mono }}>
           AI chat needs an LLM key on the server. Without one, requests will return a 503.
@@ -1090,40 +1090,50 @@ function ChatTab({ ticker, aiConfigured }) {
   )
 }
 
-/* ───────────── hero bar (extracted so ror is computed in a component) ───────────── */
+/* ───────────── hero bar ───────────── */
 function HeroBar({ data, quote, pos }) {
   const ror = computeROR(data)
   const rc  = vc(ror.overall.verdict)
   return (
-    <div style={{ background: T.nav, borderBottom: `1px solid ${T.border}`, padding: '13px 24px', display: 'flex', alignItems: 'center', gap: 30, flexWrap: 'wrap' }}>
-      <div>
+    <div className="aa-hero">
+      {/* Ticker + company */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 24, color: T.amber, lineHeight: 1 }}>{data.meta.ticker}</span>
+          <span style={{ fontSize: 13, color: T.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.meta.name}</span>
+        </div>
+        <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono, marginTop: 2 }}>{[data.meta.exchange, data.meta.sector].filter(Boolean).join(' · ')}</div>
+      </div>
+      {/* Price */}
+      <div className="aa-hero-price">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 28, color: T.amber }}>{data.meta.ticker}</span>
-          <span style={{ fontSize: 13, color: T.muted }}>{data.meta.name}</span>
-        </div>
-        <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono }}>{[data.meta.exchange, data.meta.sector].filter(Boolean).join(' · ')}</div>
-      </div>
-      <div style={{ borderLeft: `1px solid ${T.border}`, paddingLeft: 30 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
-          <span style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 30, color: T.text }}>{fmtMoney(quote.price, data.meta.currency)}</span>
-          <div style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 14, color: pos ? T.green : T.red }}>{fmtPct(quote.day_change_pct)}</div>
+          <span style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 26, color: T.text }}>{fmtMoney(quote.price, data.meta.currency)}</span>
+          <span style={{ fontFamily: T.mono, fontWeight: 700, fontSize: 14, color: pos ? T.green : T.red }}>{fmtPct(quote.day_change_pct)}</span>
         </div>
       </div>
-      <div style={{ borderLeft: `1px solid ${T.border}`, paddingLeft: 24 }}>
-        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 4 }}>RISK / REWARD</div>
-        <VerBadge verdict={ror.overall.verdict} label={ror.overall.label} />
-        <div style={{ fontSize: 11, fontFamily: T.mono, marginTop: 4 }}>
-          <span style={{ color: T.green }}>OPP {ror.overall.opp.toFixed(1)}</span>
-          <span style={{ color: T.dim }}> · </span>
-          <span style={{ color: T.red }}>RISK {ror.overall.risk.toFixed(1)}</span>
-          <span style={{ color: T.dim }}> · R/R </span>
-          <span style={{ color: rc }}>{ror.overall.ratio}</span>
+      {/* R/R — on mobile becomes full-width row below price */}
+      <div className="aa-hero-rr">
+        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 3 }}>RISK / REWARD</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <VerBadge verdict={ror.overall.verdict} label={ror.overall.label} />
+          <span style={{ fontSize: 11, fontFamily: T.mono }}>
+            <span style={{ color: T.green }}>OPP {ror.overall.opp.toFixed(1)}</span>
+            <span style={{ color: T.dim }}> · </span>
+            <span style={{ color: T.red }}>RISK {ror.overall.risk.toFixed(1)}</span>
+            <span style={{ color: T.dim }}> · R/R </span>
+            <span style={{ color: rc, fontWeight: 700 }}>{ror.overall.ratio}</span>
+          </span>
         </div>
       </div>
-      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-        <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 3 }}>ANALYST CONSENSUS</div>
-        <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 17, color: T.green }}>{(data.analyst.recommendation || '—').toUpperCase()}</div>
-        <div style={{ fontSize: 11, color: T.muted, fontFamily: T.mono }}>{fmt(data.analyst.num_analysts, 0)} analysts · PT {fmt(data.analyst.target_mean)}</div>
+      {/* Analyst consensus — on mobile becomes full-width row */}
+      <div className="aa-hero-consensus">
+        <div>
+          <div style={{ fontSize: 10, color: T.muted, fontFamily: T.mono, marginBottom: 2 }}>ANALYST CONSENSUS</div>
+          <div style={{ fontFamily: T.head, fontWeight: 700, fontSize: 15, color: T.green }}>{(data.analyst.recommendation || '—').toUpperCase()}</div>
+        </div>
+        <div style={{ fontSize: 11, color: T.muted, fontFamily: T.mono, marginTop: 1 }}>
+          {fmt(data.analyst.num_analysts, 0)} analysts · PT {fmt(data.analyst.target_mean)}
+        </div>
       </div>
     </div>
   )
@@ -1175,31 +1185,76 @@ export default function App() {
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text }}>
       <style>{`
         *{box-sizing:border-box;}
+        body{overflow-x:hidden;}
         ::-webkit-scrollbar{width:4px;height:4px;}
         ::-webkit-scrollbar-track{background:${T.surface};}
         ::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px;}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
         input::placeholder{color:${T.dim};}
+        button{font-family:inherit;}
+        /* ── layout classes ── */
+        .aa-nav{background:${T.nav};border-bottom:1px solid ${T.border};padding:0 20px;height:50px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;}
+        .aa-nav-brand{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+        .aa-nav-search{display:flex;gap:6px;flex:1;max-width:420px;}
+        .aa-nav-status{margin-left:auto;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+        .aa-tabs{background:${T.nav};border-bottom:1px solid ${T.border};padding:0 20px;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+        .aa-tabs::-webkit-scrollbar{display:none;}
+        .aa-tabs button{padding:11px 14px;font-size:12px;font-family:${T.head};font-weight:700;cursor:pointer;border:none;outline:none;white-space:nowrap;background:transparent;flex-shrink:0;}
+        .aa-content{padding:16px 20px 80px;max-width:1120px;}
+        .aa-statusbar{background:#040408;border-top:1px solid ${T.amberBorder};padding:5px 20px;display:flex;align-items:center;position:fixed;bottom:0;left:0;right:0;gap:10px;z-index:90;}
+        .aa-hero{background:${T.nav};border-bottom:1px solid ${T.border};padding:12px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+        .aa-hero-price{border-left:1px solid ${T.border};padding-left:24px;}
+        .aa-hero-rr{border-left:1px solid ${T.border};padding-left:20px;}
+        .aa-hero-consensus{margin-left:auto;text-align:right;}
+        .aa-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
+        .aa-two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+        .aa-assess-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
+        .aa-ror-header{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;}
+        .aa-ror-scores{display:flex;gap:20px;}
+        .aa-chat{display:flex;flex-direction:column;height:540px;gap:10px;}
+        /* ── mobile overrides ── */
+        @media(max-width:600px){
+          .aa-nav{padding:0 10px;gap:8px;}
+          .aa-nav-brand{display:none;}
+          .aa-nav-search{max-width:none;}
+          .aa-nav-status-label{display:none;}
+          .aa-tabs{padding:0 4px;}
+          .aa-tabs button{padding:10px 10px;font-size:11px;}
+          .aa-content{padding:10px 10px 76px;}
+          .aa-statusbar{padding:4px 10px;}
+          .aa-statusbar-disc{display:none;}
+          .aa-hero{padding:10px 10px;gap:8px;}
+          .aa-hero-price{border-left:none;padding-left:0;}
+          .aa-hero-rr{border-left:none;padding-left:0;order:3;width:100%;}
+          .aa-hero-consensus{margin-left:0;text-align:left;order:4;width:100%;display:flex;justify-content:space-between;align-items:center;border-top:1px solid ${T.border};padding-top:8px;}
+          .aa-kpi-grid{grid-template-columns:repeat(2,1fr);}
+          .aa-two-col{grid-template-columns:1fr;}
+          .aa-assess-kpis{grid-template-columns:repeat(2,1fr);}
+          .aa-ror-header{gap:10px;margin-bottom:10px;}
+          .aa-ror-scores{gap:14px;flex-wrap:wrap;}
+          .aa-ror-scores > div{min-width:60px;}
+          .aa-chat{height:calc(100svh - 260px);min-height:320px;}
+        }
       `}</style>
 
       {/* top nav */}
-      <div style={{ background: T.nav, borderBottom: `1px solid ${T.border}`, padding: '0 24px', height: 50, display: 'flex', alignItems: 'center', gap: 20, position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 20, color: T.amber }}>ANALYST</span>
-          <span style={{ fontFamily: T.head, fontSize: 20, color: T.muted }}>AGENT</span>
+      <div className="aa-nav">
+        <div className="aa-nav-brand">
+          <span style={{ fontFamily: T.head, fontWeight: 700, fontSize: 18, color: T.amber }}>ANALYST</span>
+          <span style={{ fontFamily: T.head, fontSize: 18, color: T.muted }}>AGENT</span>
         </div>
-        <div style={{ display: 'flex', gap: 6, flex: 1, maxWidth: 420 }}>
+        <div className="aa-nav-search">
           <input value={search} onChange={e => setSearch(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && run()}
-            placeholder="Search ticker (AAPL, TSLA, NVDA...)"
-            style={{ flex: 1, background: '#0f121a', border: `1px solid ${T.border}`, borderRadius: 6, padding: '6px 12px', color: T.text, fontSize: 12, fontFamily: T.mono, outline: 'none' }} />
+            placeholder="Ticker — AAPL, TSLA, NVDA…"
+            style={{ flex: 1, background: '#0f121a', border: `1px solid ${T.border}`, borderRadius: 6, padding: '7px 12px', color: T.text, fontSize: 13, fontFamily: T.mono, outline: 'none', minWidth: 0 }} />
           <button onClick={() => run()} disabled={loading}
-            style={{ background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: '6px 13px', color: T.amber, fontSize: 11, fontFamily: T.mono, fontWeight: 700, cursor: 'pointer' }}>
-            {loading ? '…' : 'ANALYZE'}
+            style={{ background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: '7px 14px', color: T.amber, fontSize: 12, fontFamily: T.mono, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+            {loading ? '…' : 'GO'}
           </button>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, animation: 'pulse 2s infinite' }} />
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.muted }}>{data?.engine || 'ready'}</span>
+        <div className="aa-nav-status">
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, animation: 'pulse 2s infinite', display: 'inline-block' }} />
+          <span className="aa-nav-status-label" style={{ fontSize: 11, fontFamily: T.mono, color: T.muted }}>{data?.engine || 'ready'}</span>
         </div>
       </div>
 
@@ -1208,23 +1263,23 @@ export default function App() {
 
       {/* tabs */}
       {data && (
-        <div style={{ background: T.nav, borderBottom: `1px solid ${T.border}`, padding: '0 24px', display: 'flex', overflowX: 'auto' }}>
+        <div className="aa-tabs">
           {TABS.map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ padding: '11px 16px', fontSize: 12, fontFamily: T.head, fontWeight: 700, cursor: 'pointer', border: 'none', outline: 'none', whiteSpace: 'nowrap',
-                background: 'transparent', color: tab === id ? T.amber : T.muted, borderBottom: tab === id ? `2px solid ${T.amber}` : '2px solid transparent' }}>{label}</button>
+              style={{ color: tab === id ? T.amber : T.muted,
+                borderBottom: tab === id ? `2px solid ${T.amber}` : '2px solid transparent' }}>{label}</button>
           ))}
         </div>
       )}
 
       {/* content */}
-      <div style={{ padding: '20px 24px 72px', maxWidth: 1120 }}>
-        {error && <div style={{ background: 'rgba(241,106,106,0.1)', border: `1px solid ${T.red}55`, borderRadius: 8, padding: '12px 16px', color: T.red, fontSize: 13 }}>{error}</div>}
+      <div className="aa-content">
+        {error && <div style={{ background: 'rgba(241,106,106,0.1)', border: `1px solid ${T.red}55`, borderRadius: 8, padding: '12px 16px', color: T.red, fontSize: 13, marginBottom: 10 }}>{error}</div>}
         {loading && !data && <div style={{ padding: 60, textAlign: 'center', color: T.muted }}>Analyzing {search || '…'}…</div>}
         {!data && !loading && !error && (
-          <div style={{ padding: 80, textAlign: 'center', color: T.muted }}>
-            <div style={{ fontSize: 16, marginBottom: 8 }}>Enter a ticker symbol to begin.</div>
-            <div style={{ fontSize: 13, color: T.dim }}>Try AAPL, MSFT, NVDA, TSLA…</div>
+          <div style={{ padding: '60px 10px', textAlign: 'center', color: T.muted }}>
+            <div style={{ fontSize: 15, marginBottom: 8 }}>Enter a ticker to begin.</div>
+            <div style={{ fontSize: 12, color: T.dim }}>Try AAPL · MSFT · NVDA · TSLA</div>
           </div>
         )}
         {data && (
@@ -1243,10 +1298,10 @@ export default function App() {
       </div>
 
       {/* status bar */}
-      <div style={{ background: '#040408', borderTop: `1px solid ${T.amberBorder}`, padding: '5px 24px', display: 'flex', alignItems: 'center', position: 'fixed', bottom: 0, left: 0, right: 0, gap: 12 }}>
+      <div className="aa-statusbar">
         <span style={{ fontSize: 10, fontFamily: T.mono, color: T.amber }}>⚡ ANALYST AGENT</span>
-        {data && <span style={{ fontSize: 10, fontFamily: T.mono, color: T.dim }}>· {data.data_source} · {data.as_of}</span>}
-        <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: T.mono, color: T.dim }}>Educational only · Not financial advice</span>
+        {data && <span style={{ fontSize: 10, fontFamily: T.mono, color: T.dim }}>· {data.data_source}</span>}
+        <span className="aa-statusbar-disc" style={{ marginLeft: 'auto', fontSize: 10, fontFamily: T.mono, color: T.dim }}>Educational only · Not financial advice</span>
       </div>
     </div>
   )
