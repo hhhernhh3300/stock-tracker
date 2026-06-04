@@ -854,6 +854,38 @@ def _yf_quote_batch(symbols: list[str]) -> dict[str, dict]:
     return out
 
 
+def _chart_meta(ticker: str) -> dict:
+    """Currency / exchange / name / price from the /v8/chart meta block.
+
+    The chart endpoint is the SAME one ``Ticker.history()`` uses and is the most
+    reliable Yahoo route — it keeps working from a shared cloud IP even when the
+    authenticated /quote and /quoteSummary endpoints are rate-limited. We use it
+    to GUARANTEE the correct CURRENCY (and exchange/name) are always shown, so a
+    Singapore stock never falls back to a misleading 'USD' default just because
+    the fundamentals call was throttled. Returns {} on failure."""
+    su = (ticker or "").upper()
+    if not su:
+        return {}
+    for host in ("query2", "query1"):
+        url = (
+            f"https://{host}.finance.yahoo.com/v8/finance/chart/"
+            f"{urllib.parse.quote(su)}?range=1d&interval=1d"
+        )
+        data = _yf_get_json(url)
+        meta = (
+            ((data.get("chart", {}) or {}).get("result") or [{}])[0] or {}
+        ).get("meta", {}) or {}
+        if meta.get("currency") or meta.get("regularMarketPrice"):
+            return {
+                "currency": meta.get("currency"),
+                "exchange": meta.get("fullExchangeName") or meta.get("exchangeName"),
+                "name": meta.get("longName") or meta.get("shortName"),
+                "price": meta.get("regularMarketPrice"),
+                "prev_close": meta.get("chartPreviousClose") or meta.get("previousClose"),
+            }
+    return {}
+
+
 def _yf_chart_quote(sym: str) -> dict:
     """Last-ditch live price via the ``/v8/finance/chart`` endpoint.
 
@@ -1160,15 +1192,34 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     latest = _derive_latest(frame)
     info = _get_info(ticker)  # fundamentals + analyst consensus (multi-source)
 
+    # Always-available chart meta (currency/exchange/name/price). This endpoint
+    # keeps working even when the authenticated fundamental endpoints are rate-
+    # limited, so it GUARANTEES the correct currency rather than defaulting a
+    # Singapore/Malaysia/etc. stock to a misleading 'USD'.
+    cmeta = _chart_meta(ticker)
+    if cmeta:
+        if not info.get("currency") and cmeta.get("currency"):
+            info["currency"] = cmeta["currency"]
+        if not (info.get("fullExchangeName") or info.get("exchange")) and cmeta.get("exchange"):
+            info["fullExchangeName"] = cmeta["exchange"]
+        if not (info.get("longName") or info.get("shortName")) and cmeta.get("name"):
+            info["longName"] = cmeta["name"]
+
     # --- live price: IBKR snapshot first when in use, then Yahoo, then fallbacks ---
     price = ibkr.snapshot_price(ticker) if used_ibkr else None
     if price is None:
         price = info.get("currentPrice") or info.get("regularMarketPrice")
     if price is None:
+        price = cmeta.get("price")
+    if price is None:
         price = _alpha_vantage_quote(ticker)
     if price is None:  # last resort: most recent close
         price = latest["close"]
-    prev_close = info.get("regularMarketPreviousClose") or info.get("previousClose")
+    prev_close = (
+        info.get("regularMarketPreviousClose")
+        or info.get("previousClose")
+        or cmeta.get("prev_close")
+    )
     day_change_pct = None
     if price and prev_close:
         day_change_pct = round((price - prev_close) / prev_close * 100, 2)
@@ -1178,7 +1229,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "name": info.get("longName") or info.get("shortName") or ticker,
         "sector": info.get("sector"),
         "industry": info.get("industry"),
-        "currency": info.get("currency", "USD"),
+        "currency": info.get("currency") or "USD",
         "exchange": info.get("fullExchangeName") or info.get("exchange"),
     }
     quote = {
