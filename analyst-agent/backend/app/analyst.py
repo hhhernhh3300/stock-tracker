@@ -49,18 +49,20 @@ DEFAULT_MODELS = {
 }
 
 # Gemini fallback chain. Tried in order until one returns successfully. A pinned
-# GEMINI_MODEL (if set) is always tried first. Ordered newest/most-capable -> most
-# widely available so a single deprecated id can't take AI offline. Override the
-# whole list with GEMINI_MODELS (comma-separated).
+# GEMINI_MODEL (if set) is always tried first. Override with GEMINI_MODELS
+# (comma-separated).
+#
+# FREE-TIER NOTE: kept to FLASH-class models only, on purpose. Each model has its
+# OWN free-tier daily quota, but the Pro models (gemini-*-pro) have tiny free
+# quotas (and gemini-3.x-pro is free-tier limit 0), and the "*-latest" aliases
+# resolve to whichever model Google rotates in — often a Pro id that 429s
+# immediately. Trying those just burned quota and produced noisy errors. Flash
+# models have generous free quotas and are plenty for this summarisation task.
 _GEMINI_FALLBACKS = [
     "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "gemini-2.5-flash-lite",
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
-    "gemini-flash-latest",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash",
-    "gemini-pro-latest",
 ]
 
 

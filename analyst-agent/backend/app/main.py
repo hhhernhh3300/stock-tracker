@@ -193,6 +193,20 @@ def chat(req: ChatRequest) -> dict:
     try:
         result = analyst.chat(snapshot, question, history)
     except Exception as exc:
+        msg = str(exc)
+        low = msg.lower()
+        # Free-tier LLM quota / rate-limit → a short, friendly message instead of
+        # dumping Google/Groq's raw 429 payload into the chat bubble.
+        if "429" in msg or "quota" in low or "rate limit" in low or "rate_limit" in low:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "⏳ The AI is rate-limited right now — the free LLM tiers (Gemini / "
+                    "Groq) have a daily request cap and it's been reached. Please try "
+                    "again in a few minutes, or later today once the free quota resets. "
+                    "All the market data, charts and risk/opportunity scoring still work."
+                ),
+            )
         raise HTTPException(status_code=502, detail=f"AI chat failed: {exc}")
 
     return {
