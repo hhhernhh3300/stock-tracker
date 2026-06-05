@@ -1,22 +1,22 @@
 {
-  "updated_at": "2026-06-04 22:51 UTC",
+  "updated_at": "2026-06-05 22:39 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
-    {
-      "symbol": "LULU",
-      "regular_close": 124.92,
-      "ext_price": 111.19,
-      "ah_pct": -10.99,
-      "name": "lululemon athletica inc."
-    },
+  "surges": [
     {
       "symbol": "MRVL",
-      "regular_close": 316.43,
-      "ext_price": 305.51,
-      "ah_pct": -3.45,
+      "regular_close": 263.47,
+      "ext_price": 275.69,
+      "ah_pct": 4.64,
       "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "ROKU",
+      "regular_close": 122.26,
+      "ext_price": 126.7,
+      "ah_pct": 3.63,
+      "name": "Roku, Inc."
     }
-  ]
+  ],
+  "drops": []
 }
