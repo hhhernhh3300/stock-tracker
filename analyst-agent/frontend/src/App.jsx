@@ -1663,7 +1663,12 @@ export default function App() {
             {tab === 'news'         && <NewsTab data={data} />}
             {tab === 'peers'        && <PeersTab data={data} />}
             {tab === 'assessment'   && <AssessmentTab data={data} />}
-            {tab === 'chat' && <ChatTab ticker={data.meta.ticker} aiConfigured={!!data.engine && data.engine !== 'rules'} />}
+            {/* Chat stays MOUNTED (just hidden) so its history is retained when
+                you switch tabs and come back. It resets only on a new ticker
+                (the ticker prop change) or a full page reload. */}
+            <div style={{ display: tab === 'chat' ? 'block' : 'none' }}>
+              <ChatTab ticker={data.meta.ticker} aiConfigured={!!data.engine && data.engine !== 'rules'} />
+            </div>
           </>
         )}
       </div>
