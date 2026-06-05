@@ -179,7 +179,7 @@ _COMMON_KEYS = (
     "sector", "industry", "shortName", "longName",
     "currentPrice", "regularMarketPrice", "regularMarketPreviousClose",
     "regularMarketChangePercent", "previousClose",
-    "marketCap", "trailingPE", "forwardPE", "pegRatio",
+    "marketCap", "trailingPE", "forwardPE", "pegRatio", "trailingPegRatio",
     "beta", "fiftyTwoWeekHigh", "fiftyTwoWeekLow",
     "currency", "fullExchangeName", "exchange",
     "profitMargins", "revenueGrowth", "earningsGrowth",
@@ -187,6 +187,38 @@ _COMMON_KEYS = (
     "targetMeanPrice", "targetHighPrice", "targetLowPrice",
     "numberOfAnalystOpinions", "recommendationKey", "recommendationMean",
 )
+
+
+# ─────────────────────────────────────────────────────────────────────────── #
+# Fundamentals cache — keeps metrics populated across throttle windows.        #
+# Once a ticker's fundamentals are fetched successfully they're cached for 6h,  #
+# so a later request that gets throttled still shows real numbers instead of    #
+# blank "—" dashes. Fundamentals barely change intraday, so this is safe.      #
+# ─────────────────────────────────────────────────────────────────────────── #
+_INFO_CACHE: dict[str, tuple[float, dict]] = {}
+_INFO_TTL = 21600.0  # 6 hours
+
+# Fields worth caching/backfilling (the ones the UI shows as metrics).
+_CACHEABLE_KEYS = _COMMON_KEYS + ("priceToBook",)
+
+
+def _info_cache_get(ticker: str) -> dict:
+    entry = _INFO_CACHE.get(ticker.upper())
+    if entry and (time.time() - entry[0]) < _INFO_TTL:
+        return entry[1]
+    return {}
+
+
+def _info_cache_put(ticker: str, info: dict) -> None:
+    """Cache the non-empty fundamental fields of a successful fetch (merged with
+    any prior cache, so a partial fetch never erases previously-known values)."""
+    keep = {k: info[k] for k in _CACHEABLE_KEYS if info.get(k) is not None}
+    if not keep:
+        return
+    prior = _INFO_CACHE.get(ticker.upper())
+    base = dict(prior[1]) if prior else {}
+    base.update(keep)
+    _INFO_CACHE[ticker.upper()] = (time.time(), base)
 
 
 def _get_info(ticker: str) -> dict:
@@ -246,6 +278,9 @@ def _get_info(ticker: str) -> dict:
     # dividendYield alias: some endpoints use trailingAnnualDividendYield
     if not info.get("dividendYield") and info.get("trailingAnnualDividendYield"):
         info["dividendYield"] = info["trailingAnnualDividendYield"]
+    # pegRatio alias: Yahoo frequently returns trailingPegRatio instead
+    if not info.get("pegRatio") and info.get("trailingPegRatio"):
+        info["pegRatio"] = info["trailingPegRatio"]
 
     # ── Optional: Alpha Vantage OVERVIEW ────────────────────────────────────
     if not _info_is_rich(info):
@@ -264,6 +299,19 @@ def _get_info(ticker: str) -> dict:
                 _merge_missing(info, fmp, _COMMON_KEYS)
         except Exception:
             pass
+
+    # ── Cache layer: persist good data, backfill gaps from a recent fetch ────
+    # If this fetch came back rich, refresh the cache. Then backfill ANY field
+    # still missing from the last good fetch — so a throttled response shows real
+    # numbers (from cache) instead of "—" dashes.
+    if _info_is_rich(info):
+        _info_cache_put(ticker, info)
+    else:
+        cached = _info_cache_get(ticker)
+        if cached:
+            _merge_missing(info, cached, _CACHEABLE_KEYS)
+            # Even a partial live fetch is worth caching its fresh fields.
+            _info_cache_put(ticker, info)
 
     return info
 

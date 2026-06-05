@@ -935,17 +935,25 @@ function AssessmentTab({ data }) {
         <KPI label="RISK LEVEL" value={(a.risk_level || '—').toUpperCase()} />
         <KPI label="HORIZON" value={a.time_horizon || '—'} />
       </div>
-      <Panel title="Summary"><div style={{ padding: 14, fontSize: 13, lineHeight: 1.7, color: T.text }}>{a.summary}</div></Panel>
+      <Panel title="Summary"><div style={{ padding: 14, fontSize: 13, color: T.text }}><MarkdownLite text={a.summary} /></div></Panel>
       <div className="aa-two-col">
         <Panel title="Bullish Factors">
-          {(a.bullish_factors || []).map((x, i) => <div key={i} style={{ padding: '8px 13px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.border}` }}>↗ {x}</div>)}
+          {(a.bullish_factors || []).map((x, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 13px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.border}` }}>
+              <span style={{ color: T.green, flexShrink: 0 }}>↗</span><span style={{ flex: 1 }}><MarkdownLite text={x} /></span>
+            </div>
+          ))}
         </Panel>
         <Panel title="Bearish Factors">
-          {(a.bearish_factors || []).map((x, i) => <div key={i} style={{ padding: '8px 13px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.border}` }}>↘ {x}</div>)}
+          {(a.bearish_factors || []).map((x, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, padding: '8px 13px', fontSize: 12, color: T.text, borderBottom: `1px solid ${T.border}` }}>
+              <span style={{ color: T.red, flexShrink: 0 }}>↘</span><span style={{ flex: 1 }}><MarkdownLite text={x} /></span>
+            </div>
+          ))}
         </Panel>
       </div>
-      {a.technical_read && <Panel title="Technical Read"><div style={{ padding: 14, fontSize: 13, lineHeight: 1.7, color: T.text }}>{a.technical_read}</div></Panel>}
-      {a.reasoning && <Panel title="Reasoning"><div style={{ padding: 14, fontSize: 13, lineHeight: 1.7, color: T.text }}>{a.reasoning}</div></Panel>}
+      {a.technical_read && <Panel title="Technical Read"><div style={{ padding: 14, fontSize: 13, color: T.text }}><MarkdownLite text={a.technical_read} /></div></Panel>}
+      {a.reasoning && <Panel title="Reasoning"><div style={{ padding: 14, fontSize: 13, color: T.text }}><MarkdownLite text={a.reasoning} /></div></Panel>}
       <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono }}>
         Engine: {a.engine || data.engine || 'rules'}{a.model ? ` (${a.model})` : ''} · {a.disclaimer || data.disclaimer}
       </div>
@@ -1464,6 +1472,33 @@ export default function App() {
     }
     if (e.key === 'Enter') run()
   }
+
+  // Self-heal missing metrics: if a result comes back with key fundamentals
+  // blank (e.g. the data source briefly throttled), silently re-fetch a few
+  // times in the background until they fill in — so the user rarely sees "—".
+  const retryRef = useRef({ ticker: null, attempts: 0 })
+  const activeTickerRef = useRef(null)
+  useEffect(() => { activeTickerRef.current = data?.meta?.ticker || null }, [data])
+  useEffect(() => {
+    if (!data) return
+    const tk = data.meta?.ticker
+    if (retryRef.current.ticker !== tk) retryRef.current = { ticker: tk, attempts: 0 }
+    const thin = data.fundamentals?.market_cap == null  // a key metric is missing
+    if (!thin || retryRef.current.attempts >= 4) return
+    retryRef.current.attempts += 1
+    const delay = 3000 + retryRef.current.attempts * 2500  // 5.5s, 8s, 10.5s, 13s
+    const id = setTimeout(async () => {
+      try {
+        const fresh = await analyzeTicker(tk)
+        // Only apply if the user is still viewing this same stock.
+        if (fresh?.meta?.ticker === tk && activeTickerRef.current === tk) {
+          setData(fresh)
+          setChart(buildSeries(fresh.series || {}))
+        }
+      } catch { /* ignore — will retry on the next tick if still thin */ }
+    }, delay)
+    return () => clearTimeout(id)
+  }, [data])
 
   const quote = data?.quote
   const pos = num(quote?.day_change_pct) >= 0
