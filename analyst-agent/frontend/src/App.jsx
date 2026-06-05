@@ -1591,7 +1591,10 @@ export default function App() {
         {!data && !loading && !error && (
           <div style={{ padding: '60px 10px', textAlign: 'center', color: T.muted }}>
             <div style={{ fontSize: 15, marginBottom: 8 }}>Enter a ticker to begin.</div>
-            <div style={{ fontSize: 12, color: T.dim }}>Try AAPL · MSFT · NVDA · TSLA</div>
+            <div style={{ fontSize: 12, color: T.dim }}>Try AAPL · MSFT · NVDA · TSLA · D05.SI · 1023.KL</div>
+            <div style={{ fontSize: 11, color: T.dim, fontFamily: T.mono, marginTop: 28 }}>
+              Created by <span style={{ color: T.muted, fontWeight: 700 }}>Hsien Hern Koay</span>
+            </div>
           </div>
         )}
         {data && (
@@ -1612,7 +1615,10 @@ export default function App() {
       {/* status bar */}
       <div className="aa-statusbar">
         <span style={{ fontSize: 10, fontFamily: T.mono, color: T.amber }}>⚡ ANALYST AGENT</span>
-        {data && <span style={{ fontSize: 10, fontFamily: T.mono, color: T.dim }}>· {data.data_source}</span>}
+        <span style={{ fontSize: 10, fontFamily: T.mono, color: T.muted }}>
+          · Created by <span style={{ color: T.text, fontWeight: 700 }}>Hsien Hern Koay</span>
+        </span>
+        {data && <span className="aa-statusbar-disc" style={{ fontSize: 10, fontFamily: T.mono, color: T.dim }}>· {data.data_source}</span>}
         <span className="aa-statusbar-disc" style={{ marginLeft: 'auto', fontSize: 10, fontFamily: T.mono, color: T.dim }}>Educational only · Not financial advice</span>
       </div>
     </div>
