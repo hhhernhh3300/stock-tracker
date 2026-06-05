@@ -636,6 +636,25 @@ _CHAT_DISPATCH = {
 }
 
 
+def ping(provider: str) -> dict:
+    """Minimal liveness check for ONE provider — a 1-token round-trip. Returns
+    {ok, model, reply, error}. Used by the /api/diag/llm health endpoint so each
+    configured provider (incl. the Cerebras fallback) can be verified in isolation
+    without disturbing the production failover order."""
+    model = DEFAULT_MODELS.get(provider)
+    if provider not in _CHAT_DISPATCH:
+        return {"ok": False, "model": model, "reply": None, "error": "unknown provider"}
+    messages = [
+        {"role": "system", "content": "You are a health check. Reply with exactly: OK"},
+        {"role": "user", "content": "ping"},
+    ]
+    try:
+        reply = (_CHAT_DISPATCH[provider](messages) or "").strip()
+        return {"ok": bool(reply), "model": model, "reply": reply[:60], "error": None}
+    except Exception as exc:
+        return {"ok": False, "model": model, "reply": None, "error": str(exc)[:240]}
+
+
 def chat(snap: dict, question: str, history: list | None = None) -> dict:
     """Answer a free-form question about the stock, grounded in the snapshot.
 

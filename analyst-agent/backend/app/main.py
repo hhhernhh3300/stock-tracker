@@ -94,6 +94,18 @@ def health() -> dict:
     }
 
 
+@app.get("/api/diag/llm")
+def diag_llm() -> dict:
+    """Ping every configured LLM provider independently (1-token round-trip) so
+    each one — including the Cerebras/2nd-gateway fallback — can be verified
+    without changing the production failover order. Returns per-provider ok/error."""
+    chain = analyst.resolve_provider_chain()
+    return {
+        "chain": chain,
+        "providers": {p: analyst.ping(p) for p in chain},
+    }
+
+
 @app.get("/api/search")
 def search(q: str = "") -> dict:
     """Live symbol search for the autocomplete box.
