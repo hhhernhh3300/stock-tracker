@@ -104,8 +104,28 @@ def _series_to_lists(df: pd.DataFrame) -> dict:
     return out
 
 
+def _num(value):
+    """Coerce a Yahoo value to a float, or None.
+
+    Handles plain numbers, numeric strings, AND Yahoo's {"raw": n, "fmt": "…"}
+    wrapper dicts (which appear for some ETF/crypto fields and would otherwise
+    crash float()). Anything non-numeric → None."""
+    if isinstance(value, dict):
+        value = value.get("raw")
+    if value is None:
+        return None
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(f) or math.isinf(f):
+        return None
+    return f
+
+
 def _round(value, digits=2):
-    return None if value is None else round(float(value), digits)
+    n = _num(value)
+    return None if n is None else round(n, digits)
 
 
 # --------------------------------------------------------------------------- #
@@ -413,8 +433,8 @@ def _peer_snapshot(ticker: str) -> dict | None:
         info = yf.Ticker(ticker).info or {}
     except Exception:
         return None
-    price = info.get("currentPrice") or info.get("regularMarketPrice")
-    prev = info.get("regularMarketPreviousClose") or info.get("previousClose")
+    price = _num(info.get("currentPrice")) or _num(info.get("regularMarketPrice"))
+    prev = _num(info.get("regularMarketPreviousClose")) or _num(info.get("previousClose"))
     chg = None
     if price and prev:
         chg = round((price - prev) / prev * 100, 2)
@@ -423,10 +443,10 @@ def _peer_snapshot(ticker: str) -> dict | None:
         "name": info.get("shortName") or info.get("longName") or ticker.upper(),
         "price": _round(price, 2),
         "change_pct": chg,
-        "market_cap": info.get("marketCap"),
+        "market_cap": _num(info.get("marketCap")),
         "trailing_pe": _round(info.get("trailingPE")),
         "profit_margin": _round(info.get("profitMargins"), 4),
-        "revenue": info.get("totalRevenue"),
+        "revenue": _num(info.get("totalRevenue")),
         "currency": info.get("currency"),
     }
 
@@ -1100,7 +1120,7 @@ def _row_from_quote(sym: str, q: dict) -> dict:
         "name": q.get("shortName") or q.get("longName") or sym.upper(),
         "price": _round(price, 2),
         "change_pct": _round(chg, 2),
-        "market_cap": q.get("marketCap"),
+        "market_cap": _num(q.get("marketCap")),
         "trailing_pe": _round(q.get("trailingPE")),
         # profitMargins is now in the expanded _QUOTE_FIELDS; may still be None
         # for some symbols if Yahoo omits it from the batch endpoint.
@@ -1413,19 +1433,21 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
             info["longName"] = cmeta["name"]
 
     # --- live price: IBKR snapshot first when in use, then Yahoo, then fallbacks ---
-    price = ibkr.snapshot_price(ticker) if used_ibkr else None
+    # All coerced via _num() so a Yahoo {"raw": ...} wrapper (seen on some ETF /
+    # crypto fields) can't crash float() downstream.
+    price = _num(ibkr.snapshot_price(ticker)) if used_ibkr else None
     if price is None:
-        price = info.get("currentPrice") or info.get("regularMarketPrice")
+        price = _num(info.get("currentPrice")) or _num(info.get("regularMarketPrice"))
     if price is None:
-        price = cmeta.get("price")
+        price = _num(cmeta.get("price"))
     if price is None:
-        price = _alpha_vantage_quote(ticker)
+        price = _num(_alpha_vantage_quote(ticker))
     if price is None:  # last resort: most recent close
-        price = latest["close"]
+        price = _num(latest["close"])
     prev_close = (
-        info.get("regularMarketPreviousClose")
-        or info.get("previousClose")
-        or cmeta.get("prev_close")
+        _num(info.get("regularMarketPreviousClose"))
+        or _num(info.get("previousClose"))
+        or _num(cmeta.get("prev_close"))
     )
     day_change_pct = None
     if price and prev_close:
@@ -1447,7 +1469,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "fifty_two_week_low": _round(info.get("fiftyTwoWeekLow"), 2),
     }
     fundamentals = {
-        "market_cap": info.get("marketCap"),
+        "market_cap": _num(info.get("marketCap")),
         "trailing_pe": _round(info.get("trailingPE")),
         "forward_pe": _round(info.get("forwardPE")),
         "peg_ratio": _round(info.get("pegRatio")),
@@ -1457,10 +1479,11 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "beta": _round(info.get("beta")),
         "dividend_yield": _round(info.get("dividendYield"), 4),
     }
+    _num_analysts = _num(info.get("numberOfAnalystOpinions"))
     analyst = {
         "recommendation": info.get("recommendationKey"),
         "recommendation_mean": _round(info.get("recommendationMean")),
-        "num_analysts": info.get("numberOfAnalystOpinions"),
+        "num_analysts": int(_num_analysts) if _num_analysts is not None else None,
         "target_mean": _round(info.get("targetMeanPrice"), 2),
         "target_high": _round(info.get("targetHighPrice"), 2),
         "target_low": _round(info.get("targetLowPrice"), 2),
