@@ -131,17 +131,74 @@ def _round(value, digits=2):
 # --------------------------------------------------------------------------- #
 # Yahoo Finance access
 # --------------------------------------------------------------------------- #
+def _chart_history(ticker: str, rng: str = "2y", interval: str = "1d"):
+    """Build an OHLCV DataFrame straight from the /v8/finance/chart endpoint.
+
+    This goes through ``_yf_get_json`` — so it is routed via the Cloudflare proxy
+    when one is configured, letting price history work even when Yahoo blocks
+    Render's IP for the direct yfinance call. Returns a DataFrame or None."""
+    url = (
+        f"https://query2.finance.yahoo.com/v8/finance/chart/"
+        f"{urllib.parse.quote(ticker)}?range={rng}&interval={interval}"
+    )
+    data = _yf_get_json(url)
+    result = ((data.get("chart") or {}).get("result") or [None])[0]
+    if not result:
+        return None
+    ts = result.get("timestamp") or []
+    q = ((result.get("indicators") or {}).get("quote") or [{}])[0] or {}
+    closes = q.get("close") or []
+    if not ts or not closes:
+        return None
+    n = len(ts)
+
+    def col(key):
+        v = q.get(key) or []
+        return list(v) + [None] * (n - len(v)) if len(v) < n else v[:n]
+
+    df = pd.DataFrame(
+        {
+            "Open": col("open"),
+            "High": col("high"),
+            "Low": col("low"),
+            "Close": col("close"),
+            "Volume": col("volume"),
+        },
+        index=pd.to_datetime(ts, unit="s"),
+    )
+    return df.dropna(subset=["Close"])
+
+
 def get_history(ticker: str, period: str = "2y", interval: str = "1d") -> pd.DataFrame:
     """Daily OHLCV history. 2y is enough to seed a valid 200-day SMA.
 
-    Passes an explicit per-request timeout so a throttled chart endpoint can't
-    hang indefinitely (which would hold a pool worker as an orphan thread)."""
-    df = yf.Ticker(ticker).history(
-        period=period, interval=interval, auto_adjust=False, timeout=10
-    )
-    if df is None or df.empty:
-        raise ValueError(f"No price history found for '{ticker}'. Check the symbol.")
-    return df.dropna(subset=["Close"])
+    When a Cloudflare proxy is configured we fetch the chart endpoint THROUGH it
+    (Render's IP is blocked for yfinance's direct calls). Otherwise we use
+    yfinance directly and fall back to the chart endpoint if that returns empty
+    or is rate-limited."""
+    # Proxy configured → go straight through it (non-blocked IP).
+    if _YAHOO_PROXY:
+        df = _chart_history(ticker, period, interval)
+        if df is not None and not df.empty:
+            return df
+
+    # Direct yfinance (with an explicit timeout so a throttled endpoint can't
+    # hang a pool worker as an orphan thread).
+    try:
+        df = yf.Ticker(ticker).history(
+            period=period, interval=interval, auto_adjust=False, timeout=10
+        )
+    except Exception:
+        df = None
+    if df is not None and not df.empty:
+        return df.dropna(subset=["Close"])
+
+    # Last resort: the raw chart endpoint (also proxied when configured).
+    df = _chart_history(ticker, period, interval)
+    if df is not None and not df.empty:
+        return df
+
+    raise ValueError(f"No price history found for '{ticker}'. Check the symbol.")
 
 
 def _indicator_frame(df: pd.DataFrame) -> pd.DataFrame:
