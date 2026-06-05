@@ -1,0 +1,7 @@
+name = "yahoo-proxy"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Optional hardening: uncomment and set a secret so only your backend can use
+# the proxy. Then set YAHOO_PROXY_TOKEN to the same value on Render.
+#   npx wrangler secret put PROXY_TOKEN

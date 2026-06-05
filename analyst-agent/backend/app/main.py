@@ -90,6 +90,7 @@ def health() -> dict:
         "llm_provider_chain": chain,              # full failover order (e.g. [gemini, openai_compatible])
         "llm_model": analyst.active_model(provider),
         "rules_fallback": ALLOW_RULES_FALLBACK,
+        "yahoo_proxy": market_data.proxy_configured(),  # True when YAHOO_PROXY_BASE is set
     }
 
 

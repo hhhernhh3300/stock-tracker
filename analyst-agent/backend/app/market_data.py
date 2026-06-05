@@ -55,6 +55,36 @@ def _run_budget(fn, timeout, default, *args, **kwargs):
 # ("auto" = IBKR when its gateway is authenticated, otherwise Yahoo).
 DATA_SOURCE = os.environ.get("DATA_SOURCE", "yahoo").lower()
 
+# Optional Cloudflare-Worker proxy for Yahoo. Yahoo blocks shared cloud IPs
+# (Render) for its authenticated data endpoints; routing those calls through a
+# Worker on Cloudflare's (non-blocked) edge IPs makes fundamentals reliable.
+# Set YAHOO_PROXY_BASE to the Worker URL (e.g. https://yahoo-proxy.xxx.workers.dev).
+# When set, the Worker handles Yahoo's cookie/crumb handshake itself, so the
+# backend just forwards the path.
+_YAHOO_PROXY = os.environ.get("YAHOO_PROXY_BASE", "").strip().rstrip("/")
+_YAHOO_PROXY_TOKEN = os.environ.get("YAHOO_PROXY_TOKEN", "").strip()
+_YAHOO_HOSTS = ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+
+
+def _proxify(url: str) -> str:
+    """Rewrite a Yahoo data URL to go through the configured Worker proxy.
+
+    No-op when no proxy is set or the URL isn't a Yahoo data host. Idempotent."""
+    if not _YAHOO_PROXY:
+        return url
+    for h in _YAHOO_HOSTS:
+        prefix = f"https://{h}"
+        if url.startswith(prefix):
+            out = _YAHOO_PROXY + url[len(prefix):]
+            if _YAHOO_PROXY_TOKEN:
+                out += ("&" if "?" in out else "?") + "token=" + urllib.parse.quote(_YAHOO_PROXY_TOKEN)
+            return out
+    return url
+
+
+def proxy_configured() -> bool:
+    return bool(_YAHOO_PROXY)
+
 
 # --------------------------------------------------------------------------- #
 # Helpers
@@ -412,9 +442,10 @@ _YF_HEADERS = {
 
 
 def _yf_json(url: str) -> dict:
-    """GET a Yahoo Finance JSON endpoint (stdlib only). Returns {} on any error."""
+    """GET a Yahoo Finance JSON endpoint (stdlib only). Returns {} on any error.
+    Routes through the Cloudflare proxy when configured."""
     try:
-        req = urllib.request.Request(url, headers=_YF_HEADERS)
+        req = urllib.request.Request(_proxify(url), headers=_YF_HEADERS)
         with urllib.request.urlopen(req, timeout=10) as resp:
             return json.loads(resp.read().decode("utf-8")) or {}
     except Exception:
@@ -458,16 +489,18 @@ def _yf_data_session():
 
 def _yf_get_json(url: str) -> dict:
     """GET a Yahoo JSON endpoint, preferring the yfinance session, urllib as last
-    resort. Returns {} on any failure."""
+    resort. Returns {} on any failure. Routes through the Cloudflare proxy when
+    configured (the proxy completes Yahoo's crumb handshake on a non-blocked IP)."""
+    target = _proxify(url)
     session = _yf_data_session()
     if session is not None:
         try:
-            data = session.get_raw_json(url)
+            data = session.get_raw_json(target)
             if data:
                 return data
         except Exception:
             pass
-    return _yf_json(url)
+    return _yf_json(url)  # _yf_json re-applies _proxify; idempotent
 
 
 # ─────────────────────────────────────────────────────────────────────────── #
@@ -608,6 +641,14 @@ def _yf_auth_json(url: str) -> dict:
     breaker skips strategies 1-2 entirely after repeated failures (IP throttled)
     so requests fail FAST instead of hanging on every fallback timeout."""
     sep = "&" if "?" in url else "?"
+
+    # Proxy configured → the Cloudflare Worker does the cookie/crumb handshake on
+    # a non-blocked IP. Call it via _yf_get_json (which proxifies the URL).
+    if _YAHOO_PROXY:
+        data = _yf_get_json(url)
+        if _yf_payload_ok(data):
+            return data
+        # else fall through to the direct paths below
 
     # Breaker open → IP looks throttled. Skip the slow auth path; the bare
     # endpoint still serves cached/price data and returns quickly.
@@ -1443,7 +1484,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     if used_ibkr:
         sources.append("IBKR (prices/history)")
     else:
-        sources.append("Yahoo Finance")
+        sources.append("Yahoo Finance" + (" (via proxy)" if _YAHOO_PROXY else ""))
     if os.environ.get("ALPHAVANTAGE_API_KEY") and _info_is_rich(info):
         sources.append("Alpha Vantage")
     if os.environ.get("FMP_API_KEY") and _info_is_rich(info):
