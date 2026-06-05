@@ -1179,7 +1179,7 @@ function mdInline(text, kp = '') {
   let m
   while ((m = re.exec(rest))) {
     if (m.index > 0) nodes.push(rest.slice(0, m.index))
-    if (m[2] != null) nodes.push(<strong key={kp + 'b' + k++} style={{ color: '#fff', fontWeight: 700 }}>{m[2]}</strong>)
+    if (m[2] != null) nodes.push(<strong key={kp + 'b' + k++} style={{ color: T.text, fontWeight: 700 }}>{m[2]}</strong>)
     else if (m[3] != null) nodes.push(<code key={kp + 'c' + k++} style={{ fontFamily: T.mono, fontSize: '0.92em', background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.border}`, borderRadius: 4, padding: '1px 5px', color: T.amber }}>{m[3]}</code>)
     else if (m[4] != null) nodes.push(<a key={kp + 'a' + k++} href={m[5]} target="_blank" rel="noreferrer" style={{ color: T.cyan, textDecoration: 'underline' }}>{m[4]}</a>)
     else if (m[6] != null) nodes.push(<em key={kp + 'i' + k++} style={{ color: T.text }}>{m[6]}</em>)
@@ -1578,7 +1578,7 @@ export default function App() {
         .aa-tabs::-webkit-scrollbar{display:none;}
         .aa-tabs button{padding:11px 14px;font-size:12px;font-family:${T.head};font-weight:700;cursor:pointer;border:none;outline:none;white-space:nowrap;background:transparent;flex-shrink:0;}
         .aa-content{padding:16px 20px 80px;max-width:1120px;}
-        .aa-statusbar{background:#040408;border-top:1px solid ${T.amberBorder};padding:5px 20px;display:flex;align-items:center;position:fixed;bottom:0;left:0;right:0;gap:10px;z-index:90;}
+        .aa-statusbar{background:${T.nav};border-top:1px solid ${T.amberBorder};padding:5px 20px;display:flex;align-items:center;position:fixed;bottom:0;left:0;right:0;gap:10px;z-index:90;}
         .aa-hero{background:${T.nav};border-bottom:1px solid ${T.border};padding:12px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
         .aa-hero-price{border-left:1px solid ${T.border};padding-left:24px;}
         .aa-hero-rr{border-left:1px solid ${T.border};padding-left:20px;}
@@ -1631,7 +1631,7 @@ export default function App() {
             onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
             placeholder="Search any stock — name or ticker…"
             autoComplete="off" autoCorrect="off" autoCapitalize="characters" spellCheck="false"
-            style={{ flex: 1, background: '#0f121a', border: `1px solid ${T.border}`, borderRadius: 6, padding: '7px 12px', color: T.text, fontSize: 13, fontFamily: T.mono, outline: 'none', minWidth: 0 }} />
+            style={{ flex: 1, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 6, padding: '7px 12px', color: T.text, fontSize: 13, fontFamily: T.mono, outline: 'none', minWidth: 0 }} />
           <button onClick={() => run()} disabled={loading}
             style={{ background: T.amberDim, border: `1px solid ${T.amberBorder}`, borderRadius: 6, padding: '7px 14px', color: T.amber, fontSize: 12, fontFamily: T.mono, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
             {loading ? '…' : 'GO'}
