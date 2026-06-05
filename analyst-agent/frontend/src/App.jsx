@@ -5,16 +5,38 @@ import {
 } from 'recharts'
 import { analyzeTicker, chatAboutTicker, searchSymbols } from './api'
 
-/* ───────────── design tokens ───────────── */
-const T = {
-  bg: '#03040a', nav: '#07090f', surface: '#0d1018', surfaceRaised: '#121620',
-  border: 'rgba(255,255,255,0.055)', borderMid: 'rgba(255,255,255,0.11)',
+/* ───────────── design tokens (light + dark themes) ─────────────
+   `T` is a single live object that components read at render time. Toggling the
+   theme mutates `T` in place (applyTheme) and re-renders the app, so every
+   inline style picks up the new palette. Accent colours are shared across both
+   themes; only the structural colours (bg/surface/text/border/…) flip. */
+const FONTS = {
+  mono: "var(--font-mono, 'IBM Plex Mono', 'Courier New', monospace)",
+  head: "var(--font-sans, 'Plus Jakarta Sans', sans-serif)",
+}
+const ACCENTS = {
   amber: '#e6a72a', amberDim: 'rgba(230,167,42,0.1)', amberBorder: 'rgba(230,167,42,0.28)',
   green: '#2dd4a0', red: '#f16a6a', cyan: '#5bbfed', purple: '#c084fc',
   orange: '#f97316', blue: '#60a5fa',
+}
+const DARK = {
+  ...ACCENTS, ...FONTS,
+  bg: '#03040a', nav: '#07090f', surface: '#0d1018', surfaceRaised: '#121620',
+  border: 'rgba(255,255,255,0.055)', borderMid: 'rgba(255,255,255,0.11)',
   text: '#cdd3df', muted: '#5e6573', dim: '#2e333e',
-  mono: "var(--font-mono, 'IBM Plex Mono', 'Courier New', monospace)",
-  head: "var(--font-sans, 'Plus Jakarta Sans', sans-serif)",
+}
+const LIGHT = {
+  ...ACCENTS, ...FONTS,
+  bg: '#f4f6f9', nav: '#ffffff', surface: '#ffffff', surfaceRaised: '#eef1f5',
+  border: 'rgba(0,0,0,0.10)', borderMid: 'rgba(0,0,0,0.18)',
+  text: '#1b1f27', muted: '#5c6675', dim: '#a6aebb',
+}
+const PALETTES = { dark: DARK, light: LIGHT }
+const _savedTheme = (() => { try { return localStorage.getItem('aa-theme') } catch { return null } })() || 'dark'
+const T = { ...(PALETTES[_savedTheme] || DARK) }
+function applyTheme(name) {
+  Object.assign(T, PALETTES[name] || DARK)
+  try { localStorage.setItem('aa-theme', name) } catch { /* ignore */ }
 }
 
 const SMA_META = {
@@ -153,12 +175,16 @@ function buildSeries(raw) {
 }
 
 /* ───────────── small UI atoms ───────────── */
-const SIG = {
-  buy: T.green, strong_buy: T.green, hold: T.muted, sell: T.red, strong_sell: T.red,
-  low: T.green, moderate: '#f0954c', medium: '#f0954c', high: T.red, 'very high': T.red,
-  POS: T.green, NEG: T.red, NEU: T.muted,
+// Reads T live so colours follow the active theme.
+const sc = s => {
+  const k = (s || '').toLowerCase?.() ?? s
+  const m = {
+    buy: T.green, strong_buy: T.green, hold: T.muted, sell: T.red, strong_sell: T.red,
+    low: T.green, moderate: '#f0954c', medium: '#f0954c', high: T.red, 'very high': T.red,
+    pos: T.green, neg: T.red, neu: T.muted,
+  }
+  return m[k] || m[s] || T.muted
 }
-const sc = s => SIG[(s || '').toLowerCase?.() ?? s] || SIG[s] || T.muted
 
 const Badge = ({ s, label }) => {
   const c = sc(s)
@@ -200,7 +226,8 @@ const KPI = ({ label, value }) => (
   </div>
 )
 
-const tip = { background: T.surfaceRaised, border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 11, fontFamily: T.mono, color: T.text }
+// Function (not a const object) so chart tooltips follow the active theme.
+const tip = () => ({ background: T.surfaceRaised, border: `1px solid ${T.border}`, borderRadius: 6, fontSize: 11, fontFamily: T.mono, color: T.text })
 
 /* ───────────── indicator assessment card ───────────── */
 const AssessCard = ({ label, value, signal, note, assess }) => {
@@ -658,9 +685,12 @@ function PriceChart({ data, cur, showSMA, showBB, height = 200 }) {
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" hide />
         <YAxis domain={['auto', 'auto']} tick={{ fill: T.muted, fontSize: 10, fontFamily: T.mono }} width={52} />
-        <Tooltip contentStyle={tip} labelStyle={{ color: T.muted }} formatter={v => fmtMoney(v, cur)} />
-        {showBB && <Area dataKey="bbUpper" stroke="none" fill={T.cyan} fillOpacity={0.05} isAnimationActive={false} />}
-        {showBB && <Area dataKey="bbLower" stroke="none" fill={T.bg} fillOpacity={1} isAnimationActive={false} />}
+        <Tooltip contentStyle={tip()} labelStyle={{ color: T.muted }} formatter={v => fmtMoney(v, cur)} />
+        {/* Bollinger band: shaded fill between the two bands + dashed boundaries.
+            bbLower is filled with the chart background to mask everything below it,
+            leaving only the upper-to-lower region tinted. */}
+        {showBB && <Area dataKey="bbUpper" stroke={T.cyan} strokeWidth={1.2} strokeOpacity={0.85} strokeDasharray="5 3" fill={T.cyan} fillOpacity={0.16} isAnimationActive={false} />}
+        {showBB && <Area dataKey="bbLower" stroke={T.cyan} strokeWidth={1.2} strokeOpacity={0.85} strokeDasharray="5 3" fill={T.bg} fillOpacity={1} isAnimationActive={false} />}
         <Line dataKey="close" stroke={T.amber} dot={false} strokeWidth={1.6} isAnimationActive={false} />
         {Object.entries(SMA_META).map(([k, meta]) => showSMA[k] && (
           <Line key={k} dataKey={k} stroke={meta.color} dot={false} strokeWidth={1} strokeDasharray="3 3" isAnimationActive={false} />
@@ -677,7 +707,7 @@ function RsiChart({ data }) {
       <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" hide />
         <YAxis domain={[0, 100]} ticks={[30, 50, 70]} tick={{ fill: T.muted, fontSize: 10, fontFamily: T.mono }} width={52} />
-        <Tooltip contentStyle={tip} labelStyle={{ color: T.muted }} />
+        <Tooltip contentStyle={tip()} labelStyle={{ color: T.muted }} />
         <ReferenceLine y={70} stroke={T.red} strokeDasharray="3 3" />
         <ReferenceLine y={30} stroke={T.green} strokeDasharray="3 3" />
         <Area dataKey="rsi" stroke={T.purple} fill={T.purple} fillOpacity={0.12} isAnimationActive={false} />
@@ -693,7 +723,7 @@ function MacdChart({ data }) {
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" hide />
         <YAxis tick={{ fill: T.muted, fontSize: 10, fontFamily: T.mono }} width={52} />
-        <Tooltip contentStyle={tip} labelStyle={{ color: T.muted }} />
+        <Tooltip contentStyle={tip()} labelStyle={{ color: T.muted }} />
         <ReferenceLine y={0} stroke={T.border} />
         <Bar dataKey="macdHist" isAnimationActive={false}>
           {data.map((d, i) => <Cell key={i} fill={(d.macdHist ?? 0) >= 0 ? T.green : T.red} />)}
@@ -712,7 +742,7 @@ function VolumeChart({ data }) {
       <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <XAxis dataKey="date" hide />
         <YAxis tick={{ fill: T.muted, fontSize: 10, fontFamily: T.mono }} width={52} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} />
-        <Tooltip contentStyle={tip} labelStyle={{ color: T.muted }} formatter={v => `${(v / 1e6).toFixed(2)}M`} />
+        <Tooltip contentStyle={tip()} labelStyle={{ color: T.muted }} formatter={v => `${(v / 1e6).toFixed(2)}M`} />
         <Bar dataKey="volume" fill={T.dim} isAnimationActive={false} />
       </ComposedChart>
     </ResponsiveContainer>
@@ -1429,6 +1459,12 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('overview')
+  const [theme, setTheme] = useState(_savedTheme)
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    applyTheme(next)   // mutate T in place before the re-render reads it
+    setTheme(next)     // force a full re-render so every inline style updates
+  }
 
   // ── autocomplete state ──
   const [suggest, setSuggest] = useState([])
@@ -1525,10 +1561,10 @@ export default function App() {
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text }}>
       <style>{`
         *{box-sizing:border-box;}
-        body{overflow-x:hidden;}
+        html,body{overflow-x:hidden;background:${T.bg};}
         ::-webkit-scrollbar{width:4px;height:4px;}
         ::-webkit-scrollbar-track{background:${T.surface};}
-        ::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px;}
+        ::-webkit-scrollbar-thumb{background:${T.borderMid};border-radius:3px;}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
         @keyframes aadot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
         input::placeholder{color:${T.dim};}
@@ -1621,6 +1657,11 @@ export default function App() {
           )}
         </div>
         <div className="aa-nav-status">
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            style={{ background: T.surface, border: `1px solid ${T.borderMid}`, borderRadius: 6, width: 30, height: 26,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14, color: T.amber, padding: 0 }}>
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: T.green, animation: 'pulse 2s infinite', display: 'inline-block' }} />
           <span className="aa-nav-status-label" style={{ fontSize: 11, fontFamily: T.mono, color: T.muted }}>{data?.engine || 'ready'}</span>
         </div>
