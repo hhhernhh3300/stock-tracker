@@ -565,33 +565,54 @@ const RiskOppDashboard = ({ ror }) => {
   )
 }
 
-/* expandable metric row with risk/opp scores */
-const RiskMetricRow = ({ metric, value, rPts, oPts, verdict, ctx }) => {
-  const [open, setOpen] = useState(false)
-  const c = vc(verdict)
+/* ── risk/opportunity breakdown rendered as an aligned, responsive table ──
+   Header + every row share the `.aa-rrow` grid template, so columns line up
+   perfectly on desktop AND stay compact/legible on phones. Click a row to
+   expand its full-width context paragraph. */
+const RT_HDR = { fontSize: 10, color: T.amber, fontFamily: T.head, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase' }
+
+function RiskMetricTable({ items }) {
+  if (!items || !items.length) {
+    return <div style={{ padding: 16, fontSize: 12, color: T.muted }}>No data available for this category.</div>
+  }
   return (
-    <div style={{ borderBottom: `1px solid ${T.border}` }}>
-      <div onClick={() => setOpen(o => !o)}
-           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', cursor: 'pointer' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: T.muted, fontFamily: T.mono }}>{metric}</span>
-          <VerBadge verdict={verdict} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 10, fontFamily: T.mono, color: T.green }}>+{oPts} OPP</span>
-          <span style={{ fontSize: 10, fontFamily: T.mono, color: T.red }}>−{rPts} RISK</span>
-          <span style={{ fontSize: 13, fontFamily: T.mono, fontWeight: 700, color: T.text }}>{value}</span>
-          <span style={{ fontSize: 10, color: T.dim }}>{open ? '▲' : '▼'}</span>
-        </div>
+    <div>
+      <div className="aa-rrow" style={{ background: 'rgba(255,255,255,0.03)', borderBottom: `1px solid ${T.border}` }}>
+        <span style={RT_HDR}>Metric</span>
+        <span style={RT_HDR}>Signal</span>
+        <span style={{ ...RT_HDR, textAlign: 'right' }}>Opp</span>
+        <span style={{ ...RT_HDR, textAlign: 'right' }}>Risk</span>
+        <span style={{ ...RT_HDR, textAlign: 'right' }}>Value</span>
+        <span />
+      </div>
+      {items.map((item, idx) => (
+        <RiskMetricRow key={idx} {...item} last={idx === items.length - 1} />
+      ))}
+    </div>
+  )
+}
+
+const RiskMetricRow = ({ metric, value, rPts, oPts, verdict, ctx, last }) => {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderBottom: last && !open ? 'none' : `1px solid ${T.border}` }}>
+      <div className="aa-rrow" onClick={() => setOpen(o => !o)}
+           style={{ cursor: 'pointer', background: open ? 'rgba(255,255,255,0.018)' : 'transparent' }}>
+        <span style={{ fontSize: 12, color: T.text, fontFamily: T.mono, lineHeight: 1.3, wordBreak: 'break-word' }}>{metric}</span>
+        <span style={{ minWidth: 0, overflow: 'hidden' }}><VerBadge verdict={verdict} /></span>
+        <span style={{ textAlign: 'right', fontSize: 11, fontFamily: T.mono, fontWeight: 700, color: oPts > 0 ? T.green : T.dim }}>{oPts > 0 ? `+${oPts}` : '·'}</span>
+        <span style={{ textAlign: 'right', fontSize: 11, fontFamily: T.mono, fontWeight: 700, color: rPts > 0 ? T.red : T.dim }}>{rPts > 0 ? `−${rPts}` : '·'}</span>
+        <span style={{ textAlign: 'right', fontSize: 12, fontFamily: T.mono, fontWeight: 700, color: T.text, lineHeight: 1.3, wordBreak: 'break-word' }}>{value}</span>
+        <span style={{ textAlign: 'right', fontSize: 9, color: T.dim }}>{open ? '▲' : '▼'}</span>
       </div>
       {open && (
-        <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${T.border}` }}>
-          <div style={{ display: 'flex', gap: 14, margin: '8px 0 6px' }}>
+        <div style={{ padding: '2px 14px 12px', background: 'rgba(255,255,255,0.012)' }}>
+          <div style={{ display: 'flex', gap: 10, margin: '4px 0 7px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, fontFamily: T.mono, color: T.green, background: T.green + '18', border: `1px solid ${T.green}33`, padding: '2px 8px', borderRadius: 3 }}>
-              +{oPts} Opportunity pts
+              +{oPts} opportunity pts
             </span>
             <span style={{ fontSize: 10, fontFamily: T.mono, color: T.red, background: T.red + '18', border: `1px solid ${T.red}33`, padding: '2px 8px', borderRadius: 3 }}>
-              −{rPts} Risk pts
+              −{rPts} risk pts
             </span>
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.7, color: T.muted, fontFamily: T.mono }}>{ctx}</div>
@@ -1103,12 +1124,9 @@ function RiskOppTab({ data }) {
         </span>
       </div>
 
-      {/* Metric cards */}
+      {/* Metric breakdown — aligned responsive table */}
       <Panel title={cats.find(c => c.key === section)?.label + ' — RISK / OPPORTUNITY BREAKDOWN'}>
-        {activeItems.length === 0
-          ? <div style={{ padding: 16, fontSize: 12, color: T.muted }}>No data available for this category.</div>
-          : activeItems.map((item, idx) => <RiskMetricRow key={idx} {...item} />)
-        }
+        <RiskMetricTable items={activeItems} />
       </Panel>
 
       <div style={{ fontSize: 10, color: T.dim, fontFamily: T.mono }}>
@@ -1535,8 +1553,11 @@ export default function App() {
         .aa-ror-header{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;}
         .aa-ror-scores{display:flex;gap:20px;}
         .aa-chat{display:flex;flex-direction:column;height:540px;gap:10px;}
+        /* risk/opportunity breakdown table — shared grid template (header + rows) */
+        .aa-rrow{display:grid;grid-template-columns:minmax(0,1.7fr) 96px 44px 48px minmax(64px,0.9fr) 18px;gap:10px;align-items:center;padding:9px 14px;}
         /* ── mobile overrides ── */
         @media(max-width:600px){
+          .aa-rrow{grid-template-columns:minmax(0,1.5fr) 76px 32px 36px minmax(50px,0.85fr) 14px;gap:6px;padding:8px 9px;}
           .aa-nav{padding:0 10px;gap:8px;}
           .aa-nav-brand{display:none;}
           .aa-nav-search{max-width:none;}
