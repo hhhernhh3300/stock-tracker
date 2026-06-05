@@ -46,6 +46,13 @@ DEFAULT_MODELS = {
     #                   mixtral-8x7b-32768
     #   Mistral examples: mistral-large-latest, mistral-small-latest, open-mixtral-8x22b
     "openai_compatible": os.environ.get("OPENAI_COMPAT_MODEL", ""),
+    # A SECOND OpenAI-compatible gateway, so you can stack another free provider
+    # (e.g. Cerebras / OpenRouter) after Groq for more daily quota headroom.
+    #   Cerebras:   OPENAI_COMPAT2_BASE_URL=https://api.cerebras.ai/v1
+    #               OPENAI_COMPAT2_MODEL=llama-3.3-70b   (or gpt-oss-120b, qwen-3-…)
+    #   OpenRouter: OPENAI_COMPAT2_BASE_URL=https://openrouter.ai/api/v1
+    #               OPENAI_COMPAT2_MODEL=meta-llama/llama-3.3-70b-instruct:free
+    "openai_compatible2": os.environ.get("OPENAI_COMPAT2_MODEL", ""),
 }
 
 # Gemini fallback chain. Tried in order until one returns successfully. A pinned
@@ -87,6 +94,7 @@ _PROVIDER_KEYS = {
     "openai": ["OPENAI_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     "openai_compatible": ["OPENAI_COMPAT_API_KEY", "LLM_GATEWAY_API_KEY"],
+    "openai_compatible2": ["OPENAI_COMPAT2_API_KEY"],
 }
 
 # Base URL for the OpenAI-compatible gateway (required for that provider).
@@ -103,8 +111,19 @@ def _compat_base_url() -> str | None:
     )
 
 
+def _compat2_base_url() -> str | None:
+    return os.environ.get("OPENAI_COMPAT2_BASE_URL") or None
+
+
+# Per-gateway config so the two OpenAI-compatible providers share one caller.
+def _compat_cfg(provider: str):
+    if provider == "openai_compatible2":
+        return _key_for(provider), _compat2_base_url(), DEFAULT_MODELS["openai_compatible2"]
+    return _key_for("openai_compatible"), _compat_base_url(), DEFAULT_MODELS["openai_compatible"]
+
+
 # Order tried when LLM_PROVIDER=auto.
-_AUTO_ORDER = ["anthropic", "openai", "gemini", "openai_compatible"]
+_AUTO_ORDER = ["anthropic", "openai", "gemini", "openai_compatible", "openai_compatible2"]
 
 
 # --------------------------------------------------------------------------- #
@@ -366,25 +385,19 @@ def _call_gemini(user_msg: str) -> dict:
     )
 
 
-def _call_openai_compatible(user_msg: str) -> dict:
+def _call_compat(user_msg: str, provider: str) -> dict:
     """Any OpenAI-compatible /v1 gateway: Groq, OpenRouter, Mistral, Cerebras,
     LiteLLM, or a corporate model gateway. Reuses the openai SDK with a custom
-    base_url. The key + URL + model all come from the environment."""
+    base_url. Key + URL + model come from the env vars for the given provider
+    (``openai_compatible`` or ``openai_compatible2``)."""
     from openai import OpenAI  # lazy import
 
-    base_url = _compat_base_url()
+    key, base_url, model = _compat_cfg(provider)
     if not base_url:
-        raise RuntimeError(
-            "openai_compatible provider needs OPENAI_COMPAT_BASE_URL (or "
-            "LLM_GATEWAY_BASE_URL) set, e.g. https://api.groq.com/openai/v1"
-        )
-    model = DEFAULT_MODELS["openai_compatible"]
+        raise RuntimeError(f"{provider} needs its BASE_URL set (e.g. https://api.cerebras.ai/v1)")
     if not model:
-        raise RuntimeError(
-            "openai_compatible provider needs OPENAI_COMPAT_MODEL set, e.g. "
-            "llama-3.3-70b-versatile (Groq) or a model id your gateway exposes."
-        )
-    client = OpenAI(api_key=_key_for("openai_compatible"), base_url=base_url)
+        raise RuntimeError(f"{provider} needs its MODEL set (e.g. llama-3.3-70b)")
+    client = OpenAI(api_key=key, base_url=base_url)
     try:
         resp = client.chat.completions.create(
             model=model,
@@ -409,11 +422,20 @@ def _call_openai_compatible(user_msg: str) -> dict:
     return _extract_json(resp.choices[0].message.content)
 
 
+def _call_openai_compatible(user_msg: str) -> dict:
+    return _call_compat(user_msg, "openai_compatible")
+
+
+def _call_openai_compatible2(user_msg: str) -> dict:
+    return _call_compat(user_msg, "openai_compatible2")
+
+
 _DISPATCH = {
     "anthropic": _call_anthropic,
     "openai": _call_openai,
     "gemini": _call_gemini,
     "openai_compatible": _call_openai_compatible,
+    "openai_compatible2": _call_openai_compatible2,
 }
 
 
@@ -586,18 +608,23 @@ def _chat_gemini(messages: list) -> str:
     )
 
 
-def _chat_openai_compatible(messages: list) -> str:
+def _chat_compat(messages: list, provider: str) -> str:
     from openai import OpenAI  # lazy import
 
-    base_url = _compat_base_url()
-    model = DEFAULT_MODELS["openai_compatible"]
+    key, base_url, model = _compat_cfg(provider)
     if not base_url or not model:
-        raise RuntimeError(
-            "openai_compatible chat needs OPENAI_COMPAT_BASE_URL and OPENAI_COMPAT_MODEL."
-        )
-    client = OpenAI(api_key=_key_for("openai_compatible"), base_url=base_url)
+        raise RuntimeError(f"{provider} chat needs its BASE_URL and MODEL set.")
+    client = OpenAI(api_key=key, base_url=base_url)
     resp = client.chat.completions.create(model=model, max_tokens=1200, messages=messages)
     return (resp.choices[0].message.content or "").strip()
+
+
+def _chat_openai_compatible(messages: list) -> str:
+    return _chat_compat(messages, "openai_compatible")
+
+
+def _chat_openai_compatible2(messages: list) -> str:
+    return _chat_compat(messages, "openai_compatible2")
 
 
 _CHAT_DISPATCH = {
@@ -605,6 +632,7 @@ _CHAT_DISPATCH = {
     "openai": _chat_openai,
     "gemini": _chat_gemini,
     "openai_compatible": _chat_openai_compatible,
+    "openai_compatible2": _chat_openai_compatible2,
 }
 
 
