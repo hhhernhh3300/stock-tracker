@@ -1111,6 +1111,119 @@ function RiskOppTab({ data }) {
   )
 }
 
+/* ───────────── lightweight markdown renderer (no dependency) ─────────────
+   Renders the LLM's markdown (**bold**, ### headers, * bullets, 1. lists,
+   `code`) as styled React nodes instead of leaking raw asterisks/hashes. */
+function mdInline(text, kp = '') {
+  const nodes = []
+  let rest = String(text)
+  let k = 0
+  // bold (**), inline code (`), italic (*), links [t](u)
+  const re = /(\*\*([^*]+?)\*\*|`([^`]+?)`|\[([^\]]+)\]\((https?:\/\/[^)]+)\)|\*([^*\n]+?)\*)/
+  let m
+  while ((m = re.exec(rest))) {
+    if (m.index > 0) nodes.push(rest.slice(0, m.index))
+    if (m[2] != null) nodes.push(<strong key={kp + 'b' + k++} style={{ color: '#fff', fontWeight: 700 }}>{m[2]}</strong>)
+    else if (m[3] != null) nodes.push(<code key={kp + 'c' + k++} style={{ fontFamily: T.mono, fontSize: '0.92em', background: 'rgba(255,255,255,0.07)', border: `1px solid ${T.border}`, borderRadius: 4, padding: '1px 5px', color: T.amber }}>{m[3]}</code>)
+    else if (m[4] != null) nodes.push(<a key={kp + 'a' + k++} href={m[5]} target="_blank" rel="noreferrer" style={{ color: T.cyan, textDecoration: 'underline' }}>{m[4]}</a>)
+    else if (m[6] != null) nodes.push(<em key={kp + 'i' + k++} style={{ color: T.text }}>{m[6]}</em>)
+    rest = rest.slice(m.index + m[0].length)
+  }
+  if (rest) nodes.push(rest)
+  return nodes
+}
+
+function MarkdownLite({ text }) {
+  const lines = String(text || '').split('\n')
+  const blocks = []
+  let i = 0
+  const HEAD = { 1: 17, 2: 15, 3: 13.5, 4: 12.5 }
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // ── header ── ### Title
+    const h = line.match(/^\s*(#{1,4})\s+(.*)/)
+    if (h) {
+      const lvl = h[1].length
+      blocks.push(
+        <div key={'h' + i} style={{ fontSize: HEAD[lvl] || 13, fontWeight: 700, color: T.amber,
+          fontFamily: T.head, letterSpacing: '0.01em', margin: blocks.length ? '12px 0 5px' : '0 0 5px' }}>
+          {mdInline(h[2], 'h' + i)}
+        </div>
+      )
+      i++; continue
+    }
+
+    // ── horizontal rule ──
+    if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
+      blocks.push(<div key={'hr' + i} style={{ height: 1, background: T.border, margin: '10px 0' }} />)
+      i++; continue
+    }
+
+    // ── bullet list ── * item  /  - item
+    if (/^\s*[-*•]\s+/.test(line)) {
+      const items = []
+      while (i < lines.length && /^\s*[-*•]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*•]\s+/, '')); i++
+      }
+      blocks.push(
+        <div key={'ul' + i} style={{ display: 'grid', gap: 5, margin: '4px 0' }}>
+          {items.map((it, j) => (
+            <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <span style={{ color: T.amber, flexShrink: 0, lineHeight: 1.6, fontSize: 11 }}>▸</span>
+              <span style={{ flex: 1 }}>{mdInline(it, 'ul' + i + '_' + j)}</span>
+            </div>
+          ))}
+        </div>
+      )
+      continue
+    }
+
+    // ── numbered list ── 1. item
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*(\d+)\.\s+/, '$1|')); i++
+      }
+      blocks.push(
+        <div key={'ol' + i} style={{ display: 'grid', gap: 5, margin: '4px 0' }}>
+          {items.map((it, j) => {
+            const [n, ...r] = it.split('|')
+            return (
+              <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <span style={{ color: T.amber, flexShrink: 0, lineHeight: 1.6, fontWeight: 700, minWidth: 16 }}>{n}.</span>
+                <span style={{ flex: 1 }}>{mdInline(r.join('|'), 'ol' + i + '_' + j)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )
+      continue
+    }
+
+    // ── blank line ──
+    if (line.trim() === '') { i++; continue }
+
+    // ── paragraph (gather consecutive plain lines) ──
+    const para = []
+    while (
+      i < lines.length && lines[i].trim() !== '' &&
+      !/^\s*(#{1,4})\s/.test(lines[i]) &&
+      !/^\s*[-*•]\s+/.test(lines[i]) &&
+      !/^\s*\d+\.\s+/.test(lines[i]) &&
+      !/^\s*([-*_])\1{2,}\s*$/.test(lines[i])
+    ) { para.push(lines[i]); i++ }
+    blocks.push(
+      <div key={'p' + i} style={{ margin: '4px 0', lineHeight: 1.7 }}>
+        {para.map((l, j) => (
+          <span key={j}>{mdInline(l, 'p' + i + '_' + j)}{j < para.length - 1 ? <br /> : null}</span>
+        ))}
+      </div>
+    )
+  }
+  return <div>{blocks}</div>
+}
+
 function ChatTab({ ticker, aiConfigured }) {
   const [msgs, setMsgs] = useState([])
   const [input, setInput] = useState('')
@@ -1151,29 +1264,63 @@ function ChatTab({ ticker, aiConfigured }) {
           AI chat needs an LLM key on the server. Without one, requests will return a 503.
         </div>
       )}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 4 }}>
-        {msgs.map((m, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 9 }}>
-            {m.role === 'ai' && <div style={{ width: 28, height: 28, borderRadius: '50%', background: T.amberDim, border: `1px solid ${T.amber}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0, marginTop: 3 }}>⚡</div>}
-            <div style={{ maxWidth: '72%', padding: '10px 14px', borderRadius: 8, fontSize: 13, lineHeight: 1.7,
-              background: m.role === 'user' ? T.amberDim : T.surface, border: `1px solid ${m.role === 'user' ? T.amberBorder : T.border}`,
-              color: T.text, whiteSpace: 'pre-wrap', fontFamily: m.role === 'user' ? T.mono : 'inherit' }}>{m.text}</div>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14, paddingRight: 6 }}>
+        {msgs.map((m, i) => {
+          const isUser = m.role === 'user'
+          return (
+            <div key={i} style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', gap: 10 }}>
+              {!isUser && (
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: T.amberDim,
+                  border: `1px solid ${T.amber}55`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, flexShrink: 0, marginTop: 2 }}>⚡</div>
+              )}
+              <div style={{
+                maxWidth: isUser ? '78%' : '86%',
+                padding: isUser ? '10px 14px' : '12px 16px',
+                borderRadius: isUser ? '12px 12px 4px 12px' : '4px 12px 12px 12px',
+                fontSize: 13.5, color: T.text,
+                background: isUser ? T.amberDim : T.surfaceRaised,
+                border: `1px solid ${isUser ? T.amberBorder : T.border}`,
+                fontFamily: isUser ? T.mono : T.head,
+                whiteSpace: isUser ? 'pre-wrap' : 'normal',
+                lineHeight: 1.7, wordBreak: 'break-word', overflowWrap: 'anywhere',
+              }}>
+                {isUser ? m.text : <MarkdownLite text={m.text} />}
+              </div>
+            </div>
+          )
+        })}
+        {busy && (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ width: 30, height: 30, borderRadius: '50%', background: T.amberDim, border: `1px solid ${T.amber}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>⚡</div>
+            <div style={{ display: 'flex', gap: 4, padding: '12px 16px', background: T.surfaceRaised, border: `1px solid ${T.border}`, borderRadius: '4px 12px 12px 12px' }}>
+              {[0, 1, 2].map(d => (
+                <span key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: T.amber, display: 'inline-block', animation: `aadot 1.2s ${d * 0.18}s infinite ease-in-out` }} />
+              ))}
+            </div>
           </div>
-        ))}
-        {busy && <div style={{ fontSize: 12, color: T.muted, fontFamily: T.mono, paddingLeft: 38 }}>thinking…</div>}
+        )}
         <div ref={endRef} />
       </div>
       {msgs.length <= 1 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {SUGGEST.map((s, i) => <button key={i} onClick={() => send(s)} style={{ fontSize: 11, fontFamily: T.mono, color: T.muted, background: T.surface, border: `1px solid ${T.border}`, borderRadius: 20, padding: '5px 11px', cursor: 'pointer' }}>{s}</button>)}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+          {SUGGEST.map((s, i) => (
+            <button key={i} onClick={() => send(s)} style={{ fontSize: 11.5, fontFamily: T.head, color: T.text,
+              background: T.surface, border: `1px solid ${T.borderMid}`, borderRadius: 20, padding: '6px 13px',
+              cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = T.amberBorder; e.currentTarget.style.color = T.amber }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = T.borderMid; e.currentTarget.style.color = T.text }}>
+              {s}
+            </button>
+          ))}
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           placeholder={`Ask the analyst about ${ticker}...`}
-          style={{ flex: 1, background: T.surface, border: `1px solid ${T.borderMid}`, borderRadius: 8, padding: '10px 14px', color: T.text, fontSize: 13, fontFamily: T.mono, outline: 'none' }} />
+          style={{ flex: 1, background: T.surface, border: `1px solid ${T.borderMid}`, borderRadius: 10, padding: '11px 15px', color: T.text, fontSize: 13.5, fontFamily: T.head, outline: 'none' }} />
         <button onClick={() => send()} disabled={busy || !input.trim()}
-          style={{ background: busy || !input.trim() ? T.amberDim : T.amber, border: 'none', borderRadius: 8, padding: '0 20px', color: busy || !input.trim() ? T.amber : '#000', fontSize: 12, fontFamily: T.mono, fontWeight: 700, cursor: busy ? 'not-allowed' : 'pointer' }}>SEND ↑</button>
+          style={{ background: busy || !input.trim() ? T.amberDim : T.amber, border: 'none', borderRadius: 10, padding: '0 22px', color: busy || !input.trim() ? T.amber : '#000', fontSize: 12, fontFamily: T.mono, fontWeight: 700, cursor: busy || !input.trim() ? 'not-allowed' : 'pointer', transition: 'all .15s' }}>SEND ↑</button>
       </div>
     </div>
   )
@@ -1330,6 +1477,7 @@ export default function App() {
         ::-webkit-scrollbar-track{background:${T.surface};}
         ::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px;}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+        @keyframes aadot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
         input::placeholder{color:${T.dim};}
         button{font-family:inherit;}
         /* ── layout classes ── */
