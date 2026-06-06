@@ -106,6 +106,17 @@ def diag_llm() -> dict:
     }
 
 
+@app.get("/api/diag/context")
+def diag_context() -> dict:
+    """Ping the asset-class context sources and report ok/error per source.
+
+    Tier-2 (keyless): CoinGecko, Binance public futures, alternative.me Fear&Greed.
+    Tier-3 (keyed/gated): CFTC COT (ENABLE_COT), FRED policy rates (FRED_API_KEY),
+    EIA inventories (EIA_API_KEY). Lets you confirm the optional integrations are
+    wired without hunting through the UI."""
+    return market_data.diag_sources()
+
+
 @app.get("/api/search")
 def search(q: str = "") -> dict:
     """Live symbol search for the autocomplete box.

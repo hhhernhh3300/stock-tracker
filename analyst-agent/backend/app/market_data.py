@@ -1842,6 +1842,108 @@ def build_context(asset_cls: str, ticker: str, series: dict) -> dict:
     return {}
 
 
+def _diag_entry(value, ok_fn, sample_fn=None, *, configured=True, note=None) -> dict:
+    """Build one source-status row for the /api/diag/context report."""
+    if not configured:
+        out = {"configured": False, "ok": False}
+        if note:
+            out["note"] = note
+        return out
+    if isinstance(value, dict) and "__error__" in value:
+        return {"configured": True, "ok": False, "error": value["__error__"]}
+    out = {"configured": True, "ok": bool(ok_fn(value))}
+    if out["ok"] and sample_fn:
+        try:
+            out["sample"] = sample_fn(value)
+        except Exception:
+            pass
+    if not out["ok"] and note:
+        out["note"] = note
+    return out
+
+
+def diag_sources() -> dict:
+    """Ping each external context source and report status per source.
+
+    Powers /api/diag/context so the optional integrations can be verified without
+    hunting through the UI. Probes with representative symbols (BTC for crypto,
+    GC=F for COT, the Fed funds series for FRED, crude stocks for EIA). Tier-2
+    crypto sources are keyless; Tier-3 (COT/FRED/EIA) only probe when enabled."""
+    cot_on = (os.environ.get("ENABLE_COT") or "").strip().lower() in {"1", "true", "yes", "on"}
+    fred_key = bool(os.environ.get("FRED_API_KEY", "").strip())
+    eia_key = bool(os.environ.get("EIA_API_KEY", "").strip())
+
+    jobs = {
+        "coingecko": _NET_POOL.submit(_coingecko_market, "btc"),
+        "binance": _NET_POOL.submit(_binance_perp, "btc"),
+        "fear_greed": _NET_POOL.submit(_fear_greed),
+    }
+    if cot_on:
+        jobs["cot"] = _NET_POOL.submit(_cot_positioning, "GC=F")
+    if fred_key:
+        jobs["fred"] = _NET_POOL.submit(_fred_latest, "DFEDTARU")
+    if eia_key:
+        jobs["eia"] = _NET_POOL.submit(_eia_inventory, "CL=F")
+
+    got: dict = {}
+    for k, fut in jobs.items():
+        try:
+            got[k] = fut.result(timeout=12)
+        except Exception as exc:
+            got[k] = {"__error__": str(exc)[:200]}
+
+    return {
+        "tier2_keyless": {
+            "coingecko": _diag_entry(
+                got.get("coingecko"),
+                lambda v: isinstance(v, dict) and v.get("market_cap") is not None,
+                lambda v: {"btc_market_cap": v.get("market_cap")},
+            ),
+            "binance": _diag_entry(
+                got.get("binance"),
+                lambda v: isinstance(v, dict) and "funding_rate_pct" in v,
+                lambda v: {"btc_funding_pct": v.get("funding_rate_pct"),
+                           "open_interest": v.get("open_interest")},
+                note="Binance public futures API may geo-block some data-center IPs; "
+                     "everything else is unaffected.",
+            ),
+            "fear_greed": _diag_entry(
+                got.get("fear_greed"),
+                lambda v: isinstance(v, dict) and v.get("value") is not None,
+                lambda v: v,
+            ),
+        },
+        "tier3_keyed": {
+            "cot": _diag_entry(
+                got.get("cot"),
+                lambda v: isinstance(v, dict) and v.get("noncomm_net") is not None,
+                lambda v: {"market": v.get("market"), "report_date": v.get("report_date"),
+                           "bias": v.get("bias")},
+                configured=cot_on,
+                note="set ENABLE_COT=1 to enable" if not cot_on
+                else "enabled but probe returned no data (CFTC throttled or symbol unmapped)",
+            ),
+            "fred": _diag_entry(
+                got.get("fred"),
+                lambda v: isinstance(v, (int, float)),
+                lambda v: {"fed_funds_upper_pct": v},
+                configured=fred_key,
+                note="set FRED_API_KEY to enable" if not fred_key
+                else "key set but probe failed (check the key)",
+            ),
+            "eia": _diag_entry(
+                got.get("eia"),
+                lambda v: isinstance(v, dict) and v.get("value") is not None,
+                lambda v: {"period": v.get("period"), "crude_stocks": v.get("value"),
+                           "units": v.get("units")},
+                configured=eia_key,
+                note="set EIA_API_KEY to enable" if not eia_key
+                else "key set but probe failed (check the key)",
+            ),
+        },
+    }
+
+
 def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     """Assemble a single JSON-safe snapshot: meta, quote, indicators, fundamentals,
     analyst consensus, and the chart series (last `lookback` trading days)."""
