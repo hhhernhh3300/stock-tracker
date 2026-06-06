@@ -1532,18 +1532,18 @@ def _monthly_seasonality(series: dict):
 
 
 # ── Tier 3: CFTC Commitments of Traders (opt-in via ENABLE_COT) ──────────────
-# Keyless public Socrata endpoint. Maps a Yahoo symbol to the CFTC market name
-# prefix; managed-money / non-commercial net positioning is a classic
-# contrarian/positioning gauge. Cached 12h (the report is weekly).
+# Keyless public Socrata endpoint (legacy futures-only report). Maps a Yahoo
+# symbol to the CFTC `contract_market_name` prefix; non-commercial (large-spec)
+# net positioning is a classic contrarian/positioning gauge. Cached 12h (weekly).
 _COT_RESOURCE = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
 _COT_MAP = {
-    "GC=F": "GOLD", "SI=F": "SILVER", "HG=F": "COPPER- #1",
+    "GC=F": "GOLD", "SI=F": "SILVER", "HG=F": "COPPER",
     "PL=F": "PLATINUM", "PA=F": "PALLADIUM",
-    "CL=F": "CRUDE OIL, LIGHT SWEET", "NG=F": "NATURAL GAS", "BZ=F": "BRENT",
-    "RB=F": "GASOLINE RBOB", "HO=F": "#2 HEATING OIL",
+    "CL=F": "CRUDE OIL", "NG=F": "NATURAL GAS", "BZ=F": "BRENT",
+    "RB=F": "GASOLINE", "HO=F": "NY HARBOR ULSD",
     "ZC=F": "CORN", "ZW=F": "WHEAT-SRW", "ZS=F": "SOYBEANS",
     "ZM=F": "SOYBEAN MEAL", "ZL=F": "SOYBEAN OIL",
-    "KC=F": "COFFEE", "SB=F": "SUGAR NO. 11", "CT=F": "COTTON NO. 2", "CC=F": "COCOA",
+    "KC=F": "COFFEE", "SB=F": "SUGAR", "CT=F": "COTTON", "CC=F": "COCOA",
     "EURUSD=X": "EURO FX", "JPY=X": "JAPANESE YEN", "GBPUSD=X": "BRITISH POUND",
     "AUDUSD=X": "AUSTRALIAN DOLLAR", "USDCAD=X": "CANADIAN DOLLAR",
     "USDCHF=X": "SWISS FRANC", "NZDUSD=X": "NEW ZEALAND DOLLAR",
@@ -1566,10 +1566,13 @@ def _cot_positioning(ticker: str):
         return hit[1]
     token = os.environ.get("CFTC_APP_TOKEN", "").strip()
     safe = prefix.replace("'", "''")
-    where = urllib.parse.quote(f"upper(market_and_exchange_names) like '{safe}%'")
+    # Filter on contract_market_name (the clean short name, e.g. "GOLD") — robust,
+    # unlike a function call on the long market_and_exchange_names. Encode the
+    # whole $where and $order so the space in "... DESC" doesn't break the query.
+    where = urllib.parse.quote(f"contract_market_name like '{safe}%'")
+    order = urllib.parse.quote("report_date_as_yyyy_mm_dd DESC")
     url = (
-        f"{_COT_RESOURCE}?$where={where}"
-        "&$order=report_date_as_yyyy_mm_dd DESC&$limit=1"
+        f"{_COT_RESOURCE}?$where={where}&$order={order}&$limit=1"
         + (f"&$$app_token={urllib.parse.quote(token)}" if token else "")
     )
     data = _http_json(url, timeout=8)
@@ -1732,6 +1735,95 @@ def _fear_greed():
         return None
 
 
+# Coinpaprika: keyless and reachable from data-center IPs (CoinGecko aggressively
+# rate-limits anonymous cloud requests; CoinCap shut down its free API). Primary
+# source for crypto market cap / supply / dominance, with CoinGecko as fallback.
+def _coinpaprika_id(base: str):
+    """Resolve a ticker symbol (BTC) to a Coinpaprika coin id (btc-bitcoin)."""
+    data = _http_json(
+        f"https://api.coinpaprika.com/v1/search?q={urllib.parse.quote(base)}"
+        "&c=currencies&limit=1"
+    )
+    try:
+        return data["currencies"][0]["id"]
+    except (TypeError, KeyError, IndexError):
+        return None
+
+
+def _coinpaprika_market(base: str) -> dict:
+    cid = _coinpaprika_id(base)
+    if not cid:
+        return {}
+    t = _http_json(f"https://api.coinpaprika.com/v1/tickers/{urllib.parse.quote(cid)}")
+    if not isinstance(t, dict):
+        return {}
+    usd = (t.get("quotes") or {}).get("USD") or {}
+    circ = _num(t.get("circulating_supply")) or _num(t.get("total_supply"))
+    return {
+        "market_cap": _num(usd.get("market_cap")),
+        "circulating_supply": circ,
+        "max_supply": _num(t.get("max_supply")) or _num(t.get("total_supply")),
+        "ath_change_pct": _round(usd.get("percent_from_price_ath"), 1),
+    }
+
+
+def _coinpaprika_dominance():
+    g = _http_json("https://api.coinpaprika.com/v1/global")
+    try:
+        return round(float(g["bitcoin_dominance_percentage"]), 1)
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def _crypto_market(base: str) -> dict:
+    """Market cap / supply / ATH for a coin — Coinpaprika primary, CoinGecko fallback."""
+    m = _coinpaprika_market(base)
+    if m.get("market_cap") is not None:
+        return m
+    return _coingecko_market(base) or m
+
+
+def _market_dominance():
+    d = _coinpaprika_dominance()
+    return d if d is not None else _btc_dominance()
+
+
+# OKX public market data — reachable from cloud IPs where Binance's futures API is
+# geo-blocked. Used as the PRIMARY perp source, with Binance as the fallback.
+def _okx_perp(base: str) -> dict:
+    inst = f"{base.upper()}-USDT-SWAP"
+    out: dict = {}
+    fr = _http_json(f"https://www.okx.com/api/v5/public/funding-rate?instId={inst}")
+    try:
+        rate = ((fr or {}).get("data") or [{}])[0].get("fundingRate")
+        if rate is not None:
+            out["funding_rate_pct"] = round(float(rate) * 100, 4)
+    except (TypeError, ValueError, IndexError):
+        pass
+    oi = _http_json(f"https://www.okx.com/api/v5/public/open-interest?instId={inst}")
+    try:
+        oiccy = ((oi or {}).get("data") or [{}])[0].get("oiCcy")  # coin-denominated
+        if oiccy is not None:
+            out["open_interest"] = _num(oiccy)
+    except (TypeError, IndexError):
+        pass
+    if out:
+        out["venue"] = "okx"
+    return out
+
+
+def _perp_metrics(base: str) -> dict:
+    """Perp funding rate + open interest — OKX primary, Binance fallback."""
+    out = _okx_perp(base)
+    if out.get("funding_rate_pct") is not None:
+        return out
+    b = _binance_perp(base)
+    if b:
+        b["venue"] = "binance"
+        return b
+    return out
+
+
 def _parse_fx(symbol: str) -> tuple[str | None, str | None]:
     """Split a Yahoo FX symbol into (base, quote). EURUSD=X -> (EUR, USD);
     a 3-letter form like JPY=X means USD/JPY -> (USD, JPY)."""
@@ -1793,9 +1885,9 @@ def _fx_context(ticker: str, series: dict) -> dict:
 def _crypto_context(ticker: str, series: dict) -> dict:
     base = ticker.upper().split("-")[0]
     closes = series.get("close") or []
-    f_cg = _NET_POOL.submit(_coingecko_market, base)
-    f_dom = _NET_POOL.submit(_btc_dominance)
-    f_perp = _NET_POOL.submit(_binance_perp, base)
+    f_cg = _NET_POOL.submit(_crypto_market, base)
+    f_dom = _NET_POOL.submit(_market_dominance)
+    f_perp = _NET_POOL.submit(_perp_metrics, base)
     f_fng = _NET_POOL.submit(_fear_greed)
 
     def g(fut, default):
@@ -1874,8 +1966,8 @@ def diag_sources() -> dict:
     eia_key = bool(os.environ.get("EIA_API_KEY", "").strip())
 
     jobs = {
-        "coingecko": _NET_POOL.submit(_coingecko_market, "btc"),
-        "binance": _NET_POOL.submit(_binance_perp, "btc"),
+        "crypto_market": _NET_POOL.submit(_crypto_market, "btc"),
+        "perp": _NET_POOL.submit(_perp_metrics, "btc"),
         "fear_greed": _NET_POOL.submit(_fear_greed),
     }
     if cot_on:
@@ -1894,18 +1986,19 @@ def diag_sources() -> dict:
 
     return {
         "tier2_keyless": {
-            "coingecko": _diag_entry(
-                got.get("coingecko"),
+            "crypto_market": _diag_entry(
+                got.get("crypto_market"),
                 lambda v: isinstance(v, dict) and v.get("market_cap") is not None,
-                lambda v: {"btc_market_cap": v.get("market_cap")},
+                lambda v: {"btc_market_cap": v.get("market_cap"),
+                           "supply": v.get("circulating_supply")},
+                note="Coinpaprika primary, CoinGecko fallback.",
             ),
-            "binance": _diag_entry(
-                got.get("binance"),
-                lambda v: isinstance(v, dict) and "funding_rate_pct" in v,
-                lambda v: {"btc_funding_pct": v.get("funding_rate_pct"),
+            "perp": _diag_entry(
+                got.get("perp"),
+                lambda v: isinstance(v, dict) and v.get("funding_rate_pct") is not None,
+                lambda v: {"venue": v.get("venue"), "btc_funding_pct": v.get("funding_rate_pct"),
                            "open_interest": v.get("open_interest")},
-                note="Binance public futures API may geo-block some data-center IPs; "
-                     "everything else is unaffected.",
+                note="OKX primary, Binance fallback (both unreachable from this host if failing).",
             ),
             "fear_greed": _diag_entry(
                 got.get("fear_greed"),
