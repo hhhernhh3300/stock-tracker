@@ -126,7 +126,7 @@ def search(q: str = "") -> dict:
 @app.get("/api/analyze/{ticker}")
 def analyze(ticker: str) -> dict:
     ticker = (ticker or "").strip().upper()
-    if not ticker or len(ticker) > 12 or not ticker.replace(".", "").replace("-", "").isalnum():
+    if not ticker or len(ticker) > 15 or not ticker.replace(".", "").replace("-", "").replace("=", "").replace("^", "").isalnum():
         raise HTTPException(status_code=400, detail="Enter a valid ticker symbol, e.g. AAPL.")
 
     # 1) Market data + technical indicators
