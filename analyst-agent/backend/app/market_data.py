@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import yfinance as yf
 
-from . import ibkr, indicators
+from . import asset_class, ibkr, indicators
 
 # Thread pool for hard wall-clock timeouts on slow network calls. yfinance's
 # internal HTTP calls have their own long timeouts we can't always cap, so we
@@ -1126,6 +1126,9 @@ def _chart_meta(ticker: str) -> dict:
                 "name": meta.get("longName") or meta.get("shortName"),
                 "price": meta.get("regularMarketPrice"),
                 "prev_close": meta.get("chartPreviousClose") or meta.get("previousClose"),
+                # Yahoo's instrumentType drives asset-class detection downstream
+                # (EQUITY / FUTURE / CURRENCY / CRYPTOCURRENCY / INDEX / ETF).
+                "instrument_type": meta.get("instrumentType"),
             }
     return {}
 
@@ -1413,6 +1416,432 @@ def _alpha_vantage_quote(ticker: str) -> float | None:
         return None
 
 
+# ─────────────────────────────────────────────────────────────────────────── #
+# Asset-class context — the NATIVE scorecard for commodities, FX, and crypto.  #
+# Equities get P/E, analyst targets, etc.; those are meaningless for gold or    #
+# EUR/USD. Instead we attach a `context` block with the metrics that actually   #
+# drive each asset class, sourced as follows:                                   #
+#   Tier 1 (free, no key): Yahoo macro symbols (DXY, ^TNX, ^VIX) + values       #
+#           COMPUTED from the price series we already have (realized vol,        #
+#           range position, seasonality, gold/silver ratio).                    #
+#   Tier 2 (free, keyless): CoinGecko (mcap/supply/dominance), Binance public   #
+#           (funding/OI), alternative.me (fear & greed) for crypto.             #
+#   Tier 3 (opt-in / keyed): CFTC COT positioning (ENABLE_COT), FRED policy     #
+#           rates (FRED_API_KEY), EIA energy inventories (EIA_API_KEY).         #
+# Every fetch is best-effort and time-boxed — a missing source just omits its   #
+# field rather than failing the request.                                        #
+# ─────────────────────────────────────────────────────────────────────────── #
+
+def _http_json(url: str, timeout: int = 8, headers: dict | None = None):
+    """GET arbitrary JSON (stdlib only). Returns None on any error. Unlike
+    ``_yf_json`` this does NOT proxify — used for non-Yahoo sources (CoinGecko,
+    Binance, CFTC, FRED, EIA, alternative.me)."""
+    try:
+        req = urllib.request.Request(url, headers=headers or _YF_HEADERS)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return None
+
+
+def _spot(sym: str):
+    """Last price for a Yahoo symbol via the always-available chart endpoint
+    (works for ^TNX, ^VIX, DX-Y.NYB, GC=F, etc. from a shared cloud IP)."""
+    try:
+        return _num(_yf_chart_quote(sym).get("regularMarketPrice"))
+    except Exception:
+        return None
+
+
+def _spots(symbols: dict, timeout: int = 6) -> dict:
+    """Fetch several Yahoo spot prices concurrently. {label: symbol} -> {label: price}."""
+    futs = {k: _NET_POOL.submit(_spot, v) for k, v in symbols.items()}
+    out: dict = {}
+    for k, fut in futs.items():
+        try:
+            out[k] = fut.result(timeout=timeout)
+        except Exception:
+            out[k] = None
+    return out
+
+
+def _realized_vol(closes: list, window: int = 30):
+    """Annualized realized volatility (%) from the last `window` daily log returns."""
+    xs = [c for c in (closes or []) if c]
+    if len(xs) < 3:
+        return None
+    rets = [math.log(xs[i] / xs[i - 1]) for i in range(1, len(xs)) if xs[i - 1] > 0]
+    tail = rets[-window:]
+    if len(tail) < 2:
+        return None
+    mean = sum(tail) / len(tail)
+    var = sum((r - mean) ** 2 for r in tail) / (len(tail) - 1)
+    return round((var ** 0.5) * (252 ** 0.5) * 100, 1)
+
+
+def _range_position(closes: list):
+    """Where the latest price sits in its trailing range (0 = low, 100 = high)."""
+    xs = [c for c in (closes or []) if c]
+    if len(xs) < 2:
+        return None
+    lo, hi, last = min(xs), max(xs), xs[-1]
+    if hi <= lo:
+        return None
+    return round((last - lo) / (hi - lo) * 100, 1)
+
+
+_MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def _monthly_seasonality(series: dict):
+    """Average month-over-month return by calendar month, from the price series.
+
+    Commodities have real, physically-driven seasonality (nat-gas winter, gasoline
+    summer, ags around harvest). Returns the current month's historical bias plus
+    the best/worst months, or None if there isn't enough history."""
+    dates = series.get("date") or []
+    closes = series.get("close") or []
+    if len(dates) != len(closes) or len(closes) < 40:
+        return None
+    by_month: dict[str, float] = {}  # 'YYYY-MM' -> last close that month
+    for d, c in zip(dates, closes):
+        if c is not None and isinstance(d, str) and len(d) >= 7:
+            by_month[d[:7]] = c
+    keys = sorted(by_month)
+    if len(keys) < 8:
+        return None
+    buckets: dict[int, list] = {}
+    for i in range(1, len(keys)):
+        prev, cur = by_month[keys[i - 1]], by_month[keys[i]]
+        if prev and prev > 0:
+            mo = int(keys[i][5:7])
+            buckets.setdefault(mo, []).append((cur / prev - 1) * 100)
+    if not buckets:
+        return None
+    avg = {mo: sum(v) / len(v) for mo, v in buckets.items()}
+    best = max(avg, key=avg.get)
+    worst = min(avg, key=avg.get)
+    cur_mo = datetime.now(timezone.utc).month
+    return {
+        "current_month": _MONTHS[cur_mo],
+        "current_month_avg_pct": round(avg[cur_mo], 2) if cur_mo in avg else None,
+        "best_month": _MONTHS[best], "best_avg_pct": round(avg[best], 2),
+        "worst_month": _MONTHS[worst], "worst_avg_pct": round(avg[worst], 2),
+    }
+
+
+# ── Tier 3: CFTC Commitments of Traders (opt-in via ENABLE_COT) ──────────────
+# Keyless public Socrata endpoint. Maps a Yahoo symbol to the CFTC market name
+# prefix; managed-money / non-commercial net positioning is a classic
+# contrarian/positioning gauge. Cached 12h (the report is weekly).
+_COT_RESOURCE = "https://publicreporting.cftc.gov/resource/6dca-aqww.json"
+_COT_MAP = {
+    "GC=F": "GOLD", "SI=F": "SILVER", "HG=F": "COPPER- #1",
+    "PL=F": "PLATINUM", "PA=F": "PALLADIUM",
+    "CL=F": "CRUDE OIL, LIGHT SWEET", "NG=F": "NATURAL GAS", "BZ=F": "BRENT",
+    "RB=F": "GASOLINE RBOB", "HO=F": "#2 HEATING OIL",
+    "ZC=F": "CORN", "ZW=F": "WHEAT-SRW", "ZS=F": "SOYBEANS",
+    "ZM=F": "SOYBEAN MEAL", "ZL=F": "SOYBEAN OIL",
+    "KC=F": "COFFEE", "SB=F": "SUGAR NO. 11", "CT=F": "COTTON NO. 2", "CC=F": "COCOA",
+    "EURUSD=X": "EURO FX", "JPY=X": "JAPANESE YEN", "GBPUSD=X": "BRITISH POUND",
+    "AUDUSD=X": "AUSTRALIAN DOLLAR", "USDCAD=X": "CANADIAN DOLLAR",
+    "USDCHF=X": "SWISS FRANC", "NZDUSD=X": "NEW ZEALAND DOLLAR",
+    "MXN=X": "MEXICAN PESO",
+}
+_COT_CACHE: dict[str, tuple[float, dict]] = {}
+_COT_TTL = 43200.0  # 12h
+
+
+def _cot_positioning(ticker: str):
+    """Latest non-commercial (large-spec) net positioning from the CFTC COT report.
+    Opt-in: only runs when ENABLE_COT is truthy. Returns None when off/unmapped."""
+    if (os.environ.get("ENABLE_COT") or "").strip().lower() not in {"1", "true", "yes", "on"}:
+        return None
+    prefix = _COT_MAP.get(ticker.upper())
+    if not prefix:
+        return None
+    hit = _COT_CACHE.get(ticker.upper())
+    if hit and (time.time() - hit[0]) < _COT_TTL:
+        return hit[1]
+    token = os.environ.get("CFTC_APP_TOKEN", "").strip()
+    safe = prefix.replace("'", "''")
+    where = urllib.parse.quote(f"upper(market_and_exchange_names) like '{safe}%'")
+    url = (
+        f"{_COT_RESOURCE}?$where={where}"
+        "&$order=report_date_as_yyyy_mm_dd DESC&$limit=1"
+        + (f"&$$app_token={urllib.parse.quote(token)}" if token else "")
+    )
+    data = _http_json(url, timeout=8)
+    if not isinstance(data, list) or not data:
+        return None
+    row = data[0]
+    try:
+        long_ = float(row.get("noncomm_positions_long_all") or 0)
+        short_ = float(row.get("noncomm_positions_short_all") or 0)
+        oi = float(row.get("open_interest_all") or 0)
+    except (TypeError, ValueError):
+        return None
+    net = long_ - short_
+    out = {
+        "market": row.get("market_and_exchange_names"),
+        "report_date": (row.get("report_date_as_yyyy_mm_dd") or "")[:10],
+        "noncomm_long": int(long_), "noncomm_short": int(short_),
+        "noncomm_net": int(net),
+        "net_pct_oi": round(net / oi * 100, 1) if oi else None,
+        "bias": "net long" if net > 0 else "net short" if net < 0 else "flat",
+    }
+    _COT_CACHE[ticker.upper()] = (time.time(), out)
+    return out
+
+
+# ── Tier 3: FRED central-bank policy rates (keyed via FRED_API_KEY) ──────────
+_FRED_POLICY = {  # currency -> FRED series id for its policy/main rate
+    "USD": "DFEDTARU",   # Fed funds target (upper bound)
+    "EUR": "ECBDFR",     # ECB deposit facility rate
+    # Add more currencies here (verified FRED series ids); unmapped legs are
+    # simply omitted from the differential rather than guessed.
+}
+_FRED_CACHE: dict[str, tuple[float, float]] = {}
+_FRED_TTL = 43200.0
+
+
+def _fred_latest(series_id: str):
+    key = os.environ.get("FRED_API_KEY", "").strip()
+    if not key or not series_id:
+        return None
+    hit = _FRED_CACHE.get(series_id)
+    if hit and (time.time() - hit[0]) < _FRED_TTL:
+        return hit[1]
+    url = (
+        "https://api.stlouisfed.org/fred/series/observations?"
+        f"series_id={urllib.parse.quote(series_id)}&api_key={urllib.parse.quote(key)}"
+        "&file_type=json&sort_order=desc&limit=1"
+    )
+    data = _http_json(url, timeout=8)
+    try:
+        val = float(((data or {}).get("observations") or [{}])[0].get("value"))
+    except (TypeError, ValueError):
+        return None
+    _FRED_CACHE[series_id] = (time.time(), val)
+    return val
+
+
+def _fred_policy_rates(base: str | None, quote: str | None):
+    """Policy rate for each leg of an FX pair (+ the differential), via FRED.
+    Returns None when FRED_API_KEY isn't set or neither leg resolves."""
+    if not os.environ.get("FRED_API_KEY", "").strip():
+        return None
+    rb = _fred_latest(_FRED_POLICY.get((base or "").upper(), ""))
+    rq = _fred_latest(_FRED_POLICY.get((quote or "").upper(), ""))
+    if rb is None and rq is None:
+        return None
+    out = {"base_rate": rb, "quote_rate": rq}
+    if rb is not None and rq is not None:
+        out["differential"] = round(rb - rq, 2)
+    return out
+
+
+# ── Tier 3: EIA weekly inventories for energy (keyed via EIA_API_KEY) ────────
+_EIA_SERIES = {  # energy ticker -> EIA v2 series id (weekly stocks)
+    "CL=F": "PET.WCESTUS1.W",   # crude oil ex-SPR, weekly
+    "RB=F": "PET.WGTSTUS1.W",   # total motor gasoline
+    "HO=F": "PET.WDISTUS1.W",   # distillate (heating oil/diesel)
+    "NG=F": "NG.NW2_EPG0_SWO_R48_BCF.W",  # working gas in storage, lower-48
+}
+_EIA_CACHE: dict[str, tuple[float, dict]] = {}
+_EIA_TTL = 43200.0
+
+
+def _eia_inventory(ticker: str):
+    key = os.environ.get("EIA_API_KEY", "").strip()
+    sid = _EIA_SERIES.get(ticker.upper())
+    if not key or not sid:
+        return None
+    hit = _EIA_CACHE.get(ticker.upper())
+    if hit and (time.time() - hit[0]) < _EIA_TTL:
+        return hit[1]
+    url = (
+        "https://api.eia.gov/v2/seriesid/"
+        f"{urllib.parse.quote(sid)}?api_key={urllib.parse.quote(key)}"
+    )
+    data = _http_json(url, timeout=10)
+    try:
+        rows = ((data or {}).get("response") or {}).get("data") or []
+        latest, prev = rows[0], rows[1]
+        cur_v, prev_v = float(latest["value"]), float(prev["value"])
+    except (TypeError, ValueError, IndexError, KeyError):
+        return None
+    out = {
+        "period": latest.get("period"),
+        "value": cur_v,
+        "wow_change": round(cur_v - prev_v, 1),
+        "units": latest.get("units") or "",
+    }
+    _EIA_CACHE[ticker.upper()] = (time.time(), out)
+    return out
+
+
+# ── Tier 2: crypto (CoinGecko + Binance public + alternative.me — keyless) ───
+def _coingecko_market(base: str) -> dict:
+    sym = base.lower()
+    data = _http_json(
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"
+        f"&symbols={urllib.parse.quote(sym)}&price_change_percentage=24h"
+    )
+    if isinstance(data, list) and data:
+        d = data[0]
+        return {
+            "market_cap": _num(d.get("market_cap")),
+            "circulating_supply": _num(d.get("circulating_supply")),
+            "max_supply": _num(d.get("max_supply")) or _num(d.get("total_supply")),
+            "ath_change_pct": _round(d.get("ath_change_percentage"), 1),
+        }
+    return {}
+
+
+def _btc_dominance():
+    g = _http_json("https://api.coingecko.com/api/v3/global")
+    try:
+        return round(float(g["data"]["market_cap_percentage"]["btc"]), 1)
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def _binance_perp(base: str) -> dict:
+    sym = base.upper() + "USDT"
+    out: dict = {}
+    fr = _http_json(f"https://fapi.binance.com/fapi/v1/premiumIndex?symbol={sym}")
+    if isinstance(fr, dict) and fr.get("lastFundingRate") is not None:
+        try:
+            out["funding_rate_pct"] = round(float(fr["lastFundingRate"]) * 100, 4)
+        except (TypeError, ValueError):
+            pass
+    oi = _http_json(f"https://fapi.binance.com/fapi/v1/openInterest?symbol={sym}")
+    if isinstance(oi, dict) and oi.get("openInterest") is not None:
+        out["open_interest"] = _num(oi["openInterest"])
+    return out
+
+
+def _fear_greed():
+    d = _http_json("https://api.alternative.me/fng/?limit=1")
+    try:
+        item = d["data"][0]
+        return {"value": int(item["value"]), "label": item.get("value_classification")}
+    except (TypeError, ValueError, KeyError, IndexError):
+        return None
+
+
+def _parse_fx(symbol: str) -> tuple[str | None, str | None]:
+    """Split a Yahoo FX symbol into (base, quote). EURUSD=X -> (EUR, USD);
+    a 3-letter form like JPY=X means USD/JPY -> (USD, JPY)."""
+    s = (symbol or "").upper().replace("=X", "")
+    if len(s) == 6:
+        return s[:3], s[3:]
+    if len(s) == 3:
+        return "USD", s
+    return None, None
+
+
+def _commodity_context(ticker: str, series: dict) -> dict:
+    closes = series.get("close") or []
+    spots = _spots({"dxy": "DX-Y.NYB", "ust10y": "^TNX", "vix": "^VIX",
+                    "gold": "GC=F", "silver": "SI=F"})
+    gsr = None
+    if spots.get("gold") and spots.get("silver"):
+        gsr = round(spots["gold"] / spots["silver"], 2)
+    ctx = {
+        "asset_class": "commodity",
+        "dxy": _round(spots.get("dxy"), 2),
+        "ust10y": _round(spots.get("ust10y"), 2),
+        "vix": _round(spots.get("vix"), 2),
+        "gold_silver_ratio": gsr,
+        "realized_vol_30d": _realized_vol(closes, 30),
+        "range_position_pct": _range_position(closes),
+        "seasonality": _monthly_seasonality(series),
+    }
+    cot = _cot_positioning(ticker)
+    if cot:
+        ctx["cot"] = cot
+    inv = _eia_inventory(ticker)
+    if inv:
+        ctx["inventory"] = inv
+    return ctx
+
+
+def _fx_context(ticker: str, series: dict) -> dict:
+    base, quote = _parse_fx(ticker)
+    closes = series.get("close") or []
+    spots = _spots({"dxy": "DX-Y.NYB", "ust10y": "^TNX"})
+    ctx = {
+        "asset_class": "fx",
+        "base": base, "quote": quote,
+        "dxy": _round(spots.get("dxy"), 2),
+        "us10y": _round(spots.get("ust10y"), 2),
+        "realized_vol_30d": _realized_vol(closes, 30),
+        "range_position_pct": _range_position(closes),
+    }
+    rates = _fred_policy_rates(base, quote)
+    if rates:
+        ctx["policy_rates"] = rates
+    cot = _cot_positioning(ticker)
+    if cot:
+        ctx["cot"] = cot
+    return ctx
+
+
+def _crypto_context(ticker: str, series: dict) -> dict:
+    base = ticker.upper().split("-")[0]
+    closes = series.get("close") or []
+    f_cg = _NET_POOL.submit(_coingecko_market, base)
+    f_dom = _NET_POOL.submit(_btc_dominance)
+    f_perp = _NET_POOL.submit(_binance_perp, base)
+    f_fng = _NET_POOL.submit(_fear_greed)
+
+    def g(fut, default):
+        try:
+            return fut.result(timeout=7)
+        except Exception:
+            return default
+
+    cg = g(f_cg, {}) or {}
+    supply_pct = None
+    if cg.get("circulating_supply") and cg.get("max_supply"):
+        try:
+            supply_pct = round(cg["circulating_supply"] / cg["max_supply"] * 100, 1)
+        except (TypeError, ZeroDivisionError):
+            supply_pct = None
+    return {
+        "asset_class": "crypto",
+        "base": base,
+        "market_cap": cg.get("market_cap"),
+        "circulating_supply": cg.get("circulating_supply"),
+        "max_supply": cg.get("max_supply"),
+        "supply_pct": supply_pct,
+        "ath_change_pct": cg.get("ath_change_pct"),
+        "btc_dominance": g(f_dom, None),
+        **(g(f_perp, {}) or {}),
+        "fear_greed": g(f_fng, None),
+        "realized_vol_30d": _realized_vol(closes, 30),
+        "range_position_pct": _range_position(closes),
+    }
+
+
+def build_context(asset_cls: str, ticker: str, series: dict) -> dict:
+    """Asset-class-specific context block. Empty dict for equity/index/fund or on
+    any error — callers attach it under snapshot['context']."""
+    try:
+        if asset_cls == "commodity":
+            return _commodity_context(ticker, series)
+        if asset_cls == "fx":
+            return _fx_context(ticker, series)
+        if asset_cls == "crypto":
+            return _crypto_context(ticker, series)
+    except Exception:
+        return {}
+    return {}
+
+
 def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     """Assemble a single JSON-safe snapshot: meta, quote, indicators, fundamentals,
     analyst consensus, and the chart series (last `lookback` trading days)."""
@@ -1517,6 +1946,9 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "industry": info.get("industry"),
         "currency": info.get("currency") or "USD",
         "exchange": info.get("fullExchangeName") or info.get("exchange"),
+        # Asset class drives the native scorecard (KPI panel + LLM prompt). Yahoo's
+        # instrumentType from the chart meta is the signal; symbol suffix is fallback.
+        "asset_class": asset_class.classify(cmeta.get("instrument_type"), ticker),
     }
     quote = {
         "price": _round(price, 2),
@@ -1559,6 +1991,13 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
     news = _await(f_news, []) or []
     peers = _await(f_peers, []) or []
 
+    # Asset-class context (commodity/fx/crypto): the native scorecard. Runs in the
+    # request thread (its own network calls go to the pool with short timeouts), so
+    # equities pay nothing and a slow/missing source just omits its field.
+    context: dict = {}
+    if meta["asset_class"] in ("commodity", "fx", "crypto"):
+        context = build_context(meta["asset_class"], ticker, series) or {}
+
     # Build a human-readable data-source label for the status bar
     sources = []
     if used_ibkr:
@@ -1580,6 +2019,7 @@ def get_market_snapshot(ticker: str, lookback: int = 250) -> dict:
         "series": series,
         "news": news,
         "peers": peers,
+        "context": context,
         "data_source": data_source_label,
         "as_of": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }

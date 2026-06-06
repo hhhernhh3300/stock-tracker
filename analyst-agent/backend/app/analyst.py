@@ -174,6 +174,116 @@ exactly this shape:
 }"""
 
 
+# Asset-class-specific system prompts. Equities have earnings/valuation; a gold
+# future, an FX pair, or a token do NOT — so each class is judged on its own
+# native scorecard. The OUTPUT schema (StockAssessment) is identical across all
+# classes; only the framing and what-to-weigh guidance changes.
+_COMPLIANCE = """COMPLIANCE (non-negotiable): You are NOT a licensed financial advisor and this is NOT \
+financial advice or a personalized recommendation. Your output is for EDUCATIONAL and RESEARCH \
+purposes only. Always populate the `disclaimer` field with this statement, and never tell the user \
+to buy or sell — frame everything as an informational assessment of what the data suggests."""
+
+_JSON_SHAPE = """Respond with a single JSON object only — no markdown, no prose outside the JSON — \
+matching exactly this shape:
+{
+  "signal": "buy" | "sell" | "hold",
+  "conviction": "low" | "medium" | "high",
+  "risk_level": "low" | "moderate" | "high" | "very high",
+  "time_horizon": string,
+  "summary": string,
+  "bullish_factors": [string, ...],
+  "bearish_factors": [string, ...],
+  "technical_read": string,
+  "reasoning": string,
+  "disclaimer": string
+}"""
+
+COMMODITY_PROMPT = f"""You are a commodities strategist. Given a snapshot of price action, technical \
+indicators, and macro context for a single commodity (a future such as gold, silver, crude oil, or \
+natural gas), produce a concise, structured read on whether it looks like a BUY, SELL, or HOLD \
+candidate over the upcoming trading days (roughly a 1-4 week horizon).
+
+A commodity has NO earnings, P/E, or analyst price target — do not ask for or invent them. Weigh \
+the inputs that actually drive commodities:
+- Technicals & trend. 50d vs 200d SMA, price vs those averages, RSI (>70 extended / <30 oversold), \
+MACD. Commodities trend and mean-revert violently — look for confluence, call out conflicts.
+- Macro context. The US dollar (DXY) is an inverse headwind/tailwind for dollar-priced commodities; \
+real yields (10Y UST) are the key driver for non-yielding stores of value like gold; VIX proxies \
+risk appetite. The gold/silver ratio is a relative-value gauge for precious metals.
+- Volatility & range. Realized volatility (sizing/risk) and where price sits in its trailing range \
+(near highs = chase risk; near lows = potential contrarian value).
+- Seasonality. If provided, treat the current month's historical bias as a soft, physically-driven \
+tilt — not a guarantee.
+- Positioning (COT) and inventories, if provided. Extreme large-spec positioning is a contrarian \
+flag; inventory builds/draws are direct supply-demand signals.
+
+Rules:
+- Base every statement on the data provided. If a field is missing ("n/a"), say so rather than \
+guessing. Where a normally-important input (e.g. cost of production / AISC, full futures curve) is \
+absent, you may note its absence qualitatively but do not fabricate values.
+- Always surface both bullish and bearish factors. Set risk_level honestly from volatility, range \
+position, and conflicting signals.
+- Keep prose tight and plain-English.
+
+{_COMPLIANCE}
+
+{_JSON_SHAPE}"""
+
+FX_PROMPT = f"""You are an FX strategist. Given a snapshot of price action, technical indicators, and \
+macro context for a single currency pair, produce a concise, structured read on whether the pair \
+looks like a BUY, SELL, or HOLD candidate (i.e. whether the BASE currency strengthens vs the QUOTE \
+currency) over the upcoming trading days (roughly a 1-4 week horizon).
+
+A currency is a relative claim on an economy and its interest rate — there are NO earnings, P/E, or \
+analyst targets. Do not ask for or invent them. Weigh what actually drives FX:
+- Interest-rate differential. The single biggest driver — capital flows to the higher (real) yield \
+(the carry trade). Use the policy-rate differential if provided; otherwise reason from US yields and \
+the dollar.
+- The US dollar (DXY). Broad dollar strength/weakness sets the tide for most pairs.
+- Technicals & trend. 50d vs 200d SMA, price vs averages, RSI, MACD — FX trends cleanly but reverses \
+on central-bank surprises.
+- Volatility & range. Realized vol for sizing; range position for stretch.
+- Positioning (CFTC IMM / COT), if provided — crowded positioning is an asymmetric reversal risk.
+- Risk sentiment. Note safe-haven dynamics (USD, JPY, CHF strengthen in risk-off) where relevant.
+
+Rules:
+- Base every statement on the data provided. If a field is missing ("n/a"), say so. Do not fabricate \
+macro releases, central-bank decisions, or numbers not in the snapshot.
+- Always surface both bullish and bearish factors. Set risk_level honestly.
+- Frame the signal as a view on the BASE currency vs the QUOTE currency. Keep prose tight.
+
+{_COMPLIANCE}
+
+{_JSON_SHAPE}"""
+
+CRYPTO_PROMPT = f"""You are a digital-asset strategist. Given a snapshot of price action, technical \
+indicators, and on-chain/market context for a single cryptocurrency, produce a concise, structured \
+read on whether it looks like a BUY, SELL, or HOLD candidate over the upcoming trading days (roughly \
+a 1-4 week horizon).
+
+Crypto has no earnings or P/E in the equity sense — judge it on its native scorecard:
+- Network & supply. Market cap, circulating vs max supply (how much is already minted; remaining \
+emission is future sell pressure), and BTC dominance (capital rotation between BTC and alts).
+- Derivatives & leverage. The funding rate is the best short-term sentiment/positioning gauge \
+(persistently high positive funding = crowded, over-leveraged longs primed for a squeeze); open \
+interest shows how much leverage is in the system.
+- Sentiment. The Fear & Greed index — extremes are contrarian.
+- Technicals & trend. 50d vs 200d SMA, RSI, MACD. Crypto trends hard and is highly volatile.
+- Volatility & range. Realized vol is large here — central to sizing; range position shows stretch.
+- Macro. Be honest that crypto often trades as a high-beta risk asset / liquidity proxy.
+
+Rules:
+- Base every statement on the data provided. If a field is missing ("n/a"), say so. Do not fabricate \
+on-chain figures (MVRV, NVT, SOPR, exchange flows) that aren't in the snapshot — note them as \
+unavailable if relevant rather than inventing them.
+- Always surface both bullish and bearish factors. Set risk_level honestly (crypto skews higher).
+- Keep prose tight and plain-English.
+
+{_COMPLIANCE}
+
+{_JSON_SHAPE}"""
+
+
 class StockAssessment(BaseModel):
     """Schema the model must fill — validated after the call."""
 
@@ -303,6 +413,138 @@ ANALYST CONSENSUS (Yahoo aggregate)
 Return your structured educational assessment as a single JSON object."""
 
 
+def _price_tech_block(snap: dict) -> str:
+    """Shared PRICE + TECHNICALS section (identical across asset classes)."""
+    q, i = snap["quote"], snap["indicators"]
+    return f"""PRICE
+  Last price: {_fmt(q.get('price'))}   Day change: {_fmt(q.get('day_change_pct'))}%
+  52-week range: {_fmt(q.get('fifty_two_week_low'))} - {_fmt(q.get('fifty_two_week_high'))}
+
+TECHNICALS
+  50-day SMA: {_fmt(i.get('sma50'))}   200-day SMA: {_fmt(i.get('sma200'))}
+  Price vs 50d: {_fmt(i.get('price_vs_sma50_pct'))}%   Price vs 200d: {_fmt(i.get('price_vs_sma200_pct'))}%
+  Trend: {i.get('trend') or 'n/a'}
+  RSI(14): {_fmt(i.get('rsi'))} ({i.get('rsi_zone') or 'n/a'})
+  MACD: {_fmt(i.get('macd'))}  signal: {_fmt(i.get('macd_signal'))}  -> {i.get('macd_state') or 'n/a'}"""
+
+
+def _build_commodity_message(snap: dict) -> str:
+    m, c = snap["meta"], snap.get("context", {}) or {}
+    seas = c.get("seasonality") or {}
+    cot = c.get("cot") or {}
+    inv = c.get("inventory") or {}
+    lines = [
+        f"Analyze this commodity for the upcoming trading days.",
+        "",
+        f"INSTRUMENT",
+        f"  Ticker: {m['ticker']}   Name: {m.get('name')}   Currency: {m.get('currency', 'USD')}",
+        "",
+        _price_tech_block(snap),
+        "",
+        "MACRO CONTEXT",
+        f"  US Dollar Index (DXY): {_fmt(c.get('dxy'))}   10Y UST yield: {_fmt(c.get('ust10y'))}   VIX: {_fmt(c.get('vix'))}",
+        f"  Gold/Silver ratio: {_fmt(c.get('gold_silver_ratio'))}",
+        f"  Realized vol (30d, annualized): {_fmt(c.get('realized_vol_30d'), suffix='%')}",
+        f"  Position in trailing range: {_fmt(c.get('range_position_pct'), suffix='th pct')}",
+    ]
+    if seas:
+        lines.append(
+            f"  Seasonality — {seas.get('current_month')} avg: {_fmt(seas.get('current_month_avg_pct'), suffix='%')}; "
+            f"best {seas.get('best_month')} ({_fmt(seas.get('best_avg_pct'), suffix='%')}), "
+            f"worst {seas.get('worst_month')} ({_fmt(seas.get('worst_avg_pct'), suffix='%')})"
+        )
+    if cot:
+        lines.append(
+            f"  COT (large specs) as of {cot.get('report_date')}: {cot.get('bias')}, "
+            f"net {cot.get('noncomm_net')} ({_fmt(cot.get('net_pct_oi'), suffix='% of OI')})"
+        )
+    if inv:
+        lines.append(
+            f"  EIA inventory ({inv.get('period')}): {inv.get('value')} {inv.get('units')} "
+            f"(WoW {inv.get('wow_change')})"
+        )
+    lines += ["", "Return your structured educational assessment as a single JSON object."]
+    return "\n".join(lines)
+
+
+def _build_fx_message(snap: dict) -> str:
+    m, c = snap["meta"], snap.get("context", {}) or {}
+    rates = c.get("policy_rates") or {}
+    cot = c.get("cot") or {}
+    base, quote = c.get("base"), c.get("quote")
+    lines = [
+        "Analyze this currency pair for the upcoming trading days.",
+        "",
+        "INSTRUMENT",
+        f"  Ticker: {m['ticker']}   Pair: {base or '?'}/{quote or '?'} "
+        f"(signal = view on {base or 'base'} vs {quote or 'quote'})",
+        "",
+        _price_tech_block(snap),
+        "",
+        "MACRO CONTEXT",
+        f"  US Dollar Index (DXY): {_fmt(c.get('dxy'))}   10Y UST yield: {_fmt(c.get('us10y'))}",
+        f"  Realized vol (30d, annualized): {_fmt(c.get('realized_vol_30d'), suffix='%')}",
+        f"  Position in trailing range: {_fmt(c.get('range_position_pct'), suffix='th pct')}",
+    ]
+    if rates:
+        lines.append(
+            f"  Policy rates — {base}: {_fmt(rates.get('base_rate'), suffix='%')}, "
+            f"{quote}: {_fmt(rates.get('quote_rate'), suffix='%')}, "
+            f"differential: {_fmt(rates.get('differential'), suffix='%')}"
+        )
+    if cot:
+        lines.append(
+            f"  COT (large specs) as of {cot.get('report_date')}: {cot.get('bias')}, "
+            f"net {cot.get('noncomm_net')} ({_fmt(cot.get('net_pct_oi'), suffix='% of OI')})"
+        )
+    lines += ["", "Return your structured educational assessment as a single JSON object."]
+    return "\n".join(lines)
+
+
+def _build_crypto_message(snap: dict) -> str:
+    m, c = snap["meta"], snap.get("context", {}) or {}
+    fng = c.get("fear_greed") or {}
+    lines = [
+        "Analyze this cryptocurrency for the upcoming trading days.",
+        "",
+        "INSTRUMENT",
+        f"  Ticker: {m['ticker']}   Name: {m.get('name')}   Quote currency: {m.get('currency', 'USD')}",
+        "",
+        _price_tech_block(snap),
+        "",
+        "NETWORK / MARKET CONTEXT",
+        f"  Market cap: {_fmt(c.get('market_cap'))}   BTC dominance: {_fmt(c.get('btc_dominance'), suffix='%')}",
+        f"  Circulating supply: {_fmt(c.get('circulating_supply'))}   Max supply: {_fmt(c.get('max_supply'))}   "
+        f"Minted: {_fmt(c.get('supply_pct'), suffix='%')}",
+        f"  Funding rate (perp): {_fmt(c.get('funding_rate_pct'), suffix='%')}   "
+        f"Open interest: {_fmt(c.get('open_interest'))}",
+        f"  Fear & Greed: {fng.get('value', 'n/a')} ({fng.get('label', 'n/a')})",
+        f"  Realized vol (30d, annualized): {_fmt(c.get('realized_vol_30d'), suffix='%')}",
+        f"  Position in trailing range: {_fmt(c.get('range_position_pct'), suffix='th pct')}   "
+        f"From ATH: {_fmt(c.get('ath_change_pct'), suffix='%')}",
+        "",
+        "Return your structured educational assessment as a single JSON object.",
+    ]
+    return "\n".join(lines)
+
+
+# Asset class -> (system prompt, user-message builder). Equity is the default.
+_PROMPTS_BY_CLASS = {
+    "equity": (SYSTEM_PROMPT, _build_user_message),
+    "commodity": (COMMODITY_PROMPT, _build_commodity_message),
+    "fx": (FX_PROMPT, _build_fx_message),
+    "crypto": (CRYPTO_PROMPT, _build_crypto_message),
+}
+
+
+def _select_prompt(snap: dict):
+    """Return (system_prompt, user_message) for the snapshot's asset class.
+    Indexes/funds fall through to the equity treatment."""
+    cls = (snap.get("meta", {}) or {}).get("asset_class", "equity")
+    system, builder = _PROMPTS_BY_CLASS.get(cls, _PROMPTS_BY_CLASS["equity"])
+    return system, builder(snap)
+
+
 def _extract_json(text: str) -> dict:
     """Parse a JSON object out of model text, tolerating markdown fences."""
     text = (text or "").strip()
@@ -326,7 +568,7 @@ def _extract_json(text: str) -> dict:
 # --------------------------------------------------------------------------- #
 
 
-def _call_anthropic(user_msg: str) -> dict:
+def _call_anthropic(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     import anthropic  # lazy import
 
     client = anthropic.Anthropic(api_key=_key_for("anthropic"))
@@ -336,7 +578,7 @@ def _call_anthropic(user_msg: str) -> dict:
         system=[
             {
                 "type": "text",
-                "text": SYSTEM_PROMPT,
+                "text": system,
                 "cache_control": {"type": "ephemeral"},
             }
         ],
@@ -346,7 +588,7 @@ def _call_anthropic(user_msg: str) -> dict:
     return _extract_json(text)
 
 
-def _call_openai(user_msg: str) -> dict:
+def _call_openai(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     from openai import OpenAI  # lazy import
 
     client = OpenAI(api_key=_key_for("openai"))
@@ -355,14 +597,14 @@ def _call_openai(user_msg: str) -> dict:
         max_tokens=2000,
         response_format={"type": "json_object"},
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system},
             {"role": "user", "content": user_msg},
         ],
     )
     return _extract_json(resp.choices[0].message.content)
 
 
-def _call_gemini(user_msg: str) -> dict:
+def _call_gemini(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
     import google.generativeai as genai  # lazy import
 
     genai.configure(api_key=_key_for("gemini"))
@@ -371,7 +613,7 @@ def _call_gemini(user_msg: str) -> dict:
         try:
             model = genai.GenerativeModel(
                 model_name=model_name,
-                system_instruction=SYSTEM_PROMPT,
+                system_instruction=system,
                 generation_config={"response_mime_type": "application/json"},
             )
             resp = model.generate_content(user_msg)
@@ -385,7 +627,7 @@ def _call_gemini(user_msg: str) -> dict:
     )
 
 
-def _call_compat(user_msg: str, provider: str) -> dict:
+def _call_compat(user_msg: str, provider: str, system: str = SYSTEM_PROMPT) -> dict:
     """Any OpenAI-compatible /v1 gateway: Groq, OpenRouter, Mistral, Cerebras,
     LiteLLM, or a corporate model gateway. Reuses the openai SDK with a custom
     base_url. Key + URL + model come from the env vars for the given provider
@@ -404,7 +646,7 @@ def _call_compat(user_msg: str, provider: str) -> dict:
             max_tokens=2000,
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system},
                 {"role": "user", "content": user_msg},
             ],
         )
@@ -415,19 +657,19 @@ def _call_compat(user_msg: str, provider: str) -> dict:
             model=model,
             max_tokens=2000,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": system},
                 {"role": "user", "content": user_msg},
             ],
         )
     return _extract_json(resp.choices[0].message.content)
 
 
-def _call_openai_compatible(user_msg: str) -> dict:
-    return _call_compat(user_msg, "openai_compatible")
+def _call_openai_compatible(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+    return _call_compat(user_msg, "openai_compatible", system)
 
 
-def _call_openai_compatible2(user_msg: str) -> dict:
-    return _call_compat(user_msg, "openai_compatible2")
+def _call_openai_compatible2(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+    return _call_compat(user_msg, "openai_compatible2", system)
 
 
 _DISPATCH = {
@@ -460,11 +702,11 @@ def analyze(snap: dict) -> dict:
             "LLM_PROVIDER_CHAIN)."
         )
 
-    user_msg = _build_user_message(snap)
+    system, user_msg = _select_prompt(snap)
     errors: list[str] = []
     for provider in chain:
         try:
-            raw = _DISPATCH[provider](user_msg)
+            raw = _DISPATCH[provider](user_msg, system)
             assessment = StockAssessment(**raw)
             result = assessment.model_dump()
             result["engine"] = provider          # e.g. "gemini", "openai_compatible"
@@ -499,9 +741,82 @@ buy or sell — frame everything as what the data suggests.
 - Respond in plain prose/markdown. Do NOT wrap your answer in JSON."""
 
 
+def _chat_context_nonequity(snap: dict) -> str:
+    """Compact context block for commodity/fx/crypto chat — uses the asset-class
+    context instead of equity fundamentals/analyst (which are n/a off-equity)."""
+    meta = snap.get("meta", {}) or {}
+    quote = snap.get("quote", {}) or {}
+    ind = snap.get("indicators", {}) or {}
+    c = snap.get("context", {}) or {}
+    cls = meta.get("asset_class")
+    lines = [
+        f"Ticker: {meta.get('ticker')} — {meta.get('name')}  ({cls})",
+        f"Price: {_fmt(quote.get('price'))} {meta.get('currency', '')} "
+        f"(day change {_fmt(quote.get('day_change_pct'), suffix='%')})",
+        f"52-week range: {_fmt(quote.get('fifty_two_week_low'))} - {_fmt(quote.get('fifty_two_week_high'))}",
+        "--- Technicals ---",
+        f"SMA50: {_fmt(ind.get('sma50'))}, SMA200: {_fmt(ind.get('sma200'))}, trend "
+        f"{ind.get('trend') or 'n/a'}, RSI: {_fmt(ind.get('rsi'))}, MACD "
+        f"{_fmt(ind.get('macd'))}/{_fmt(ind.get('macd_signal'))}",
+        f"--- {cls.upper() if cls else ''} context ---",
+    ]
+    if cls == "commodity":
+        seas = c.get("seasonality") or {}
+        lines += [
+            f"DXY: {_fmt(c.get('dxy'))}, 10Y UST: {_fmt(c.get('ust10y'))}, VIX: {_fmt(c.get('vix'))}, "
+            f"gold/silver ratio: {_fmt(c.get('gold_silver_ratio'))}",
+            f"Realized vol (30d): {_fmt(c.get('realized_vol_30d'), suffix='%')}, "
+            f"range position: {_fmt(c.get('range_position_pct'), suffix='th pct')}",
+        ]
+        if seas:
+            lines.append(
+                f"Seasonality: {seas.get('current_month')} avg "
+                f"{_fmt(seas.get('current_month_avg_pct'), suffix='%')} "
+                f"(best {seas.get('best_month')}, worst {seas.get('worst_month')})"
+            )
+        if c.get("cot"):
+            cot = c["cot"]
+            lines.append(f"COT large specs: {cot.get('bias')} ({_fmt(cot.get('net_pct_oi'), suffix='% of OI')})")
+        if c.get("inventory"):
+            inv = c["inventory"]
+            lines.append(f"EIA inventory {inv.get('period')}: {inv.get('value')} {inv.get('units')} (WoW {inv.get('wow_change')})")
+    elif cls == "fx":
+        lines += [
+            f"Pair: {c.get('base')}/{c.get('quote')}",
+            f"DXY: {_fmt(c.get('dxy'))}, 10Y UST: {_fmt(c.get('us10y'))}",
+            f"Realized vol (30d): {_fmt(c.get('realized_vol_30d'), suffix='%')}, "
+            f"range position: {_fmt(c.get('range_position_pct'), suffix='th pct')}",
+        ]
+        if c.get("policy_rates"):
+            r = c["policy_rates"]
+            lines.append(
+                f"Policy rates: {c.get('base')} {_fmt(r.get('base_rate'), suffix='%')} / "
+                f"{c.get('quote')} {_fmt(r.get('quote_rate'), suffix='%')} "
+                f"(diff {_fmt(r.get('differential'), suffix='%')})"
+            )
+        if c.get("cot"):
+            cot = c["cot"]
+            lines.append(f"COT large specs: {cot.get('bias')} ({_fmt(cot.get('net_pct_oi'), suffix='% of OI')})")
+    elif cls == "crypto":
+        fng = c.get("fear_greed") or {}
+        lines += [
+            f"Market cap: {_fmt(c.get('market_cap'))}, BTC dominance: {_fmt(c.get('btc_dominance'), suffix='%')}",
+            f"Supply: {_fmt(c.get('circulating_supply'))} / {_fmt(c.get('max_supply'))} "
+            f"({_fmt(c.get('supply_pct'), suffix='%')} minted)",
+            f"Funding rate: {_fmt(c.get('funding_rate_pct'), suffix='%')}, "
+            f"open interest: {_fmt(c.get('open_interest'))}",
+            f"Fear & Greed: {fng.get('value', 'n/a')} ({fng.get('label', 'n/a')})",
+            f"Realized vol (30d): {_fmt(c.get('realized_vol_30d'), suffix='%')}, "
+            f"range position: {_fmt(c.get('range_position_pct'), suffix='th pct')}",
+        ]
+    return "\n".join(lines)
+
+
 def _chat_context(snap: dict) -> str:
     """Render a compact, model-friendly context block from the snapshot."""
     meta = snap.get("meta", {}) or {}
+    if meta.get("asset_class") in ("commodity", "fx", "crypto") and snap.get("context"):
+        return _chat_context_nonequity(snap)
     quote = snap.get("quote", {}) or {}
     fund = snap.get("fundamentals", {}) or {}
     an = snap.get("analyst", {}) or {}
@@ -536,16 +851,33 @@ def _chat_context(snap: dict) -> str:
     return "\n".join(lines)
 
 
+# Asset-class role note layered on top of the shared chat system prompt so the
+# assistant frames answers correctly off-equity (no P/E talk on gold, etc.).
+_CHAT_ROLE_NOTE = {
+    "commodity": "The instrument is a COMMODITY (a future). It has no earnings, P/E, or analyst "
+                 "price target — reason from trend, the dollar (DXY), real yields, volatility, "
+                 "range position, seasonality, and positioning. Never ask for valuation multiples.",
+    "fx": "The instrument is a CURRENCY PAIR. Frame answers as a view on the base vs the quote "
+          "currency, driven by interest-rate differentials, the dollar, and positioning — not "
+          "earnings or valuation.",
+    "crypto": "The instrument is a CRYPTOCURRENCY. Reason from supply/market cap, BTC dominance, "
+              "funding rate and open interest, the Fear & Greed index, and volatility — not "
+              "earnings or P/E.",
+}
+
+
 def _chat_messages(snap: dict, question: str, history: list | None = None) -> list:
     """Build the OpenAI-style message list shared by the chat dispatchers."""
     context = _chat_context(snap)
-    msgs = [
-        {"role": "system", "content": CHAT_SYSTEM_PROMPT},
-        {
-            "role": "system",
-            "content": f"Data snapshot for the stock in question:\n{context}",
-        },
-    ]
+    cls = (snap.get("meta", {}) or {}).get("asset_class", "equity")
+    noun = {"commodity": "commodity", "fx": "currency pair", "crypto": "cryptocurrency"}.get(cls, "stock")
+    msgs = [{"role": "system", "content": CHAT_SYSTEM_PROMPT}]
+    if cls in _CHAT_ROLE_NOTE:
+        msgs.append({"role": "system", "content": _CHAT_ROLE_NOTE[cls]})
+    msgs.append({
+        "role": "system",
+        "content": f"Data snapshot for the {noun} in question:\n{context}",
+    })
     for turn in (history or [])[-8:]:
         role = turn.get("role")
         text = (turn.get("text") or turn.get("content") or "").strip()

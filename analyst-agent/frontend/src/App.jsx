@@ -750,10 +750,130 @@ function VolumeChart({ data }) {
 }
 
 /* ───────────── tabs ───────────── */
+/* ─── asset-class context (commodities / FX / crypto) ───
+   These render the NATIVE scorecard from data.context instead of equity
+   fundamentals/analyst KPIs (which are meaningless for gold, EUR/USD, BTC). */
+const _pctTxt = (v, d = 1) => (v == null ? '—' : `${Number(v) >= 0 ? '' : ''}${Number(v).toFixed(d)}%`)
+const _rangeTxt = v => (v == null ? '—' : `${Math.round(v)}th pct`)
+
+function MacroKpis({ c }) {
+  const cls = c?.asset_class
+  let kpis = []
+  if (cls === 'commodity') {
+    kpis = [
+      ['US DOLLAR (DXY)', fmt(c.dxy, 2)],
+      ['10Y UST YIELD', c.ust10y == null ? '—' : fmt(c.ust10y, 2)],
+      ['VIX', fmt(c.vix, 2)],
+      ['GOLD / SILVER', fmt(c.gold_silver_ratio, 1)],
+      ['REALIZED VOL 30D', _pctTxt(c.realized_vol_30d)],
+      ['RANGE POSITION', _rangeTxt(c.range_position_pct)],
+    ]
+  } else if (cls === 'fx') {
+    kpis = [
+      ['PAIR', c.base && c.quote ? `${c.base}/${c.quote}` : '—'],
+      ['US DOLLAR (DXY)', fmt(c.dxy, 2)],
+      ['10Y UST YIELD', c.us10y == null ? '—' : fmt(c.us10y, 2)],
+      ['REALIZED VOL 30D', _pctTxt(c.realized_vol_30d)],
+      ['RANGE POSITION', _rangeTxt(c.range_position_pct)],
+    ]
+    if (c.policy_rates) kpis.push(['RATE DIFFERENTIAL', c.policy_rates.differential == null ? '—' : _pctTxt(c.policy_rates.differential, 2)])
+  } else if (cls === 'crypto') {
+    kpis = [
+      ['MARKET CAP', fmtCap(c.market_cap, 'USD')],
+      ['BTC DOMINANCE', _pctTxt(c.btc_dominance)],
+      ['FUNDING RATE', c.funding_rate_pct == null ? '—' : `${Number(c.funding_rate_pct).toFixed(4)}%`],
+      ['OPEN INTEREST', c.open_interest == null ? '—' : fmt(c.open_interest, 0)],
+      ['FEAR & GREED', c.fear_greed ? `${c.fear_greed.value} · ${c.fear_greed.label}` : '—'],
+      ['SUPPLY MINTED', _pctTxt(c.supply_pct)],
+      ['REALIZED VOL 30D', _pctTxt(c.realized_vol_30d)],
+      ['RANGE POSITION', _rangeTxt(c.range_position_pct)],
+    ]
+  }
+  return <div className="aa-kpi-grid">{kpis.map(([l, v]) => <KPI key={l} label={l} value={v} />)}</div>
+}
+
+function ContextDetail({ c }) {
+  const cls = c?.asset_class
+  if (cls === 'commodity') {
+    const s = c.seasonality
+    return (
+      <Panel title="Macro & Positioning Context">
+        <Row m="US Dollar (DXY)" v={fmt(c.dxy, 2)} />
+        <Row m="10Y UST Yield" v={c.ust10y == null ? '—' : fmt(c.ust10y, 2)} />
+        <Row m="VIX (risk appetite)" v={fmt(c.vix, 2)} />
+        <Row m="Gold / Silver ratio" v={fmt(c.gold_silver_ratio, 2)} />
+        {s && <Row m={`Seasonality — ${s.current_month}`} v={s.current_month_avg_pct == null ? '—' : `${s.current_month_avg_pct >= 0 ? '+' : ''}${s.current_month_avg_pct}% avg`} s={num(s.current_month_avg_pct) >= 0 ? 'buy' : 'sell'} />}
+        {s && <Row m="Best / worst month" v={`${s.best_month} / ${s.worst_month}`} />}
+        {c.cot && <Row m={`COT large specs · ${c.cot.report_date}`} v={`${c.cot.bias}${c.cot.net_pct_oi == null ? '' : ` · ${c.cot.net_pct_oi}% OI`}`} />}
+        {c.inventory && <Row m={`EIA inventory · ${c.inventory.period}`} v={`${c.inventory.value} ${c.inventory.units} (WoW ${c.inventory.wow_change})`} />}
+      </Panel>
+    )
+  }
+  if (cls === 'fx') {
+    const r = c.policy_rates
+    return (
+      <Panel title="Rates & Positioning Context">
+        <Row m="US Dollar (DXY)" v={fmt(c.dxy, 2)} />
+        <Row m="10Y UST Yield" v={c.us10y == null ? '—' : fmt(c.us10y, 2)} />
+        {r && <Row m={`${c.base} policy rate`} v={r.base_rate == null ? '—' : `${r.base_rate}%`} />}
+        {r && <Row m={`${c.quote} policy rate`} v={r.quote_rate == null ? '—' : `${r.quote_rate}%`} />}
+        {r && <Row m="Rate differential (carry)" v={r.differential == null ? '—' : `${r.differential}%`} s={num(r.differential) >= 0 ? 'buy' : 'sell'} />}
+        {c.cot && <Row m={`COT large specs · ${c.cot.report_date}`} v={`${c.cot.bias}${c.cot.net_pct_oi == null ? '' : ` · ${c.cot.net_pct_oi}% OI`}`} />}
+        {!r && !c.cot && <Row m="Optional enrichment" v="Set FRED_API_KEY / ENABLE_COT" note="rates & positioning" />}
+      </Panel>
+    )
+  }
+  if (cls === 'crypto') {
+    const fg = c.fear_greed
+    return (
+      <Panel title="Network & Derivatives Context">
+        <Row m="Market cap" v={fmtCap(c.market_cap, 'USD')} />
+        <Row m="BTC dominance" v={c.btc_dominance == null ? '—' : `${c.btc_dominance}%`} />
+        <Row m="Circulating / max supply" v={`${fmt(c.circulating_supply, 0)} / ${c.max_supply == null ? '∞' : fmt(c.max_supply, 0)}`} />
+        <Row m="Funding rate (perp)" v={c.funding_rate_pct == null ? '—' : `${c.funding_rate_pct}%`} s={c.funding_rate_pct == null ? null : (num(c.funding_rate_pct) >= 0 ? 'sell' : 'buy')} />
+        <Row m="Open interest" v={c.open_interest == null ? '—' : fmt(c.open_interest, 0)} />
+        <Row m="Fear & Greed" v={fg ? `${fg.value} · ${fg.label}` : '—'} />
+        <Row m="From all-time high" v={c.ath_change_pct == null ? '—' : `${c.ath_change_pct}%`} />
+      </Panel>
+    )
+  }
+  return null
+}
+
 function OverviewTab({ data, chart }) {
   const { meta, quote, fundamentals: f, analyst: a, indicators: ind } = data
   const cur = meta.currency
   const [showSMA] = useState({ sma50: true, sma200: true })
+
+  // ── Non-equity (commodity / FX / crypto): native macro scorecard ──
+  const cls = meta.asset_class || 'equity'
+  if (cls !== 'equity') {
+    const c = data.context || {}
+    const hasCtx = !!c.asset_class
+    return (
+      <div style={{ display: 'grid', gap: 14 }}>
+        {hasCtx ? <MacroKpis c={c} /> : (
+          <div style={{ background: T.surface, border: `1px solid ${T.border}`, borderRadius: 8, padding: '12px 16px', fontSize: 12, color: T.muted, fontFamily: T.mono }}>
+            {cls.toUpperCase()} — macro context is briefly unavailable (data provider throttled). Price &amp; technicals below still apply.
+          </div>
+        )}
+        <Panel title={`Price — last ${chart.length} sessions`}>
+          <div style={{ padding: 10 }}><PriceChart data={chart} cur={cur} showSMA={showSMA} showBB={false} /></div>
+        </Panel>
+        <div className="aa-two-col">
+          <Panel title="Snapshot">
+            <Row m="Asset class" v={cls.toUpperCase()} />
+            <Row m="Exchange" v={meta.exchange || '—'} />
+            <Row m="Trend" v={ind?.trend ? ind.trend.split(' ')[0] : '—'} />
+            <Row m="RSI (14)" v={fmt(ind?.rsi, 1)} s={ind?.rsi_zone === 'overbought' ? 'sell' : ind?.rsi_zone === 'oversold' ? 'buy' : null} />
+            <Row m="52W Range" v={`${fmtMoney(quote.fifty_two_week_low, cur)} – ${fmtMoney(quote.fifty_two_week_high, cur)}`} />
+          </Panel>
+          {hasCtx && <ContextDetail c={c} />}
+        </div>
+      </div>
+    )
+  }
+
   const ror = computeROR(data)
 
   // 52-week position gauge
@@ -1557,6 +1677,14 @@ export default function App() {
   const quote = data?.quote
   const pos = num(quote?.day_change_pct) >= 0
 
+  // Hide equity-only tabs (Risk/Opp, Fundamentals, Peers) for commodities, FX,
+  // and crypto — those are built from earnings/valuation/analyst data the asset
+  // class doesn't have. Overview swaps in the macro/context scorecard instead.
+  const assetCls = data?.meta?.asset_class || 'equity'
+  const visibleTabs = assetCls === 'equity'
+    ? TABS
+    : TABS.filter(t => !['risk', 'fundamentals', 'peers'].includes(t.id))
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', color: T.text }}>
       <style>{`
@@ -1673,7 +1801,7 @@ export default function App() {
       {/* tabs */}
       {data && (
         <div className="aa-tabs">
-          {TABS.map(({ id, label }) => (
+          {visibleTabs.map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ color: tab === id ? T.amber : T.muted,
                 borderBottom: tab === id ? `2px solid ${T.amber}` : '2px solid transparent' }}>{label}</button>
