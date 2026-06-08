@@ -1,21 +1,14 @@
 {
-  "updated_at": "2026-06-05 22:39 UTC",
+  "updated_at": "2026-06-08 22:54 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "MRVL",
-      "regular_close": 263.47,
-      "ext_price": 275.69,
-      "ah_pct": 4.64,
-      "name": "Marvell Technology, Inc."
-    },
-    {
-      "symbol": "ROKU",
-      "regular_close": 122.26,
-      "ext_price": 126.7,
-      "ah_pct": 3.63,
-      "name": "Roku, Inc."
+      "symbol": "QCOM",
+      "regular_close": 217.77,
+      "ext_price": 223.2,
+      "ah_pct": 2.49,
+      "name": "QUALCOMM Incorporated"
     }
   ],
   "drops": []
