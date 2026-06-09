@@ -1,15 +1,29 @@
 {
-  "updated_at": "2026-06-08 22:54 UTC",
+  "updated_at": "2026-06-09 22:56 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
+  "surges": [],
+  "drops": [
     {
-      "symbol": "QCOM",
-      "regular_close": 217.77,
-      "ext_price": 223.2,
-      "ah_pct": 2.49,
-      "name": "QUALCOMM Incorporated"
+      "symbol": "TAN",
+      "regular_close": 61.83,
+      "ext_price": 59.5,
+      "ah_pct": -3.77,
+      "name": "Invesco Solar ETF"
+    },
+    {
+      "symbol": "BTDR",
+      "regular_close": 17.41,
+      "ext_price": 17.05,
+      "ah_pct": -2.05,
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "MU",
+      "regular_close": 935.89,
+      "ext_price": 916.94,
+      "ah_pct": -2.02,
+      "name": "Micron Technology, Inc."
     }
-  ],
-  "drops": []
+  ]
 }
