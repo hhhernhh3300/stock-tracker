@@ -1,29 +1,85 @@
 {
-  "updated_at": "2026-06-09 22:56 UTC",
+  "updated_at": "2026-06-10 23:04 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
   "drops": [
     {
-      "symbol": "TAN",
-      "regular_close": 61.83,
-      "ext_price": 59.5,
-      "ah_pct": -3.77,
-      "name": "Invesco Solar ETF"
+      "symbol": "ORCL",
+      "regular_close": 201.26,
+      "ext_price": 182.1,
+      "ah_pct": -9.52,
+      "name": "Oracle Corporation"
     },
     {
       "symbol": "BTDR",
-      "regular_close": 17.41,
-      "ext_price": 17.05,
-      "ah_pct": -2.05,
+      "regular_close": 16.1,
+      "ext_price": 15.51,
+      "ah_pct": -3.66,
       "name": "Bitdeer Technologies Group"
     },
     {
+      "symbol": "MRVL",
+      "regular_close": 252.59,
+      "ext_price": 243.68,
+      "ah_pct": -3.53,
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 307.43,
+      "ext_price": 298.57,
+      "ah_pct": -2.88,
+      "name": "Arm Holdings plc"
+    },
+    {
       "symbol": "MU",
-      "regular_close": 935.89,
-      "ext_price": 916.94,
-      "ah_pct": -2.02,
+      "regular_close": 891.88,
+      "ext_price": 871.5,
+      "ah_pct": -2.29,
       "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 369.83,
+      "ext_price": 361.5,
+      "ah_pct": -2.25,
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 434.65,
+      "ext_price": 425.01,
+      "ah_pct": -2.22,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "ASTS",
+      "regular_close": 87.32,
+      "ext_price": 85.41,
+      "ah_pct": -2.19,
+      "name": "AST SpaceMobile, Inc."
+    },
+    {
+      "symbol": "AMD",
+      "regular_close": 452.4,
+      "ext_price": 442.64,
+      "ah_pct": -2.16,
+      "name": "Advanced Micro Devices, Inc."
+    },
+    {
+      "symbol": "NOW",
+      "regular_close": 106.06,
+      "ext_price": 103.8,
+      "ah_pct": -2.13,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "RKLB",
+      "regular_close": 105.05,
+      "ext_price": 102.94,
+      "ah_pct": -2.01,
+      "name": "Rocket Lab Corporation"
     }
   ]
 }
