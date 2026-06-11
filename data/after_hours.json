@@ -1,85 +1,44 @@
 {
-  "updated_at": "2026-06-10 23:04 UTC",
+  "updated_at": "2026-06-11 23:02 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
-    {
-      "symbol": "ORCL",
-      "regular_close": 201.26,
-      "ext_price": 182.1,
-      "ah_pct": -9.52,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "BTDR",
-      "regular_close": 16.1,
-      "ext_price": 15.51,
-      "ah_pct": -3.66,
-      "name": "Bitdeer Technologies Group"
-    },
-    {
-      "symbol": "MRVL",
-      "regular_close": 252.59,
-      "ext_price": 243.68,
-      "ah_pct": -3.53,
-      "name": "Marvell Technology, Inc."
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 307.43,
-      "ext_price": 298.57,
-      "ah_pct": -2.88,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "MU",
-      "regular_close": 891.88,
-      "ext_price": 871.5,
-      "ah_pct": -2.29,
-      "name": "Micron Technology, Inc."
-    },
-    {
-      "symbol": "DELL",
-      "regular_close": 369.83,
-      "ext_price": 361.5,
-      "ah_pct": -2.25,
-      "name": "Dell Technologies Inc."
-    },
-    {
-      "symbol": "CIEN",
-      "regular_close": 434.65,
-      "ext_price": 425.01,
-      "ah_pct": -2.22,
-      "name": "Ciena Corporation"
-    },
+  "surges": [
     {
       "symbol": "ASTS",
-      "regular_close": 87.32,
-      "ext_price": 85.41,
-      "ah_pct": -2.19,
+      "regular_close": 97.56,
+      "ext_price": 102.85,
+      "ah_pct": 5.42,
       "name": "AST SpaceMobile, Inc."
     },
     {
-      "symbol": "AMD",
-      "regular_close": 452.4,
-      "ext_price": 442.64,
-      "ah_pct": -2.16,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "NOW",
-      "regular_close": 106.06,
-      "ext_price": 103.8,
-      "ah_pct": -2.13,
-      "name": "ServiceNow, Inc."
-    },
-    {
       "symbol": "RKLB",
-      "regular_close": 105.05,
-      "ext_price": 102.94,
-      "ah_pct": -2.01,
+      "regular_close": 114.78,
+      "ext_price": 118.88,
+      "ah_pct": 3.57,
       "name": "Rocket Lab Corporation"
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 342.23,
+      "ext_price": 349.98,
+      "ah_pct": 2.26,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "WYNN",
+      "regular_close": 107.75,
+      "ext_price": 110.0,
+      "ah_pct": 2.09,
+      "name": "Wynn Resorts, Limited"
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "ADBE",
+      "regular_close": 218.8,
+      "ext_price": 206.21,
+      "ah_pct": -5.75,
+      "name": "Adobe Inc."
     }
   ]
 }
