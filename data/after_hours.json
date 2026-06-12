@@ -1,44 +1,15 @@
 {
-  "updated_at": "2026-06-11 23:02 UTC",
+  "updated_at": "2026-06-12 22:53 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
       "symbol": "ASTS",
-      "regular_close": 97.56,
-      "ext_price": 102.85,
-      "ah_pct": 5.42,
+      "regular_close": 82.41,
+      "ext_price": 84.34,
+      "ah_pct": 2.34,
       "name": "AST SpaceMobile, Inc."
-    },
-    {
-      "symbol": "RKLB",
-      "regular_close": 114.78,
-      "ext_price": 118.88,
-      "ah_pct": 3.57,
-      "name": "Rocket Lab Corporation"
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 342.23,
-      "ext_price": 349.98,
-      "ah_pct": 2.26,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "WYNN",
-      "regular_close": 107.75,
-      "ext_price": 110.0,
-      "ah_pct": 2.09,
-      "name": "Wynn Resorts, Limited"
     }
   ],
-  "drops": [
-    {
-      "symbol": "ADBE",
-      "regular_close": 218.8,
-      "ext_price": 206.21,
-      "ah_pct": -5.75,
-      "name": "Adobe Inc."
-    }
-  ]
+  "drops": []
 }
