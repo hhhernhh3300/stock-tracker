@@ -1,15 +1,7 @@
 {
-  "updated_at": "2026-06-12 22:53 UTC",
+  "updated_at": "2026-06-15 23:14 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "ASTS",
-      "regular_close": 82.41,
-      "ext_price": 84.34,
-      "ah_pct": 2.34,
-      "name": "AST SpaceMobile, Inc."
-    }
-  ],
+  "surges": [],
   "drops": []
 }
