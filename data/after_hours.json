@@ -1,7 +1,22 @@
 {
-  "updated_at": "2026-06-15 23:14 UTC",
+  "updated_at": "2026-06-16 23:00 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
+  "surges": [
+    {
+      "symbol": "ASTS",
+      "regular_close": 82.25,
+      "ext_price": 84.53,
+      "ah_pct": 2.77,
+      "name": "AST SpaceMobile, Inc."
+    },
+    {
+      "symbol": "MRVL",
+      "regular_close": 278.67,
+      "ext_price": 284.64,
+      "ah_pct": 2.14,
+      "name": "Marvell Technology, Inc."
+    }
+  ],
   "drops": []
 }
