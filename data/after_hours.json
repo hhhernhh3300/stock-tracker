@@ -1,21 +1,91 @@
 {
-  "updated_at": "2026-06-16 23:00 UTC",
+  "updated_at": "2026-06-17 22:55 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "ASTS",
-      "regular_close": 82.25,
-      "ext_price": 84.53,
-      "ah_pct": 2.77,
-      "name": "AST SpaceMobile, Inc."
+      "symbol": "ARM",
+      "regular_close": 418.88,
+      "ext_price": 432.0,
+      "ah_pct": 3.13,
+      "name": "Arm Holdings plc"
     },
     {
       "symbol": "MRVL",
-      "regular_close": 278.67,
-      "ext_price": 284.64,
-      "ah_pct": 2.14,
+      "regular_close": 289.54,
+      "ext_price": 297.92,
+      "ah_pct": 2.89,
       "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "MU",
+      "regular_close": 1043.19,
+      "ext_price": 1071.57,
+      "ah_pct": 2.72,
+      "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "INTC",
+      "regular_close": 121.1,
+      "ext_price": 124.35,
+      "ah_pct": 2.68,
+      "name": "Intel Corporation"
+    },
+    {
+      "symbol": "AMAT",
+      "regular_close": 592.92,
+      "ext_price": 607.65,
+      "ah_pct": 2.48,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "KLAC",
+      "regular_close": 238.73,
+      "ext_price": 244.41,
+      "ah_pct": 2.38,
+      "name": "KLA Corporation"
+    },
+    {
+      "symbol": "LRCX",
+      "regular_close": 374.18,
+      "ext_price": 382.87,
+      "ah_pct": 2.32,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 317.58,
+      "ext_price": 324.51,
+      "ah_pct": 2.18,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "STX",
+      "regular_close": 1066.07,
+      "ext_price": 1089.02,
+      "ah_pct": 2.15,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 419.32,
+      "ext_price": 428.0,
+      "ah_pct": 2.07,
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "QCOM",
+      "regular_close": 212.97,
+      "ext_price": 217.33,
+      "ah_pct": 2.05,
+      "name": "QUALCOMM Incorporated"
+    },
+    {
+      "symbol": "AMD",
+      "regular_close": 512.48,
+      "ext_price": 522.8,
+      "ah_pct": 2.01,
+      "name": "Advanced Micro Devices, Inc."
     }
   ],
   "drops": []
