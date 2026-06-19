@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-18 23:14 UTC",
+  "updated_at": "2026-06-19 22:29 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
@@ -7,8 +7,8 @@
     {
       "symbol": "WYNN",
       "regular_close": 105.53,
-      "ext_price": 103.0,
-      "ah_pct": -2.4,
+      "ext_price": 102.99,
+      "ah_pct": -2.41,
       "name": "Wynn Resorts, Limited"
     }
   ]
