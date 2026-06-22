@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-06-19 22:29 UTC",
+  "updated_at": "2026-06-22 22:59 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
+  "surges": [
     {
-      "symbol": "WYNN",
-      "regular_close": 105.53,
-      "ext_price": 102.99,
-      "ah_pct": -2.41,
-      "name": "Wynn Resorts, Limited"
+      "symbol": "IBM",
+      "regular_close": 252.22,
+      "ext_price": 263.29,
+      "ah_pct": 4.39,
+      "name": "International Business Machines"
     }
-  ]
+  ],
+  "drops": []
 }
