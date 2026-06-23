@@ -1,15 +1,23 @@
 {
-  "updated_at": "2026-06-22 22:59 UTC",
+  "updated_at": "2026-06-23 22:44 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "IBM",
-      "regular_close": 252.22,
-      "ext_price": 263.29,
-      "ah_pct": 4.39,
-      "name": "International Business Machines"
+      "symbol": "CIBR",
+      "regular_close": 84.21,
+      "ext_price": 86.2,
+      "ah_pct": 2.36,
+      "name": "First Trust NASDAQ Cybersecurit"
     }
   ],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "FDX",
+      "regular_close": 317.24,
+      "ext_price": 297.2,
+      "ah_pct": -6.32,
+      "name": "FedEx Corporation"
+    }
+  ]
 }
