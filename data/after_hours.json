@@ -1,23 +1,163 @@
 {
-  "updated_at": "2026-06-23 22:44 UTC",
+  "updated_at": "2026-06-24 22:44 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "CIBR",
-      "regular_close": 84.21,
-      "ext_price": 86.2,
-      "ah_pct": 2.36,
-      "name": "First Trust NASDAQ Cybersecurit"
+      "symbol": "MU",
+      "regular_close": 1048.51,
+      "ext_price": 1204.61,
+      "ah_pct": 14.89,
+      "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "QCOM",
+      "regular_close": 197.41,
+      "ext_price": 224.95,
+      "ah_pct": 13.95,
+      "name": "QUALCOMM Incorporated"
+    },
+    {
+      "symbol": "STX",
+      "regular_close": 993.25,
+      "ext_price": 1094.9,
+      "ah_pct": 10.23,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 359.08,
+      "ext_price": 383.8,
+      "ah_pct": 6.88,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "AMAT",
+      "regular_close": 588.97,
+      "ext_price": 628.3,
+      "ah_pct": 6.68,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "LRCX",
+      "regular_close": 374.8,
+      "ext_price": 396.81,
+      "ah_pct": 5.87,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "KLAC",
+      "regular_close": 240.48,
+      "ext_price": 253.5,
+      "ah_pct": 5.41,
+      "name": "KLA Corporation"
+    },
+    {
+      "symbol": "MRVL",
+      "regular_close": 276.7,
+      "ext_price": 290.89,
+      "ah_pct": 5.13,
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "ASML",
+      "regular_close": 1762.77,
+      "ext_price": 1850.0,
+      "ah_pct": 4.95,
+      "name": "ASML Holding N.V. - New York Re"
+    },
+    {
+      "symbol": "INTC",
+      "regular_close": 131.65,
+      "ext_price": 137.9,
+      "ah_pct": 4.75,
+      "name": "Intel Corporation"
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 316.43,
+      "ext_price": 331.35,
+      "ah_pct": 4.71,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "SMH",
+      "regular_close": 618.92,
+      "ext_price": 646.0,
+      "ah_pct": 4.38,
+      "name": "VanEck Semiconductor ETF"
+    },
+    {
+      "symbol": "AMD",
+      "regular_close": 519.74,
+      "ext_price": 537.9,
+      "ah_pct": 3.49,
+      "name": "Advanced Micro Devices, Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 463.51,
+      "ext_price": 478.93,
+      "ah_pct": 3.33,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "NXT",
+      "regular_close": 116.67,
+      "ext_price": 120.5,
+      "ah_pct": 3.28,
+      "name": "Nextpower Inc."
+    },
+    {
+      "symbol": "TSM",
+      "regular_close": 440.83,
+      "ext_price": 454.68,
+      "ah_pct": 3.14,
+      "name": "Taiwan Semiconductor Manufactur"
+    },
+    {
+      "symbol": "TXN",
+      "regular_close": 303.11,
+      "ext_price": 312.49,
+      "ah_pct": 3.09,
+      "name": "Texas Instruments Incorporated"
+    },
+    {
+      "symbol": "INOD",
+      "regular_close": 81.55,
+      "ext_price": 83.72,
+      "ah_pct": 2.66,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "ANET",
+      "regular_close": 161.74,
+      "ext_price": 165.72,
+      "ah_pct": 2.46,
+      "name": "Arista Networks, Inc."
+    },
+    {
+      "symbol": "BTDR",
+      "regular_close": 17.52,
+      "ext_price": 17.95,
+      "ah_pct": 2.45,
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "XLK",
+      "regular_close": 183.05,
+      "ext_price": 187.45,
+      "ah_pct": 2.4,
+      "name": "State Street Technology Select "
     }
   ],
   "drops": [
     {
-      "symbol": "FDX",
-      "regular_close": 317.24,
-      "ext_price": 297.2,
-      "ah_pct": -6.32,
-      "name": "FedEx Corporation"
+      "symbol": "DHR",
+      "regular_close": 188.87,
+      "ext_price": 184.1,
+      "ah_pct": -2.53,
+      "name": "Danaher Corporation"
     }
   ]
 }
