@@ -1,7 +1,23 @@
 {
-  "updated_at": "2026-06-26 22:41 UTC",
+  "updated_at": "2026-06-29 22:34 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": []
+  "surges": [
+    {
+      "symbol": "RKLB",
+      "regular_close": 98.01,
+      "ext_price": 100.13,
+      "ah_pct": 2.16,
+      "name": "Rocket Lab Corporation"
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "EOG",
+      "regular_close": 131.93,
+      "ext_price": 129.02,
+      "ah_pct": -2.21,
+      "name": "EOG Resources, Inc."
+    }
+  ]
 }
