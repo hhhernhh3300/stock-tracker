@@ -1,15 +1,22 @@
 {
-  "updated_at": "2026-06-30 22:47 UTC",
+  "updated_at": "2026-07-01 22:45 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
+  "surges": [
     {
-      "symbol": "NKE",
-      "regular_close": 41.05,
-      "ext_price": 40.15,
-      "ah_pct": -2.19,
-      "name": "Nike, Inc."
+      "symbol": "INOD",
+      "regular_close": 72.23,
+      "ext_price": 73.87,
+      "ah_pct": 2.27,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "NXT",
+      "regular_close": 116.15,
+      "ext_price": 118.64,
+      "ah_pct": 2.15,
+      "name": "Nextpower Inc."
     }
-  ]
+  ],
+  "drops": []
 }
