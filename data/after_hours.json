@@ -1,22 +1,7 @@
 {
-  "updated_at": "2026-07-01 22:45 UTC",
+  "updated_at": "2026-07-02 22:34 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "INOD",
-      "regular_close": 72.23,
-      "ext_price": 73.87,
-      "ah_pct": 2.27,
-      "name": "Innodata Inc."
-    },
-    {
-      "symbol": "NXT",
-      "regular_close": 116.15,
-      "ext_price": 118.64,
-      "ah_pct": 2.15,
-      "name": "Nextpower Inc."
-    }
-  ],
+  "surges": [],
   "drops": []
 }
