@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-07-03 22:31 UTC",
+  "updated_at": "2026-07-06 22:43 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "VRTX",
+      "regular_close": 529.59,
+      "ext_price": 517.19,
+      "ah_pct": -2.34,
+      "name": "Vertex Pharmaceuticals Incorpor"
+    }
+  ]
 }
