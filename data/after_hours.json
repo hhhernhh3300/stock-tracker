@@ -1,7 +1,15 @@
 {
-  "updated_at": "2026-07-07 22:35 UTC",
+  "updated_at": "2026-07-08 22:30 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "NXT",
+      "regular_close": 109.74,
+      "ext_price": 107.49,
+      "ah_pct": -2.05,
+      "name": "Nextpower Inc."
+    }
+  ]
 }
