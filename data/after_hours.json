@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-07-14 22:27 UTC",
+  "updated_at": "2026-07-15 22:27 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
+  "surges": [],
+  "drops": [
     {
-      "symbol": "TLN",
-      "regular_close": 396.95,
-      "ext_price": 405.81,
-      "ah_pct": 2.23,
-      "name": "Talen Energy Corporation"
+      "symbol": "ASTS",
+      "regular_close": 66.31,
+      "ext_price": 57.83,
+      "ah_pct": -12.79,
+      "name": "AST SpaceMobile, Inc."
     }
-  ],
-  "drops": []
+  ]
 }
