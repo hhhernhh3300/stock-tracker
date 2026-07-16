@@ -1,15 +1,22 @@
 {
-  "updated_at": "2026-07-15 22:27 UTC",
+  "updated_at": "2026-07-16 22:27 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
   "drops": [
     {
-      "symbol": "ASTS",
-      "regular_close": 66.31,
-      "ext_price": 57.83,
-      "ah_pct": -12.79,
-      "name": "AST SpaceMobile, Inc."
+      "symbol": "ISRG",
+      "regular_close": 402.33,
+      "ext_price": 359.77,
+      "ah_pct": -10.58,
+      "name": "Intuitive Surgical, Inc."
+    },
+    {
+      "symbol": "NFLX",
+      "regular_close": 74.35,
+      "ext_price": 68.04,
+      "ah_pct": -8.48,
+      "name": "Netflix, Inc."
     }
   ]
 }
