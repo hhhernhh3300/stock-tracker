@@ -1,22 +1,22 @@
 {
-  "updated_at": "2026-07-16 22:27 UTC",
+  "updated_at": "2026-07-17 22:11 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
+  "surges": [
     {
-      "symbol": "ISRG",
-      "regular_close": 402.33,
-      "ext_price": 359.77,
-      "ah_pct": -10.58,
-      "name": "Intuitive Surgical, Inc."
+      "symbol": "LVS",
+      "regular_close": 45.36,
+      "ext_price": 48.56,
+      "ah_pct": 7.05,
+      "name": "Las Vegas Sands Corp."
     },
     {
-      "symbol": "NFLX",
-      "regular_close": 74.35,
-      "ext_price": 68.04,
-      "ah_pct": -8.48,
-      "name": "Netflix, Inc."
+      "symbol": "CCJ",
+      "regular_close": 85.62,
+      "ext_price": 87.36,
+      "ah_pct": 2.03,
+      "name": ""
     }
-  ]
+  ],
+  "drops": []
 }
