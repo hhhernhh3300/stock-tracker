@@ -1,21 +1,14 @@
 {
-  "updated_at": "2026-07-17 22:11 UTC",
+  "updated_at": "2026-07-20 22:29 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "LVS",
-      "regular_close": 45.36,
-      "ext_price": 48.56,
-      "ah_pct": 7.05,
-      "name": "Las Vegas Sands Corp."
-    },
-    {
-      "symbol": "CCJ",
-      "regular_close": 85.62,
-      "ext_price": 87.36,
-      "ah_pct": 2.03,
-      "name": ""
+      "symbol": "CIBR",
+      "regular_close": 91.79,
+      "ext_price": 94.0,
+      "ah_pct": 2.41,
+      "name": "First Trust NASDAQ Cybersecurit"
     }
   ],
   "drops": []
