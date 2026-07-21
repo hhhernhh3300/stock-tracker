@@ -1,15 +1,30 @@
 {
-  "updated_at": "2026-07-20 22:29 UTC",
+  "updated_at": "2026-07-21 22:25 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "CIBR",
-      "regular_close": 91.79,
-      "ext_price": 94.0,
-      "ah_pct": 2.41,
-      "name": "First Trust NASDAQ Cybersecurit"
+      "symbol": "RKLB",
+      "regular_close": 69.12,
+      "ext_price": 73.71,
+      "ah_pct": 6.64,
+      "name": "Rocket Lab Corporation"
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 404.15,
+      "ext_price": 426.05,
+      "ah_pct": 5.42,
+      "name": "Dell Technologies Inc."
     }
   ],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "NSC",
+      "regular_close": 331.3,
+      "ext_price": 322.59,
+      "ah_pct": -2.63,
+      "name": "Norfolk Southern Corporation"
+    }
+  ]
 }
