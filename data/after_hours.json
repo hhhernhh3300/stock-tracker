@@ -1,29 +1,7 @@
 {
-  "updated_at": "2026-07-23 22:29 UTC",
+  "updated_at": "2026-07-24 22:32 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "SSNC",
-      "regular_close": 66.95,
-      "ext_price": 72.24,
-      "ah_pct": 7.89,
-      "name": "SS&C Technologies Holdings, Inc"
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 283.04,
-      "ext_price": 290.64,
-      "ah_pct": 2.69,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "INTC",
-      "regular_close": 100.23,
-      "ext_price": 102.56,
-      "ah_pct": 2.32,
-      "name": "Intel Corporation"
-    }
-  ],
+  "surges": [],
   "drops": []
 }
