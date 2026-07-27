@@ -1,7 +1,22 @@
 {
-  "updated_at": "2026-07-24 22:32 UTC",
+  "updated_at": "2026-07-27 22:32 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
+  "surges": [
+    {
+      "symbol": "CDNS",
+      "regular_close": 338.61,
+      "ext_price": 350.68,
+      "ah_pct": 3.56,
+      "name": "Cadence Design Systems, Inc."
+    },
+    {
+      "symbol": "JNJ",
+      "regular_close": 265.95,
+      "ext_price": 275.36,
+      "ah_pct": 3.54,
+      "name": "Johnson & Johnson"
+    }
+  ],
   "drops": []
 }
