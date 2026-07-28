@@ -1,22 +1,23 @@
 {
-  "updated_at": "2026-07-27 22:32 UTC",
+  "updated_at": "2026-07-28 22:31 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "CDNS",
-      "regular_close": 338.61,
-      "ext_price": 350.68,
-      "ah_pct": 3.56,
-      "name": "Cadence Design Systems, Inc."
-    },
-    {
-      "symbol": "JNJ",
-      "regular_close": 265.95,
-      "ext_price": 275.36,
-      "ah_pct": 3.54,
-      "name": "Johnson & Johnson"
+      "symbol": "STX",
+      "regular_close": 747.3,
+      "ext_price": 785.9,
+      "ah_pct": 5.17,
+      "name": "Seagate Technology Holdings PLC"
     }
   ],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "KLAC",
+      "regular_close": 190.8,
+      "ext_price": 176.24,
+      "ah_pct": -7.63,
+      "name": "KLA Corporation"
+    }
+  ]
 }
