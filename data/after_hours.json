@@ -1,23 +1,100 @@
 {
-  "updated_at": "2026-07-28 22:31 UTC",
+  "updated_at": "2026-07-29 22:27 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "STX",
-      "regular_close": 747.3,
-      "ext_price": 785.9,
-      "ah_pct": 5.17,
-      "name": "Seagate Technology Holdings PLC"
+      "symbol": "FTNT",
+      "regular_close": 153.22,
+      "ext_price": 169.99,
+      "ah_pct": 10.95,
+      "name": "Fortinet, Inc."
+    },
+    {
+      "symbol": "MSFT",
+      "regular_close": 390.54,
+      "ext_price": 418.44,
+      "ah_pct": 7.14,
+      "name": "Microsoft Corporation"
+    },
+    {
+      "symbol": "LRCX",
+      "regular_close": 252.35,
+      "ext_price": 267.0,
+      "ah_pct": 5.81,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "SBUX",
+      "regular_close": 104.14,
+      "ext_price": 107.99,
+      "ah_pct": 3.7,
+      "name": "Starbucks Corporation"
+    },
+    {
+      "symbol": "SNOW",
+      "regular_close": 282.9,
+      "ext_price": 293.0,
+      "ah_pct": 3.57,
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "PANW",
+      "regular_close": 314.15,
+      "ext_price": 324.0,
+      "ah_pct": 3.14,
+      "name": "Palo Alto Networks, Inc."
+    },
+    {
+      "symbol": "DDOG",
+      "regular_close": 264.2,
+      "ext_price": 272.0,
+      "ah_pct": 2.95,
+      "name": "Datadog, Inc."
+    },
+    {
+      "symbol": "MDB",
+      "regular_close": 321.1,
+      "ext_price": 330.0,
+      "ah_pct": 2.77,
+      "name": "MongoDB, Inc."
+    },
+    {
+      "symbol": "CRWD",
+      "regular_close": 179.38,
+      "ext_price": 183.5,
+      "ah_pct": 2.3,
+      "name": "CrowdStrike Holdings, Inc."
     }
   ],
   "drops": [
     {
-      "symbol": "KLAC",
-      "regular_close": 190.8,
-      "ext_price": 176.24,
-      "ah_pct": -7.63,
-      "name": "KLA Corporation"
+      "symbol": "META",
+      "regular_close": 585.61,
+      "ext_price": 534.87,
+      "ah_pct": -8.66,
+      "name": "Meta Platforms, Inc."
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 224.89,
+      "ext_price": 211.48,
+      "ah_pct": -5.96,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "QCOM",
+      "regular_close": 155.68,
+      "ext_price": 147.38,
+      "ah_pct": -5.33,
+      "name": "QUALCOMM Incorporated"
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 330.37,
+      "ext_price": 323.0,
+      "ah_pct": -2.23,
+      "name": "Ciena Corporation"
     }
   ]
 }
