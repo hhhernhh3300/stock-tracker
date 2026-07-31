@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-07-30 12:25 UTC",
+  "updated_at": "2026-07-31 12:51 UTC",
   "universe_size": 179,
-  "spy_3m_pct": 2.78,
+  "spy_3m_pct": 3.47,
   "thresholds": {
     "near_high_pct": 2.0,
     "vol_surge_mult": 2.0,
@@ -16,14 +16,14 @@
   "tomorrow_setups": [
     {
       "symbol": "WDAY",
-      "price": 168.01,
-      "day_pct": 5.21,
-      "month_pct": 35.95,
-      "rs_vs_spy": 34.45,
-      "tech_score": 95.7,
+      "price": 158.11,
+      "day_pct": -5.89,
+      "month_pct": 29.15,
+      "rs_vs_spy": 25.7,
+      "tech_score": 94.4,
       "fund_score": 78.3,
       "ah_boost": 50.0,
-      "setup_score": 85.0,
+      "setup_score": 84.3,
       "signals": [
         "1m-momentum",
         "near-52w-high",
@@ -36,9 +36,9 @@
       "warnings": [],
       "blend": "tech+fund+ah",
       "fundamentals": {
-        "trailing_pe": 52.33956,
-        "forward_pe": 13.287872,
-        "peg": 0.58,
+        "trailing_pe": 49.25545,
+        "forward_pe": 12.504884,
+        "peg": 0.66,
         "rev_growth": 0.135,
         "eps_growth": 2.48,
         "profit_margin": 0.08595,
@@ -47,281 +47,25 @@
         "debt_to_equity": 56.936,
         "next_earnings": null,
         "days_to_earnings": null,
-        "market_cap": 41494011904.0
+        "market_cap": 39048974336.0
       },
       "after_hours": null,
       "name": "Workday, Inc."
     },
     {
-      "symbol": "NOW",
-      "price": 115.76,
-      "day_pct": 4.65,
-      "month_pct": 15.79,
-      "rs_vs_spy": 27.45,
-      "tech_score": 92.7,
-      "fund_score": 66.8,
+      "symbol": "MSFT",
+      "price": 451.1,
+      "day_pct": 15.51,
+      "month_pct": 20.93,
+      "rs_vs_spy": 7.39,
+      "tech_score": 77.8,
+      "fund_score": 87.4,
       "ah_boost": 50.0,
-      "setup_score": 79.4,
+      "setup_score": 78.4,
       "signals": [
         "1m-momentum",
         "near-52w-high",
         "volume-surge",
-        "rs-leader",
-        "strong-revenue-growth",
-        "reasonable-valuation"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 72.35,
-        "forward_pe": 23.123375,
-        "peg": 0.93,
-        "rev_growth": 0.24,
-        "eps_growth": -0.219,
-        "profit_margin": 0.11336,
-        "operating_margin": 0.04063,
-        "roe": 0.14244,
-        "debt_to_equity": 67.538,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 119679868928.0
-      },
-      "after_hours": null,
-      "name": "ServiceNow, Inc."
-    },
-    {
-      "symbol": "BKNG",
-      "price": 201.3,
-      "day_pct": 1.0,
-      "month_pct": 10.36,
-      "rs_vs_spy": 13.22,
-      "tech_score": 65.9,
-      "fund_score": 95.2,
-      "ah_boost": 50.0,
-      "setup_score": 74.6,
-      "signals": [
-        "strong-revenue-growth",
-        "strong-earnings-growth",
-        "high-margin",
-        "reasonable-valuation"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 26.521738,
-        "forward_pe": 16.384703,
-        "peg": 0.81,
-        "rev_growth": 0.162,
-        "eps_growth": 2.4,
-        "profit_margin": 0.22227,
-        "operating_margin": 0.25035998,
-        "roe": null,
-        "debt_to_equity": null,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 155983036416.0
-      },
-      "after_hours": null,
-      "name": "Booking Holdings Inc. Common St"
-    },
-    {
-      "symbol": "ADBE",
-      "price": 263.43,
-      "day_pct": 5.72,
-      "month_pct": 27.61,
-      "rs_vs_spy": 5.38,
-      "tech_score": 78.4,
-      "fund_score": 72.6,
-      "ah_boost": 50.0,
-      "setup_score": 73.5,
-      "signals": [
-        "1m-momentum",
-        "near-52w-high",
-        "volume-surge",
-        "high-margin",
-        "reasonable-valuation"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 14.24716,
-        "forward_pe": 9.583848,
-        "peg": 0.65,
-        "rev_growth": 0.127,
-        "eps_growth": 0.079,
-        "profit_margin": 0.28689,
-        "operating_margin": 0.35327998,
-        "roe": 0.62953997,
-        "debt_to_equity": 61.443,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 104713420800.0
-      },
-      "after_hours": null,
-      "name": "Adobe Inc."
-    },
-    {
-      "symbol": "SPOT",
-      "price": 524.01,
-      "day_pct": 2.43,
-      "month_pct": 13.35,
-      "rs_vs_spy": 15.36,
-      "tech_score": 80.2,
-      "fund_score": 69.3,
-      "ah_boost": 50.0,
-      "setup_score": 73.4,
-      "signals": [
-        "near-52w-high",
-        "volume-surge",
-        "strong-earnings-growth",
-        "strong-balance-sheet"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 35.719837,
-        "forward_pe": 29.136658,
-        "peg": 1.7,
-        "rev_growth": 0.082,
-        "eps_growth": 2.224,
-        "profit_margin": 0.15449001,
-        "operating_margin": 0.15773,
-        "roe": 0.37987998,
-        "debt_to_equity": 5.943,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 107746975744.0
-      },
-      "after_hours": null,
-      "name": "Spotify Technology S.A."
-    },
-    {
-      "symbol": "CRM",
-      "price": 188.38,
-      "day_pct": 3.79,
-      "month_pct": 19.28,
-      "rs_vs_spy": 1.44,
-      "tech_score": 70.3,
-      "fund_score": 83.7,
-      "ah_boost": 50.0,
-      "setup_score": 73.0,
-      "signals": [
-        "1m-momentum",
-        "near-52w-high",
-        "volume-surge",
-        "strong-earnings-growth",
-        "high-margin",
-        "reasonable-valuation"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 21.828505,
-        "forward_pe": 12.14392,
-        "peg": 0.72,
-        "rev_growth": 0.133,
-        "eps_growth": 0.522,
-        "profit_margin": 0.18733,
-        "operating_margin": 0.218,
-        "roe": 0.16908,
-        "debt_to_equity": 124.282,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 154283229184.0
-      },
-      "after_hours": null,
-      "name": "Salesforce, Inc."
-    },
-    {
-      "symbol": "ADSK",
-      "price": 245.25,
-      "day_pct": 3.32,
-      "month_pct": 25.61,
-      "rs_vs_spy": 1.2,
-      "tech_score": 62.1,
-      "fund_score": 92.2,
-      "ah_boost": 50.0,
-      "setup_score": 71.4,
-      "signals": [
-        "1m-momentum",
-        "near-52w-high",
-        "strong-revenue-growth",
-        "strong-earnings-growth",
-        "high-margin",
-        "reasonable-valuation"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 34.590973,
-        "forward_pe": 17.200472,
-        "peg": 0.87,
-        "rev_growth": 0.184,
-        "eps_growth": 2.314,
-        "profit_margin": 0.19488001,
-        "operating_margin": 0.29524,
-        "roe": 0.50396,
-        "debt_to_equity": 85.419,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 51783372800.0
-      },
-      "after_hours": null,
-      "name": "Autodesk, Inc."
-    },
-    {
-      "symbol": "DDOG",
-      "price": 264.2,
-      "day_pct": 5.31,
-      "month_pct": 6.29,
-      "rs_vs_spy": 94.42,
-      "tech_score": 66.8,
-      "fund_score": 70.1,
-      "ah_boost": 61.8,
-      "setup_score": 67.5,
-      "signals": [
-        "volume-surge",
-        "rs-leader",
-        "strong-revenue-growth",
-        "strong-earnings-growth",
-        "strong-balance-sheet",
-        "ah-surge"
-      ],
-      "warnings": [],
-      "blend": "tech+fund+ah",
-      "fundamentals": {
-        "trailing_pe": 629.04767,
-        "forward_pe": 91.52605,
-        "peg": 1.57,
-        "rev_growth": 0.322,
-        "eps_growth": 1.04,
-        "profit_margin": 0.03695,
-        "operating_margin": 0.00797,
-        "roe": 0.039300002,
-        "debt_to_equity": 32.221,
-        "next_earnings": null,
-        "days_to_earnings": null,
-        "market_cap": 94044684288.0
-      },
-      "after_hours": {
-        "ah_pct": 2.95,
-        "ext_price": 272.0,
-        "regular_close": 264.2,
-        "updated_at": "2026-07-29 22:27 UTC"
-      },
-      "name": "Datadog, Inc."
-    },
-    {
-      "symbol": "BLK",
-      "price": 1079.19,
-      "day_pct": -1.67,
-      "month_pct": 13.58,
-      "rs_vs_spy": 1.64,
-      "tech_score": 58.2,
-      "fund_score": 85.5,
-      "ah_boost": 50.0,
-      "setup_score": 66.9,
-      "signals": [
         "strong-revenue-growth",
         "high-margin",
         "reasonable-valuation",
@@ -330,32 +74,246 @@
       "warnings": [],
       "blend": "tech+fund+ah",
       "fundamentals": {
-        "trailing_pe": 25.842672,
-        "forward_pe": 16.7661,
-        "peg": 1.14,
-        "rev_growth": 0.306,
-        "eps_growth": 0.197,
-        "profit_margin": 0.24089001,
-        "operating_margin": 0.35079,
-        "roe": null,
-        "debt_to_equity": 23.635,
+        "trailing_pe": 25.130919,
+        "forward_pe": 19.540962,
+        "peg": 1.21,
+        "rev_growth": 0.177,
+        "eps_growth": 0.317,
+        "profit_margin": 0.40305,
+        "operating_margin": 0.45111,
+        "roe": 0.34039003,
+        "debt_to_equity": 29.118,
         "next_earnings": null,
         "days_to_earnings": null,
-        "market_cap": 175478784000.0
+        "market_cap": 3349663711232.0
       },
       "after_hours": null,
-      "name": "BlackRock, Inc."
+      "name": "Microsoft Corporation"
+    },
+    {
+      "symbol": "BKNG",
+      "price": 193.24,
+      "day_pct": -4.0,
+      "month_pct": 8.42,
+      "rs_vs_spy": 11.6,
+      "tech_score": 68.1,
+      "fund_score": 95.2,
+      "ah_boost": 50.0,
+      "setup_score": 75.8,
+      "signals": [
+        "strong-revenue-growth",
+        "strong-earnings-growth",
+        "high-margin",
+        "reasonable-valuation"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 25.493404,
+        "forward_pe": 15.728664,
+        "peg": 0.87,
+        "rev_growth": 0.162,
+        "eps_growth": 2.4,
+        "profit_margin": 0.22227,
+        "operating_margin": 0.25035998,
+        "roe": null,
+        "debt_to_equity": null,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 149737521152.0
+      },
+      "after_hours": null,
+      "name": "Booking Holdings Inc. Common St"
+    },
+    {
+      "symbol": "NOW",
+      "price": 110.07,
+      "day_pct": -4.92,
+      "month_pct": 10.87,
+      "rs_vs_spy": 21.17,
+      "tech_score": 79.8,
+      "fund_score": 66.2,
+      "ah_boost": 50.0,
+      "setup_score": 72.1,
+      "signals": [
+        "near-52w-high",
+        "rs-leader",
+        "strong-revenue-growth",
+        "reasonable-valuation"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 68.79375,
+        "forward_pe": 21.98678,
+        "peg": 1.03,
+        "rev_growth": 0.24,
+        "eps_growth": -0.219,
+        "profit_margin": 0.11336,
+        "operating_margin": 0.04063,
+        "roe": 0.14244,
+        "debt_to_equity": 67.538,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 113797193728.0
+      },
+      "after_hours": null,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "SPOT",
+      "price": 522.61,
+      "day_pct": -0.27,
+      "month_pct": 13.83,
+      "rs_vs_spy": 13.56,
+      "tech_score": 79.0,
+      "fund_score": 67.1,
+      "ah_boost": 50.0,
+      "setup_score": 71.9,
+      "signals": [
+        "near-52w-high",
+        "volume-surge",
+        "strong-earnings-growth",
+        "strong-balance-sheet"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 35.5759,
+        "forward_pe": 29.058811,
+        "peg": 1.81,
+        "rev_growth": 0.082,
+        "eps_growth": 2.224,
+        "profit_margin": 0.15449001,
+        "operating_margin": 0.15773,
+        "roe": 0.37987998,
+        "debt_to_equity": 5.943,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 107459100672.0
+      },
+      "after_hours": null,
+      "name": "Spotify Technology S.A."
+    },
+    {
+      "symbol": "REGN",
+      "price": 738.34,
+      "day_pct": 6.17,
+      "month_pct": 18.41,
+      "rs_vs_spy": 1.11,
+      "tech_score": 65.7,
+      "fund_score": 73.8,
+      "ah_boost": 50.0,
+      "setup_score": 67.0,
+      "signals": [
+        "1m-momentum",
+        "volume-surge",
+        "strong-revenue-growth",
+        "high-margin",
+        "reasonable-valuation",
+        "strong-balance-sheet"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 18.280268,
+        "forward_pe": 12.638067,
+        "peg": 1.23,
+        "rev_growth": 0.19,
+        "eps_growth": -0.072,
+        "profit_margin": 0.29648,
+        "operating_margin": 0.20658001,
+        "roe": 0.14548,
+        "debt_to_equity": 8.612,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 76015788032.0
+      },
+      "after_hours": null,
+      "name": "Regeneron Pharmaceuticals, Inc."
+    },
+    {
+      "symbol": "FTNT",
+      "price": 154.25,
+      "day_pct": 0.67,
+      "month_pct": 0.41,
+      "rs_vs_spy": 79.49,
+      "tech_score": 62.9,
+      "fund_score": 77.9,
+      "ah_boost": 50.0,
+      "setup_score": 66.9,
+      "signals": [
+        "volume-surge",
+        "rs-leader",
+        "strong-revenue-growth",
+        "strong-earnings-growth",
+        "high-margin",
+        "strong-balance-sheet"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 54.12281,
+        "forward_pe": 41.391174,
+        "peg": 3.58,
+        "rev_growth": 0.256,
+        "eps_growth": 0.439,
+        "profit_margin": 0.28173,
+        "operating_margin": 0.33595002,
+        "roe": 1.17442,
+        "debt_to_equity": 32.035,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 113011015680.0
+      },
+      "after_hours": null,
+      "name": "Fortinet, Inc."
+    },
+    {
+      "symbol": "ADBE",
+      "price": 247.9,
+      "day_pct": -5.9,
+      "month_pct": 20.92,
+      "rs_vs_spy": -2.74,
+      "tech_score": 65.3,
+      "fund_score": 72.6,
+      "ah_boost": 50.0,
+      "setup_score": 66.3,
+      "signals": [
+        "1m-momentum",
+        "near-52w-high",
+        "high-margin",
+        "reasonable-valuation"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 14.181922,
+        "forward_pe": 9.018851,
+        "peg": 0.72,
+        "rev_growth": 0.127,
+        "eps_growth": 0.079,
+        "profit_margin": 0.28689,
+        "operating_margin": 0.35327998,
+        "roe": 0.62953997,
+        "debt_to_equity": 61.443,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 98540249088.0
+      },
+      "after_hours": null,
+      "name": "Adobe Inc."
     },
     {
       "symbol": "SSNC",
-      "price": 78.31,
-      "day_pct": 0.53,
-      "month_pct": 24.42,
-      "rs_vs_spy": 10.37,
-      "tech_score": 63.8,
+      "price": 77.17,
+      "day_pct": -1.46,
+      "month_pct": 24.37,
+      "rs_vs_spy": 8.33,
+      "tech_score": 63.3,
       "fund_score": 73.1,
       "ah_boost": 50.0,
-      "setup_score": 65.7,
+      "setup_score": 65.4,
       "signals": [
         "1m-momentum",
         "strong-earnings-growth",
@@ -364,9 +322,9 @@
       "warnings": [],
       "blend": "tech+fund+ah",
       "fundamentals": {
-        "trailing_pe": 22.502872,
-        "forward_pe": 10.130921,
-        "peg": 0.77,
+        "trailing_pe": 22.49854,
+        "forward_pe": 9.98344,
+        "peg": 0.81,
         "rev_growth": 0.103,
         "eps_growth": 0.347,
         "profit_margin": 0.13161999,
@@ -375,152 +333,193 @@
         "debt_to_equity": 115.897,
         "next_earnings": null,
         "days_to_earnings": null,
-        "market_cap": 18859712512.0
+        "market_cap": 18585161728.0
       },
       "after_hours": null,
       "name": "SS&C Technologies Holdings, Inc"
+    },
+    {
+      "symbol": "AAPL",
+      "price": 333.43,
+      "day_pct": -1.41,
+      "month_pct": 15.23,
+      "rs_vs_spy": 19.52,
+      "tech_score": 69.4,
+      "fund_score": 65.5,
+      "ah_boost": 24.7,
+      "setup_score": 63.6,
+      "signals": [
+        "volume-surge",
+        "rs-leader",
+        "strong-revenue-growth",
+        "high-margin",
+        "ah-drop"
+      ],
+      "warnings": [],
+      "blend": "tech+fund+ah",
+      "fundamentals": {
+        "trailing_pe": 38.149887,
+        "forward_pe": 34.70442,
+        "peg": 2.72,
+        "rev_growth": 0.164,
+        "eps_growth": 0.287,
+        "profit_margin": 0.27618998,
+        "operating_margin": 0.32623002,
+        "roe": 1.4875101,
+        "debt_to_equity": 78.445,
+        "next_earnings": null,
+        "days_to_earnings": null,
+        "market_cap": 4897204862976.0
+      },
+      "after_hours": {
+        "ah_pct": -6.33,
+        "ext_price": 312.34,
+        "regular_close": 333.43,
+        "updated_at": "2026-07-30 22:34 UTC"
+      },
+      "name": "Apple Inc."
     }
   ],
   "long_term_picks": [
     {
       "symbol": "MU",
-      "price": 739.0,
+      "price": 874.66,
       "lt_score": 95.7,
       "fund_score": 99.6,
       "rev_growth": 3.457,
       "eps_growth": 13.685,
       "profit_margin": 0.55906,
-      "forward_pe": 4.8068314,
-      "peg": 0.13,
-      "rs_vs_spy": 39.78,
-      "three_month_pct": 42.56,
+      "forward_pe": 5.689233,
+      "peg": 0.11,
+      "rs_vs_spy": 65.68,
+      "three_month_pct": 69.15,
       "name": "Micron Technology, Inc."
     },
     {
       "symbol": "INOD",
-      "price": 55.4,
-      "lt_score": 90.1,
+      "price": 60.07,
+      "lt_score": 91.1,
       "fund_score": 93.7,
       "rev_growth": 0.544,
       "eps_growth": 0.909,
       "profit_margin": 0.13864,
-      "forward_pe": 27.7,
+      "forward_pe": 30.035,
       "peg": 0.87,
-      "rs_vs_spy": 35.9,
-      "three_month_pct": 38.67,
+      "rs_vs_spy": 38.77,
+      "three_month_pct": 42.24,
       "name": "Innodata Inc."
     },
     {
+      "symbol": "AMD",
+      "price": 485.39,
+      "lt_score": 89.5,
+      "fund_score": 92.8,
+      "rev_growth": 0.378,
+      "eps_growth": 0.912,
+      "profit_margin": 0.13374,
+      "forward_pe": 35.118984,
+      "peg": 1.01,
+      "rs_vs_spy": 33.46,
+      "three_month_pct": 36.93,
+      "name": "Advanced Micro Devices, Inc."
+    },
+    {
       "symbol": "DELL",
-      "price": 369.64,
+      "price": 404.81,
       "lt_score": 88.7,
       "fund_score": 82.8,
       "rev_growth": 0.875,
       "eps_growth": 2.825,
       "profit_margin": 0.062750004,
-      "forward_pe": 16.916706,
-      "peg": 0.7,
-      "rs_vs_spy": 77.25,
-      "three_month_pct": 80.03,
+      "forward_pe": 18.526274,
+      "peg": 0.61,
+      "rs_vs_spy": 90.59,
+      "three_month_pct": 94.06,
       "name": "Dell Technologies Inc."
     },
     {
-      "symbol": "DDOG",
-      "price": 264.2,
-      "lt_score": 82.1,
-      "fund_score": 70.1,
-      "rev_growth": 0.322,
-      "eps_growth": 1.04,
-      "profit_margin": 0.03695,
-      "forward_pe": 91.52605,
-      "peg": 1.57,
-      "rs_vs_spy": 94.42,
-      "three_month_pct": 97.19,
-      "name": "Datadog, Inc."
-    },
-    {
-      "symbol": "AMD",
-      "price": 429.56,
-      "lt_score": 81.6,
-      "fund_score": 89.8,
-      "rev_growth": 0.378,
-      "eps_growth": 0.912,
-      "profit_margin": 0.13374,
-      "forward_pe": 31.177828,
-      "peg": 1.16,
-      "rs_vs_spy": 24.65,
-      "three_month_pct": 27.42,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "LLY",
-      "price": 1210.02,
-      "lt_score": 81.3,
-      "fund_score": 77.3,
-      "rev_growth": 0.555,
-      "eps_growth": 1.699,
-      "profit_margin": 0.34986,
-      "forward_pe": 26.854864,
-      "peg": 1.67,
-      "rs_vs_spy": 39.62,
-      "three_month_pct": 42.4,
-      "name": "Eli Lilly and Company"
-    },
-    {
       "symbol": "FTNT",
-      "price": 153.22,
-      "lt_score": 80.2,
-      "fund_score": 70.5,
-      "rev_growth": 0.201,
-      "eps_growth": 0.286,
-      "profit_margin": 0.27491,
-      "forward_pe": 42.21623,
-      "peg": 3.5,
-      "rs_vs_spy": 75.16,
-      "three_month_pct": 77.94,
+      "price": 154.25,
+      "lt_score": 84.7,
+      "fund_score": 77.9,
+      "rev_growth": 0.256,
+      "eps_growth": 0.439,
+      "profit_margin": 0.28173,
+      "forward_pe": 41.391174,
+      "peg": 3.58,
+      "rs_vs_spy": 79.49,
+      "three_month_pct": 82.96,
       "name": "Fortinet, Inc."
     },
     {
+      "symbol": "AMAT",
+      "price": 501.77,
+      "lt_score": 82.3,
+      "fund_score": 84.1,
+      "rev_growth": 0.114,
+      "eps_growth": 0.335,
+      "profit_margin": 0.29314,
+      "forward_pe": 29.682734,
+      "peg": 1.1,
+      "rs_vs_spy": 23.88,
+      "three_month_pct": 27.35,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "DDOG",
+      "price": 268.56,
+      "lt_score": 81.1,
+      "fund_score": 68.5,
+      "rev_growth": 0.322,
+      "eps_growth": 1.04,
+      "profit_margin": 0.03695,
+      "forward_pe": 93.03647,
+      "peg": 1.65,
+      "rs_vs_spy": 99.69,
+      "three_month_pct": 103.16,
+      "name": "Datadog, Inc."
+    },
+    {
+      "symbol": "STX",
+      "price": 851.68,
+      "lt_score": 81.1,
+      "fund_score": 89.0,
+      "rev_growth": 0.485,
+      "eps_growth": 1.491,
+      "profit_margin": 0.26108998,
+      "forward_pe": 15.566476,
+      "peg": 0.53,
+      "rs_vs_spy": 23.05,
+      "three_month_pct": 26.52,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
       "symbol": "WDAY",
-      "price": 168.01,
+      "price": 158.11,
       "lt_score": 79.8,
       "fund_score": 78.3,
       "rev_growth": 0.135,
       "eps_growth": 2.48,
       "profit_margin": 0.08595,
-      "forward_pe": 13.287872,
-      "peg": 0.58,
-      "rs_vs_spy": 34.45,
-      "three_month_pct": 37.23,
+      "forward_pe": 12.504884,
+      "peg": 0.66,
+      "rs_vs_spy": 25.7,
+      "three_month_pct": 29.17,
       "name": "Workday, Inc."
     },
     {
-      "symbol": "ROKU",
-      "price": 145.33,
-      "lt_score": 76.5,
-      "fund_score": 78.0,
-      "rev_growth": 0.224,
-      "eps_growth": null,
-      "profit_margin": 0.04058,
-      "forward_pe": 39.43591,
-      "peg": 1.02,
-      "rs_vs_spy": 26.27,
-      "three_month_pct": 29.04,
-      "name": "Roku, Inc."
-    },
-    {
-      "symbol": "PANW",
-      "price": 314.15,
-      "lt_score": 72.5,
-      "fund_score": 59.3,
-      "rev_growth": 0.311,
-      "eps_growth": null,
-      "profit_margin": 0.07947,
-      "forward_pe": 76.15794,
-      "peg": 3.52,
-      "rs_vs_spy": 70.27,
-      "three_month_pct": 73.05,
-      "name": "Palo Alto Networks, Inc."
+      "symbol": "MNST",
+      "price": 97.65,
+      "lt_score": 73.4,
+      "fund_score": 74.4,
+      "rev_growth": 0.269,
+      "eps_growth": 0.289,
+      "profit_margin": 0.23108,
+      "forward_pe": 37.607597,
+      "peg": 2.86,
+      "rs_vs_spy": 23.23,
+      "three_month_pct": 26.7,
+      "name": "Monster Beverage Corporation"
     }
   ],
   "analyst_watchlist": [
@@ -528,271 +527,271 @@
       "symbol": "PANW",
       "firms": "Morgan Stanley",
       "thesis": "Cybersecurity + CyberArk deal",
-      "price": 314.15,
-      "month_pct": -5.38,
-      "rs_vs_spy": 70.27,
+      "price": 325.68,
+      "month_pct": -4.5,
+      "rs_vs_spy": 78.15,
       "name": "Palo Alto Networks, Inc."
-    },
-    {
-      "symbol": "CRWD",
-      "firms": "Morgan Stanley",
-      "thesis": "Cybersecurity platform",
-      "price": 179.38,
-      "month_pct": -3.42,
-      "rs_vs_spy": 55.83,
-      "name": "CrowdStrike Holdings, Inc."
     },
     {
       "symbol": "MU",
       "firms": "Goldman/UBS",
       "thesis": "Memory/HBM; AI supercycle",
-      "price": 739.0,
-      "month_pct": -35.46,
-      "rs_vs_spy": 39.78,
+      "price": 874.66,
+      "month_pct": -24.21,
+      "rs_vs_spy": 65.68,
       "name": "Micron Technology, Inc."
     },
     {
-      "symbol": "LLY",
-      "firms": "UBS/CFRA",
-      "thesis": "GLP-1 / longevity leader",
-      "price": 1210.02,
-      "month_pct": -1.62,
-      "rs_vs_spy": 39.62,
-      "name": "Eli Lilly and Company"
+      "symbol": "CRWD",
+      "firms": "Morgan Stanley",
+      "thesis": "Cybersecurity platform",
+      "price": 185.22,
+      "month_pct": -2.92,
+      "rs_vs_spy": 62.74,
+      "name": "CrowdStrike Holdings, Inc."
     },
     {
       "symbol": "STX",
       "firms": "Morgan Stanley",
       "thesis": "Storage for AI data",
-      "price": 764.43,
-      "month_pct": -21.07,
-      "rs_vs_spy": 16.14,
+      "price": 851.68,
+      "month_pct": -11.74,
+      "rs_vs_spy": 23.05,
       "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "LLY",
+      "firms": "UBS/CFRA",
+      "thesis": "GLP-1 / longevity leader",
+      "price": 1154.97,
+      "month_pct": -3.71,
+      "rs_vs_spy": 20.32,
+      "name": "Eli Lilly and Company"
     },
     {
       "symbol": "UNH",
       "firms": "UBS/Morgan Stanley",
       "thesis": "Healthcare; margin recovery",
-      "price": 420.57,
-      "month_pct": 0.18,
-      "rs_vs_spy": 11.31,
+      "price": 421.47,
+      "month_pct": 1.41,
+      "rs_vs_spy": 10.94,
       "name": "UnitedHealth Group Incorporated"
-    },
-    {
-      "symbol": "SSNC",
-      "firms": "UBS",
-      "thesis": "Financial software; efficiency",
-      "price": 78.31,
-      "month_pct": 24.42,
-      "rs_vs_spy": 10.37,
-      "name": "SS&C Technologies Holdings, Inc"
     },
     {
       "symbol": "AFRM",
       "firms": "Morgan Stanley",
       "thesis": "Fintech / BNPL; AI use",
-      "price": 70.11,
-      "month_pct": -14.28,
-      "rs_vs_spy": 7.67,
+      "price": 73.25,
+      "month_pct": -10.18,
+      "rs_vs_spy": 10.48,
       "name": "Affirm Holdings, Inc."
     },
     {
-      "symbol": "AMT",
+      "symbol": "SSNC",
       "firms": "UBS",
-      "thesis": "Towers + data centers",
-      "price": 179.26,
-      "month_pct": 6.28,
-      "rs_vs_spy": -1.22,
-      "name": "American Tower Corporation (REI"
-    },
-    {
-      "symbol": "LNT",
-      "firms": "UBS",
-      "thesis": "Utility w/ data-center contracts",
-      "price": 72.0,
-      "month_pct": -6.71,
-      "rs_vs_spy": -2.03,
-      "name": "Alliant Energy Corporation"
-    },
-    {
-      "symbol": "JCI",
-      "firms": "UBS",
-      "thesis": "Building efficiency / data-center HVAC",
-      "price": 139.42,
-      "month_pct": -0.75,
-      "rs_vs_spy": -3.87,
-      "name": "Johnson Controls International "
+      "thesis": "Financial software; efficiency",
+      "price": 77.17,
+      "month_pct": 24.37,
+      "rs_vs_spy": 8.33,
+      "name": "SS&C Technologies Holdings, Inc"
     },
     {
       "symbol": "ANET",
       "firms": "UBS",
       "thesis": "AI data-center networking",
-      "price": 157.97,
-      "month_pct": -3.74,
-      "rs_vs_spy": -9.13,
+      "price": 171.02,
+      "month_pct": 0.67,
+      "rs_vs_spy": -4.45,
       "name": "Arista Networks, Inc."
     },
     {
-      "symbol": "VST",
-      "firms": "Street",
-      "thesis": "Independent power producer; AI demand",
-      "price": 142.81,
-      "month_pct": -12.05,
-      "rs_vs_spy": -9.79,
-      "name": "Vistra Corp."
+      "symbol": "JCI",
+      "firms": "UBS",
+      "thesis": "Building efficiency / data-center HVAC",
+      "price": 143.88,
+      "month_pct": -1.53,
+      "rs_vs_spy": -4.67,
+      "name": "Johnson Controls International "
     },
     {
       "symbol": "NVDA",
       "firms": "Morgan Stanley",
       "thesis": "Core AI compute",
-      "price": 190.01,
-      "month_pct": -2.54,
-      "rs_vs_spy": -11.87,
+      "price": 195.04,
+      "month_pct": -2.52,
+      "rs_vs_spy": -5.63,
       "name": "NVIDIA Corporation"
     },
     {
-      "symbol": "TLN",
+      "symbol": "LNT",
+      "firms": "UBS",
+      "thesis": "Utility w/ data-center contracts",
+      "price": 70.89,
+      "month_pct": -7.08,
+      "rs_vs_spy": -6.93,
+      "name": "Alliant Energy Corporation"
+    },
+    {
+      "symbol": "AMT",
+      "firms": "UBS",
+      "thesis": "Towers + data centers",
+      "price": 174.46,
+      "month_pct": 6.66,
+      "rs_vs_spy": -7.07,
+      "name": "American Tower Corporation (REI"
+    },
+    {
+      "symbol": "VST",
       "firms": "Street",
-      "thesis": "Nuclear/power; data-center deals",
-      "price": 316.19,
-      "month_pct": -20.82,
-      "rs_vs_spy": -12.93,
-      "name": "Talen Energy Corporation"
-    },
-    {
-      "symbol": "PLTR",
-      "firms": "Street/Seeking Alpha",
-      "thesis": "AI data analytics; ~70% rev growth",
-      "price": 123.0,
-      "month_pct": 6.31,
-      "rs_vs_spy": -13.63,
-      "name": "Palantir Technologies Inc."
-    },
-    {
-      "symbol": "META",
-      "firms": "Morgan Stanley",
-      "thesis": "AI-driven ad platform",
-      "price": 585.61,
-      "month_pct": 4.09,
-      "rs_vs_spy": -15.18,
-      "name": "Meta Platforms, Inc."
-    },
-    {
-      "symbol": "CEG",
-      "firms": "UBS/BlackRock",
-      "thesis": "Nuclear power for AI data centers",
-      "price": 257.95,
-      "month_pct": -0.53,
-      "rs_vs_spy": -15.79,
-      "name": "Constellation Energy Corporatio"
+      "thesis": "Independent power producer; AI demand",
+      "price": 148.62,
+      "month_pct": -6.31,
+      "rs_vs_spy": -9.18,
+      "name": "Vistra Corp."
     },
     {
       "symbol": "GEV",
       "firms": "BlackRock",
       "thesis": "Grid + nuclear equipment (GE Vernova)",
-      "price": 900.28,
-      "month_pct": -18.34,
-      "rs_vs_spy": -18.05,
+      "price": 981.98,
+      "month_pct": -16.42,
+      "rs_vs_spy": -12.79,
       "name": "GE Vernova Inc."
+    },
+    {
+      "symbol": "TLN",
+      "firms": "Street",
+      "thesis": "Nuclear/power; data-center deals",
+      "price": 332.54,
+      "month_pct": -13.46,
+      "rs_vs_spy": -14.18,
+      "name": "Talen Energy Corporation"
+    },
+    {
+      "symbol": "META",
+      "firms": "Morgan Stanley",
+      "thesis": "AI-driven ad platform",
+      "price": 539.03,
+      "month_pct": -4.31,
+      "rs_vs_spy": -15.3,
+      "name": "Meta Platforms, Inc."
+    },
+    {
+      "symbol": "PLTR",
+      "firms": "Street/Seeking Alpha",
+      "thesis": "AI data analytics; ~70% rev growth",
+      "price": 122.26,
+      "month_pct": 4.79,
+      "rs_vs_spy": -15.58,
+      "name": "Palantir Technologies Inc."
+    },
+    {
+      "symbol": "CEG",
+      "firms": "UBS/BlackRock",
+      "thesis": "Nuclear power for AI data centers",
+      "price": 263.56,
+      "month_pct": 6.12,
+      "rs_vs_spy": -19.14,
+      "name": "Constellation Energy Corporatio"
     },
     {
       "symbol": "NXT",
       "firms": "UBS",
       "thesis": "Solar trackers (Nextracker)",
-      "price": 92.67,
-      "month_pct": -16.26,
-      "rs_vs_spy": -21.68,
+      "price": 96.9,
+      "month_pct": -18.67,
+      "rs_vs_spy": -22.13,
       "name": "Nextpower Inc."
     },
     {
       "symbol": "BWXT",
       "firms": "Street",
       "thesis": "Small modular reactors / nuclear",
-      "price": 157.44,
-      "month_pct": -16.81,
-      "rs_vs_spy": -27.01,
+      "price": 165.59,
+      "month_pct": -14.93,
+      "rs_vs_spy": -26.84,
       "name": "BWX Technologies, Inc."
-    },
-    {
-      "symbol": "VRT",
-      "firms": "Street",
-      "thesis": "Data-center power & cooling",
-      "price": 223.04,
-      "month_pct": -27.34,
-      "rs_vs_spy": -29.92,
-      "name": "Vertiv Holdings, LLC"
     },
     {
       "symbol": "CIEN",
       "firms": "Seeking Alpha",
       "thesis": "Optical networking for AI data centers",
-      "price": 330.37,
-      "month_pct": -31.02,
-      "rs_vs_spy": -33.28,
+      "price": 372.07,
+      "month_pct": -24.15,
+      "rs_vs_spy": -32.95,
       "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "VRT",
+      "firms": "Street",
+      "thesis": "Data-center power & cooling",
+      "price": 227.5,
+      "month_pct": -32.05,
+      "rs_vs_spy": -34.2,
+      "name": "Vertiv Holdings, LLC"
     }
   ],
   "sector_week": {
     "leader": {
-      "sector": "Health Care",
-      "etf": "XLV",
-      "week_pct": 4.27
+      "sector": "Consumer Discretionary",
+      "etf": "XLY",
+      "week_pct": 3.34
     },
     "ranked": [
       {
-        "sector": "Health Care",
-        "etf": "XLV",
-        "week_pct": 4.27
+        "sector": "Consumer Discretionary",
+        "etf": "XLY",
+        "week_pct": 3.34
       },
       {
         "sector": "Consumer Staples",
         "etf": "XLP",
-        "week_pct": 3.53
-      },
-      {
-        "sector": "Real Estate",
-        "etf": "XLRE",
-        "week_pct": 2.11
+        "week_pct": 2.72
       },
       {
         "sector": "Materials",
         "etf": "XLB",
-        "week_pct": 1.81
+        "week_pct": 2.68
       },
       {
         "sector": "Financials",
         "etf": "XLF",
-        "week_pct": 1.12
+        "week_pct": 2.1
+      },
+      {
+        "sector": "Health Care",
+        "etf": "XLV",
+        "week_pct": 1.29
       },
       {
         "sector": "Communication Svcs",
         "etf": "XLC",
-        "week_pct": 0.28
+        "week_pct": 1.14
+      },
+      {
+        "sector": "Real Estate",
+        "etf": "XLRE",
+        "week_pct": 0.78
       },
       {
         "sector": "Energy",
         "etf": "XLE",
-        "week_pct": -0.93
-      },
-      {
-        "sector": "Industrials",
-        "etf": "XLI",
-        "week_pct": -1.22
-      },
-      {
-        "sector": "Consumer Discretionary",
-        "etf": "XLY",
-        "week_pct": -2.11
-      },
-      {
-        "sector": "Utilities",
-        "etf": "XLU",
-        "week_pct": -2.22
+        "week_pct": -0.71
       },
       {
         "sector": "Technology",
         "etf": "XLK",
-        "week_pct": -7.6
+        "week_pct": -1.52
+      },
+      {
+        "sector": "Industrials",
+        "etf": "XLI",
+        "week_pct": -1.95
+      },
+      {
+        "sector": "Utilities",
+        "etf": "XLU",
+        "week_pct": -3.31
       }
     ]
   },
@@ -800,101 +799,101 @@
     "leader": {
       "sector": "Cloud",
       "etf": "SKYY",
-      "week_pct": 4.03
+      "week_pct": 7.95
     },
     "ranked": [
       {
         "sector": "Cloud",
         "etf": "SKYY",
-        "week_pct": 4.03
+        "week_pct": 7.95
       },
       {
         "sector": "Software",
         "etf": "IGV",
-        "week_pct": 3.76
-      },
-      {
-        "sector": "Aerospace & Defense",
-        "etf": "ITA",
-        "week_pct": 2.23
+        "week_pct": 7.13
       },
       {
         "sector": "Internet",
         "etf": "FDN",
-        "week_pct": 1.13
-      },
-      {
-        "sector": "Regional Banks",
-        "etf": "KRE",
-        "week_pct": 0.77
+        "week_pct": 3.82
       },
       {
         "sector": "Cybersecurity",
         "etf": "CIBR",
-        "week_pct": -0.6
-      },
-      {
-        "sector": "Homebuilders",
-        "etf": "XHB",
-        "week_pct": -2.1
-      },
-      {
-        "sector": "Transports",
-        "etf": "IYT",
-        "week_pct": -2.49
-      },
-      {
-        "sector": "Biotech",
-        "etf": "XBI",
-        "week_pct": -2.76
-      },
-      {
-        "sector": "AI & Robotics",
-        "etf": "BOTZ",
-        "week_pct": -3.47
+        "week_pct": 2.62
       },
       {
         "sector": "Gold Miners",
         "etf": "GDX",
-        "week_pct": -4.06
+        "week_pct": 2.35
+      },
+      {
+        "sector": "AI & Robotics",
+        "etf": "BOTZ",
+        "week_pct": 1.72
+      },
+      {
+        "sector": "Regional Banks",
+        "etf": "KRE",
+        "week_pct": 1.0
+      },
+      {
+        "sector": "Aerospace & Defense",
+        "etf": "ITA",
+        "week_pct": -0.04
+      },
+      {
+        "sector": "Biotech",
+        "etf": "XBI",
+        "week_pct": -0.51
       },
       {
         "sector": "Space",
         "etf": "ARKX",
-        "week_pct": -4.62
+        "week_pct": -1.91
       },
       {
-        "sector": "Uranium / Nuclear",
-        "etf": "URA",
-        "week_pct": -8.42
+        "sector": "Homebuilders",
+        "etf": "XHB",
+        "week_pct": -2.03
       },
       {
         "sector": "Blockchain",
         "etf": "BLOK",
-        "week_pct": -10.12
+        "week_pct": -3.3
+      },
+      {
+        "sector": "Uranium / Nuclear",
+        "etf": "URA",
+        "week_pct": -3.43
+      },
+      {
+        "sector": "Transports",
+        "etf": "IYT",
+        "week_pct": -3.75
       },
       {
         "sector": "Solar",
         "etf": "TAN",
-        "week_pct": -11.24
+        "week_pct": -5.7
       },
       {
         "sector": "Semiconductors",
         "etf": "SMH",
-        "week_pct": -14.09
+        "week_pct": -7.11
       }
     ]
   },
   "top_picks": [
     {
       "symbol": "WDAY",
-      "price": 168.01,
-      "day_pct": 5.21,
-      "month_pct": 35.95,
-      "rs_vs_spy": 34.45,
-      "from_high_pct": -32.17,
-      "vol_ratio": 1.66,
-      "score": 95.7,
+      "price": 158.11,
+      "day_pct": -5.89,
+      "month_pct": 29.15,
+      "rs_vs_spy": 25.7,
+      "from_high_pct": -36.17,
+      "vol_ratio": 1.49,
+      "score": 94.4,
       "signals": [
         "1m-momentum",
         "near-52w-high",
@@ -905,30 +904,28 @@
     },
     {
       "symbol": "NOW",
-      "price": 115.76,
-      "day_pct": 4.65,
-      "month_pct": 15.79,
-      "rs_vs_spy": 27.45,
-      "from_high_pct": -40.79,
-      "vol_ratio": 1.73,
-      "score": 92.7,
+      "price": 110.07,
+      "day_pct": -4.92,
+      "month_pct": 10.87,
+      "rs_vs_spy": 21.17,
+      "from_high_pct": -42.74,
+      "vol_ratio": 1.22,
+      "score": 79.8,
       "signals": [
-        "1m-momentum",
         "near-52w-high",
-        "volume-surge",
         "rs-leader"
       ],
       "name": "ServiceNow, Inc."
     },
     {
       "symbol": "SPOT",
-      "price": 524.01,
-      "day_pct": 2.43,
-      "month_pct": 13.35,
-      "rs_vs_spy": 15.36,
-      "from_high_pct": -29.05,
-      "vol_ratio": 1.52,
-      "score": 80.2,
+      "price": 522.61,
+      "day_pct": -0.27,
+      "month_pct": 13.83,
+      "rs_vs_spy": 13.56,
+      "from_high_pct": -29.24,
+      "vol_ratio": 1.37,
+      "score": 79.0,
       "signals": [
         "near-52w-high",
         "volume-surge"
@@ -936,464 +933,508 @@
       "name": "Spotify Technology S.A."
     },
     {
-      "symbol": "ADBE",
-      "price": 263.43,
-      "day_pct": 5.72,
-      "month_pct": 27.61,
-      "rs_vs_spy": 5.38,
-      "from_high_pct": -28.31,
-      "vol_ratio": 1.77,
-      "score": 78.4,
+      "symbol": "MSFT",
+      "price": 451.1,
+      "day_pct": 15.51,
+      "month_pct": 20.93,
+      "rs_vs_spy": 7.39,
+      "from_high_pct": -16.25,
+      "vol_ratio": 3.41,
+      "score": 77.8,
       "signals": [
         "1m-momentum",
         "near-52w-high",
         "volume-surge"
       ],
-      "name": "Adobe Inc."
+      "name": "Microsoft Corporation"
     },
     {
-      "symbol": "CRM",
-      "price": 188.38,
-      "day_pct": 3.79,
-      "month_pct": 19.28,
-      "rs_vs_spy": 1.44,
-      "from_high_pct": -28.88,
-      "vol_ratio": 1.43,
-      "score": 70.3,
-      "signals": [
-        "1m-momentum",
-        "near-52w-high",
-        "volume-surge"
-      ],
-      "name": "Salesforce, Inc."
-    },
-    {
-      "symbol": "TMO",
-      "price": 576.46,
-      "day_pct": 0.01,
-      "month_pct": 13.83,
-      "rs_vs_spy": 20.98,
-      "from_high_pct": -9.67,
-      "vol_ratio": 1.14,
-      "score": 70.3,
-      "signals": [
-        "rs-leader"
-      ],
-      "name": "Thermo Fisher Scientific Inc"
-    },
-    {
-      "symbol": "PYPL",
-      "price": 58.35,
-      "day_pct": 0.05,
-      "month_pct": 31.48,
-      "rs_vs_spy": 12.15,
-      "from_high_pct": -22.69,
-      "vol_ratio": 0.95,
-      "score": 69.0,
-      "signals": [
-        "1m-momentum",
-        "near-52w-high"
-      ],
-      "name": "PayPal Holdings, Inc."
-    },
-    {
-      "symbol": "RTX",
-      "price": 215.25,
-      "day_pct": -1.52,
-      "month_pct": 14.9,
-      "rs_vs_spy": 22.32,
-      "from_high_pct": -1.52,
-      "vol_ratio": 1.66,
-      "score": 69.0,
+      "symbol": "AAPL",
+      "price": 333.43,
+      "day_pct": -1.41,
+      "month_pct": 15.23,
+      "rs_vs_spy": 19.52,
+      "from_high_pct": -1.96,
+      "vol_ratio": 1.48,
+      "score": 69.4,
       "signals": [
         "volume-surge",
         "rs-leader"
       ],
-      "name": "RTX Corporation"
+      "name": "Apple Inc."
     },
     {
-      "symbol": "ABT",
-      "price": 108.0,
-      "day_pct": 0.68,
-      "month_pct": 17.32,
-      "rs_vs_spy": 16.32,
-      "from_high_pct": -19.12,
-      "vol_ratio": 0.94,
-      "score": 68.5,
+      "symbol": "BKNG",
+      "price": 193.24,
+      "day_pct": -4.0,
+      "month_pct": 8.42,
+      "rs_vs_spy": 11.6,
+      "from_high_pct": -14.84,
+      "vol_ratio": 1.23,
+      "score": 68.1,
+      "signals": [],
+      "name": "Booking Holdings Inc. Common St"
+    },
+    {
+      "symbol": "SNOW",
+      "price": 298.1,
+      "day_pct": 5.37,
+      "month_pct": 17.13,
+      "rs_vs_spy": 114.97,
+      "from_high_pct": 0.0,
+      "vol_ratio": 1.38,
+      "score": 67.3,
       "signals": [
         "1m-momentum",
+        "volume-surge",
+        "rs-leader"
+      ],
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "ZS",
+      "price": 148.39,
+      "day_pct": -3.5,
+      "month_pct": 5.13,
+      "rs_vs_spy": 10.08,
+      "from_high_pct": -55.87,
+      "vol_ratio": 1.19,
+      "score": 66.9,
+      "signals": [
         "near-52w-high"
       ],
-      "name": "Abbott Laboratories"
+      "name": "Zscaler, Inc."
+    },
+    {
+      "symbol": "TMO",
+      "price": 576.77,
+      "day_pct": 0.05,
+      "month_pct": 15.04,
+      "rs_vs_spy": 17.07,
+      "from_high_pct": -9.62,
+      "vol_ratio": 1.01,
+      "score": 66.5,
+      "signals": [],
+      "name": "Thermo Fisher Scientific Inc"
     },
     {
       "symbol": "LMT",
-      "price": 569.2,
-      "day_pct": -2.08,
-      "month_pct": 13.37,
-      "rs_vs_spy": 9.6,
-      "from_high_pct": -15.34,
-      "vol_ratio": 1.37,
-      "score": 68.5,
-      "signals": [],
+      "price": 574.11,
+      "day_pct": 0.86,
+      "month_pct": 12.69,
+      "rs_vs_spy": 8.09,
+      "from_high_pct": -14.6,
+      "vol_ratio": 1.27,
+      "score": 66.1,
+      "signals": [
+        "volume-surge"
+      ],
       "name": "Lockheed Martin Corporation"
     }
   ],
   "breakouts": [
     {
       "symbol": "SNOW",
-      "price": 282.9,
-      "day_pct": 4.64,
+      "price": 298.1,
+      "day_pct": 5.37,
       "from_high_pct": 0.0,
-      "month_pct": 12.42,
+      "month_pct": 17.13,
       "name": "Snowflake Inc."
     },
     {
-      "symbol": "ROKU",
-      "price": 145.33,
-      "day_pct": 0.99,
+      "symbol": "NET",
+      "price": 283.39,
+      "day_pct": 4.81,
       "from_high_pct": 0.0,
-      "month_pct": 6.45,
-      "name": "Roku, Inc."
-    },
-    {
-      "symbol": "TGT",
-      "price": 145.9,
-      "day_pct": 1.18,
-      "from_high_pct": 0.0,
-      "month_pct": 8.95,
-      "name": "Target Corporation"
-    },
-    {
-      "symbol": "KO",
-      "price": 89.08,
-      "day_pct": 0.92,
-      "from_high_pct": 0.0,
-      "month_pct": 7.78,
-      "name": "Coca-Cola Company (The)"
-    },
-    {
-      "symbol": "V",
-      "price": 368.73,
-      "day_pct": 0.58,
-      "from_high_pct": 0.0,
-      "month_pct": 7.93,
-      "name": "Visa Inc."
-    },
-    {
-      "symbol": "ABBV",
-      "price": 263.3,
-      "day_pct": 0.04,
-      "from_high_pct": 0.0,
-      "month_pct": 4.27,
-      "name": "AbbVie Inc."
-    },
-    {
-      "symbol": "ABNB",
-      "price": 153.01,
-      "day_pct": -0.07,
-      "from_high_pct": -0.07,
-      "month_pct": 3.97,
-      "name": "Airbnb, Inc."
+      "month_pct": 15.54,
+      "name": "Cloudflare, Inc."
     },
     {
       "symbol": "EA",
-      "price": 208.91,
-      "day_pct": 0.02,
-      "from_high_pct": -0.18,
-      "month_pct": 1.88,
+      "price": 209.59,
+      "day_pct": 0.33,
+      "from_high_pct": 0.0,
+      "month_pct": 2.22,
       "name": "Electronic Arts Inc."
     },
     {
-      "symbol": "AAPL",
-      "price": 338.19,
-      "day_pct": -0.56,
-      "from_high_pct": -0.56,
-      "month_pct": 20.04,
-      "name": "Apple Inc."
-    },
-    {
-      "symbol": "JNJ",
-      "price": 265.53,
-      "day_pct": -0.45,
-      "from_high_pct": -0.64,
-      "month_pct": 2.72,
-      "name": "Johnson & Johnson"
-    },
-    {
       "symbol": "BMY",
-      "price": 63.1,
-      "day_pct": -0.79,
-      "from_high_pct": -0.79,
-      "month_pct": 8.97,
+      "price": 64.86,
+      "day_pct": 2.79,
+      "from_high_pct": 0.0,
+      "month_pct": 13.84,
       "name": "Bristol-Myers Squibb Company"
     },
     {
-      "symbol": "MRK",
-      "price": 130.36,
-      "day_pct": -1.11,
-      "from_high_pct": -1.11,
-      "month_pct": 0.76,
-      "name": "Merck & Company, Inc."
+      "symbol": "ROKU",
+      "price": 145.09,
+      "day_pct": -0.17,
+      "from_high_pct": -0.17,
+      "month_pct": 5.03,
+      "name": "Roku, Inc."
     },
     {
-      "symbol": "EOG",
-      "price": 145.94,
-      "day_pct": 4.51,
-      "from_high_pct": -1.15,
-      "month_pct": 11.44,
-      "name": "EOG Resources, Inc."
+      "symbol": "KO",
+      "price": 88.49,
+      "day_pct": -0.66,
+      "from_high_pct": -0.66,
+      "month_pct": 8.88,
+      "name": "Coca-Cola Company (The)"
+    },
+    {
+      "symbol": "ABNB",
+      "price": 152.08,
+      "day_pct": -0.61,
+      "from_high_pct": -0.67,
+      "month_pct": 6.28,
+      "name": "Airbnb, Inc."
+    },
+    {
+      "symbol": "V",
+      "price": 366.27,
+      "day_pct": -0.67,
+      "from_high_pct": -0.67,
+      "month_pct": 6.76,
+      "name": "Visa Inc."
+    },
+    {
+      "symbol": "PSX",
+      "price": 210.6,
+      "day_pct": 1.83,
+      "from_high_pct": -0.79,
+      "month_pct": 24.58,
+      "name": "Phillips 66"
+    },
+    {
+      "symbol": "TGT",
+      "price": 144.51,
+      "day_pct": -0.95,
+      "from_high_pct": -0.95,
+      "month_pct": 10.64,
+      "name": "Target Corporation"
+    },
+    {
+      "symbol": "VLO",
+      "price": 311.71,
+      "day_pct": 3.45,
+      "from_high_pct": -0.98,
+      "month_pct": 19.69,
+      "name": "Valero Energy Corporation"
     },
     {
       "symbol": "AMGN",
       "price": 387.64,
-      "day_pct": -1.39,
+      "day_pct": 0.0,
       "from_high_pct": -1.39,
-      "month_pct": 7.51,
+      "month_pct": 7.05,
       "name": "Amgen Inc."
     },
     {
-      "symbol": "RTX",
-      "price": 215.25,
-      "day_pct": -1.52,
-      "from_high_pct": -1.52,
-      "month_pct": 14.9,
-      "name": "RTX Corporation"
+      "symbol": "BAC",
+      "price": 61.73,
+      "day_pct": 1.08,
+      "from_high_pct": -1.42,
+      "month_pct": 8.34,
+      "name": "Bank of America Corporation"
+    },
+    {
+      "symbol": "EOG",
+      "price": 145.51,
+      "day_pct": -0.29,
+      "from_high_pct": -1.44,
+      "month_pct": 13.0,
+      "name": "EOG Resources, Inc."
+    },
+    {
+      "symbol": "MRK",
+      "price": 129.79,
+      "day_pct": -0.44,
+      "from_high_pct": -1.54,
+      "month_pct": 1.0,
+      "name": "Merck & Company, Inc."
     },
     {
       "symbol": "PNC",
-      "price": 248.49,
-      "day_pct": -1.24,
-      "from_high_pct": -1.85,
-      "month_pct": 1.52,
+      "price": 248.71,
+      "day_pct": 0.09,
+      "from_high_pct": -1.77,
+      "month_pct": 1.82,
       "name": "PNC Financial Services Group, I"
     },
     {
-      "symbol": "SCHW",
-      "price": 104.47,
-      "day_pct": -1.42,
-      "from_high_pct": -1.88,
-      "month_pct": 15.37,
-      "name": "Charles Schwab Corporation (The"
+      "symbol": "MPC",
+      "price": 314.08,
+      "day_pct": 1.74,
+      "from_high_pct": -1.78,
+      "month_pct": 22.85,
+      "name": "Marathon Petroleum Corporation"
+    },
+    {
+      "symbol": "JPM",
+      "price": 350.85,
+      "day_pct": 1.78,
+      "from_high_pct": -1.81,
+      "month_pct": 7.67,
+      "name": "JP Morgan Chase & Co."
+    },
+    {
+      "symbol": "RTX",
+      "price": 214.38,
+      "day_pct": -0.4,
+      "from_high_pct": -1.92,
+      "month_pct": 12.99,
+      "name": "RTX Corporation"
+    },
+    {
+      "symbol": "AAPL",
+      "price": 333.43,
+      "day_pct": -1.41,
+      "from_high_pct": -1.96,
+      "month_pct": 15.23,
+      "name": "Apple Inc."
     }
   ],
   "volume_surges": [
     {
+      "symbol": "SBUX",
+      "price": 105.85,
+      "day_pct": 1.64,
+      "vol_ratio": 3.51,
+      "volume": 23406100,
+      "name": "Starbucks Corporation"
+    },
+    {
+      "symbol": "MSFT",
+      "price": 451.1,
+      "day_pct": 15.51,
+      "vol_ratio": 3.41,
+      "volume": 109975300,
+      "name": "Microsoft Corporation"
+    },
+    {
       "symbol": "VRT",
-      "price": 223.04,
-      "day_pct": -17.26,
-      "vol_ratio": 4.42,
-      "volume": 21184400,
+      "price": 227.5,
+      "day_pct": 2.0,
+      "vol_ratio": 2.65,
+      "volume": 14481300,
       "name": "Vertiv Holdings, LLC"
     },
     {
-      "symbol": "BSX",
-      "price": 46.04,
-      "day_pct": -0.04,
-      "vol_ratio": 2.71,
-      "volume": 51273300,
-      "name": "Boston Scientific Corporation"
+      "symbol": "AMZN",
+      "price": 235.5,
+      "day_pct": 3.9,
+      "vol_ratio": 2.58,
+      "volume": 100880900,
+      "name": "Amazon.com, Inc."
+    },
+    {
+      "symbol": "META",
+      "price": 539.03,
+      "day_pct": -7.95,
+      "vol_ratio": 2.21,
+      "volume": 42161100,
+      "name": "Meta Platforms, Inc."
     },
     {
       "symbol": "FTNT",
-      "price": 153.22,
-      "day_pct": 2.16,
-      "vol_ratio": 2.59,
-      "volume": 12356500,
+      "price": 154.25,
+      "day_pct": 0.67,
+      "vol_ratio": 2.18,
+      "volume": 11018600,
       "name": "Fortinet, Inc."
     },
     {
-      "symbol": "BTDR",
-      "price": 8.9,
-      "day_pct": -13.42,
-      "vol_ratio": 2.48,
-      "volume": 21069300,
-      "name": "Bitdeer Technologies Group"
+      "symbol": "ARM",
+      "price": 241.54,
+      "day_pct": 7.4,
+      "vol_ratio": 2.15,
+      "volume": 12760000,
+      "name": "Arm Holdings plc"
     },
     {
-      "symbol": "CAT",
-      "price": 782.71,
-      "day_pct": -6.91,
+      "symbol": "DIS",
+      "price": 96.16,
+      "day_pct": -2.36,
       "vol_ratio": 2.04,
-      "volume": 5966400,
-      "name": "Caterpillar, Inc."
+      "volume": 21102100,
+      "name": "Walt Disney Company (The)"
     }
   ],
   "top_relative_strength": [
     {
       "symbol": "SNOW",
-      "price": 282.9,
-      "three_month_pct": 100.33,
-      "rs_vs_spy": 97.55,
+      "price": 298.1,
+      "three_month_pct": 118.44,
+      "rs_vs_spy": 114.97,
       "name": "Snowflake Inc."
     },
     {
       "symbol": "DDOG",
-      "price": 264.2,
-      "three_month_pct": 97.19,
-      "rs_vs_spy": 94.42,
+      "price": 268.56,
+      "three_month_pct": 103.16,
+      "rs_vs_spy": 99.69,
       "name": "Datadog, Inc."
     },
     {
       "symbol": "DELL",
-      "price": 369.64,
-      "three_month_pct": 80.03,
-      "rs_vs_spy": 77.25,
+      "price": 404.81,
+      "three_month_pct": 94.06,
+      "rs_vs_spy": 90.59,
       "name": "Dell Technologies Inc."
     },
     {
       "symbol": "FTNT",
-      "price": 153.22,
-      "three_month_pct": 77.94,
-      "rs_vs_spy": 75.16,
+      "price": 154.25,
+      "three_month_pct": 82.96,
+      "rs_vs_spy": 79.49,
       "name": "Fortinet, Inc."
     },
     {
       "symbol": "PANW",
-      "price": 314.15,
-      "three_month_pct": 73.05,
-      "rs_vs_spy": 70.27,
+      "price": 325.68,
+      "three_month_pct": 81.62,
+      "rs_vs_spy": 78.15,
       "name": "Palo Alto Networks, Inc."
     },
     {
-      "symbol": "CRWD",
-      "price": 179.38,
-      "three_month_pct": 58.61,
-      "rs_vs_spy": 55.83,
-      "name": "CrowdStrike Holdings, Inc."
-    },
-    {
       "symbol": "MU",
-      "price": 739.0,
-      "three_month_pct": 42.56,
-      "rs_vs_spy": 39.78,
+      "price": 874.66,
+      "three_month_pct": 69.15,
+      "rs_vs_spy": 65.68,
       "name": "Micron Technology, Inc."
     },
     {
-      "symbol": "LLY",
-      "price": 1210.02,
-      "three_month_pct": 42.4,
-      "rs_vs_spy": 39.62,
-      "name": "Eli Lilly and Company"
+      "symbol": "CRWD",
+      "price": 185.22,
+      "three_month_pct": 66.21,
+      "rs_vs_spy": 62.74,
+      "name": "CrowdStrike Holdings, Inc."
     },
     {
       "symbol": "INOD",
-      "price": 55.4,
-      "three_month_pct": 38.67,
-      "rs_vs_spy": 35.9,
+      "price": 60.07,
+      "three_month_pct": 42.24,
+      "rs_vs_spy": 38.77,
       "name": "Innodata Inc."
     },
     {
-      "symbol": "WDAY",
-      "price": 168.01,
-      "three_month_pct": 37.23,
-      "rs_vs_spy": 34.45,
-      "name": "Workday, Inc."
-    },
-    {
-      "symbol": "NOW",
-      "price": 115.76,
-      "three_month_pct": 30.23,
-      "rs_vs_spy": 27.45,
-      "name": "ServiceNow, Inc."
-    },
-    {
-      "symbol": "ABBV",
-      "price": 263.3,
-      "three_month_pct": 30.06,
-      "rs_vs_spy": 27.28,
-      "name": "AbbVie Inc."
-    },
-    {
-      "symbol": "ROKU",
-      "price": 145.33,
-      "three_month_pct": 29.04,
-      "rs_vs_spy": 26.27,
-      "name": "Roku, Inc."
-    },
-    {
-      "symbol": "MPC",
-      "price": 308.72,
-      "three_month_pct": 28.16,
-      "rs_vs_spy": 25.38,
-      "name": "Marathon Petroleum Corporation"
-    },
-    {
       "symbol": "NET",
-      "price": 270.38,
-      "three_month_pct": 27.56,
-      "rs_vs_spy": 24.78,
+      "price": 283.39,
+      "three_month_pct": 38.26,
+      "rs_vs_spy": 34.79,
       "name": "Cloudflare, Inc."
     },
     {
       "symbol": "AMD",
-      "price": 429.56,
-      "three_month_pct": 27.42,
-      "rs_vs_spy": 24.65,
+      "price": 485.39,
+      "three_month_pct": 36.93,
+      "rs_vs_spy": 33.46,
       "name": "Advanced Micro Devices, Inc."
     },
     {
-      "symbol": "CVS",
-      "price": 105.92,
-      "three_month_pct": 27.03,
-      "rs_vs_spy": 24.25,
-      "name": "CVS Health Corporation"
-    },
-    {
-      "symbol": "MNST",
-      "price": 97.23,
-      "three_month_pct": 26.45,
-      "rs_vs_spy": 23.68,
-      "name": "Monster Beverage Corporation"
-    },
-    {
-      "symbol": "HOOD",
-      "price": 89.84,
-      "three_month_pct": 26.18,
-      "rs_vs_spy": 23.4,
-      "name": "Robinhood Markets, Inc."
-    },
-    {
-      "symbol": "CSCO",
-      "price": 112.48,
-      "three_month_pct": 26.05,
-      "rs_vs_spy": 23.27,
-      "name": "Cisco Systems, Inc."
-    },
-    {
-      "symbol": "AAPL",
-      "price": 338.19,
-      "three_month_pct": 25.29,
-      "rs_vs_spy": 22.52,
-      "name": "Apple Inc."
-    },
-    {
-      "symbol": "RTX",
-      "price": 215.25,
-      "three_month_pct": 25.09,
-      "rs_vs_spy": 22.32,
-      "name": "RTX Corporation"
-    },
-    {
       "symbol": "MDB",
-      "price": 321.1,
-      "three_month_pct": 24.32,
-      "rs_vs_spy": 21.54,
+      "price": 325.88,
+      "three_month_pct": 29.92,
+      "rs_vs_spy": 26.45,
       "name": "MongoDB, Inc."
     },
     {
-      "symbol": "GE",
-      "price": 350.63,
-      "three_month_pct": 23.8,
-      "rs_vs_spy": 21.03,
-      "name": "GE Aerospace"
+      "symbol": "WDAY",
+      "price": 158.11,
+      "three_month_pct": 29.17,
+      "rs_vs_spy": 25.7,
+      "name": "Workday, Inc."
     },
     {
-      "symbol": "TMO",
-      "price": 576.46,
-      "three_month_pct": 23.76,
-      "rs_vs_spy": 20.98,
-      "name": "Thermo Fisher Scientific Inc"
+      "symbol": "AMAT",
+      "price": 501.77,
+      "three_month_pct": 27.35,
+      "rs_vs_spy": 23.88,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "CVS",
+      "price": 105.22,
+      "three_month_pct": 27.11,
+      "rs_vs_spy": 23.64,
+      "name": "CVS Health Corporation"
+    },
+    {
+      "symbol": "MPC",
+      "price": 314.08,
+      "three_month_pct": 26.98,
+      "rs_vs_spy": 23.51,
+      "name": "Marathon Petroleum Corporation"
+    },
+    {
+      "symbol": "MNST",
+      "price": 97.65,
+      "three_month_pct": 26.7,
+      "rs_vs_spy": 23.23,
+      "name": "Monster Beverage Corporation"
+    },
+    {
+      "symbol": "STX",
+      "price": 851.68,
+      "three_month_pct": 26.52,
+      "rs_vs_spy": 23.05,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "NOW",
+      "price": 110.07,
+      "three_month_pct": 24.64,
+      "rs_vs_spy": 21.17,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "CSCO",
+      "price": 113.56,
+      "three_month_pct": 24.57,
+      "rs_vs_spy": 21.1,
+      "name": "Cisco Systems, Inc."
+    },
+    {
+      "symbol": "ROKU",
+      "price": 145.09,
+      "three_month_pct": 24.48,
+      "rs_vs_spy": 21.01,
+      "name": "Roku, Inc."
+    },
+    {
+      "symbol": "VLO",
+      "price": 311.71,
+      "three_month_pct": 24.0,
+      "rs_vs_spy": 20.53,
+      "name": "Valero Energy Corporation"
+    },
+    {
+      "symbol": "LLY",
+      "price": 1154.97,
+      "three_month_pct": 23.79,
+      "rs_vs_spy": 20.32,
+      "name": "Eli Lilly and Company"
+    },
+    {
+      "symbol": "AAPL",
+      "price": 333.43,
+      "three_month_pct": 22.99,
+      "rs_vs_spy": 19.52,
+      "name": "Apple Inc."
+    },
+    {
+      "symbol": "ABBV",
+      "price": 257.41,
+      "three_month_pct": 22.68,
+      "rs_vs_spy": 19.21,
+      "name": "AbbVie Inc."
+    },
+    {
+      "symbol": "GE",
+      "price": 355.04,
+      "three_month_pct": 22.61,
+      "rs_vs_spy": 19.14,
+      "name": "GE Aerospace"
     }
   ]
 }
