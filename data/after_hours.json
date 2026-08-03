@@ -1,15 +1,44 @@
 {
-  "updated_at": "2026-07-31 22:30 UTC",
+  "updated_at": "2026-08-03 22:32 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "GILD",
-      "regular_close": 130.21,
-      "ext_price": 132.91,
-      "ah_pct": 2.07,
-      "name": "Gilead Sciences, Inc."
+      "symbol": "PLTR",
+      "regular_close": 125.65,
+      "ext_price": 144.15,
+      "ah_pct": 14.72,
+      "name": "Palantir Technologies Inc."
+    },
+    {
+      "symbol": "INOD",
+      "regular_close": 63.26,
+      "ext_price": 65.38,
+      "ah_pct": 3.35,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "NXT",
+      "regular_close": 90.67,
+      "ext_price": 93.65,
+      "ah_pct": 3.29,
+      "name": "Nextpower Inc."
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 263.05,
+      "ext_price": 268.4,
+      "ah_pct": 2.03,
+      "name": "Vertiv Holdings, LLC"
     }
   ],
-  "drops": []
+  "drops": [
+    {
+      "symbol": "BWXT",
+      "regular_close": 173.79,
+      "ext_price": 166.51,
+      "ah_pct": -4.19,
+      "name": "BWX Technologies, Inc."
+    }
+  ]
 }
