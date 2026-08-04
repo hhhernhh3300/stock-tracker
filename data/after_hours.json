@@ -1,44 +1,86 @@
 {
-  "updated_at": "2026-08-03 22:32 UTC",
+  "updated_at": "2026-08-04 22:34 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "PLTR",
-      "regular_close": 125.65,
-      "ext_price": 144.15,
-      "ah_pct": 14.72,
-      "name": "Palantir Technologies Inc."
+      "symbol": "ANET",
+      "regular_close": 190.51,
+      "ext_price": 209.2,
+      "ah_pct": 9.81,
+      "name": "Arista Networks, Inc."
     },
     {
-      "symbol": "INOD",
-      "regular_close": 63.26,
-      "ext_price": 65.38,
-      "ah_pct": 3.35,
-      "name": "Innodata Inc."
+      "symbol": "BKNG",
+      "regular_close": 194.27,
+      "ext_price": 206.0,
+      "ah_pct": 6.04,
+      "name": "Booking Holdings Inc. Common St"
     },
     {
-      "symbol": "NXT",
-      "regular_close": 90.67,
-      "ext_price": 93.65,
-      "ah_pct": 3.29,
-      "name": "Nextpower Inc."
+      "symbol": "WYNN",
+      "regular_close": 97.6,
+      "ext_price": 102.58,
+      "ah_pct": 5.1,
+      "name": "Wynn Resorts, Limited"
     },
     {
-      "symbol": "VRT",
-      "regular_close": 263.05,
-      "ext_price": 268.4,
-      "ah_pct": 2.03,
-      "name": "Vertiv Holdings, LLC"
+      "symbol": "CSCO",
+      "regular_close": 121.74,
+      "ext_price": 124.53,
+      "ah_pct": 2.29,
+      "name": "Cisco Systems, Inc."
     }
   ],
   "drops": [
     {
-      "symbol": "BWXT",
-      "regular_close": 173.79,
-      "ext_price": 166.51,
-      "ah_pct": -4.19,
-      "name": "BWX Technologies, Inc."
+      "symbol": "AMD",
+      "regular_close": 518.58,
+      "ext_price": 474.12,
+      "ah_pct": -8.57,
+      "name": "Advanced Micro Devices, Inc."
+    },
+    {
+      "symbol": "VZ",
+      "regular_close": 46.88,
+      "ext_price": 45.18,
+      "ah_pct": -3.63,
+      "name": "Verizon Communications Inc."
+    },
+    {
+      "symbol": "INTC",
+      "regular_close": 100.86,
+      "ext_price": 97.68,
+      "ah_pct": -3.15,
+      "name": "Intel Corporation"
+    },
+    {
+      "symbol": "NSC",
+      "regular_close": 341.27,
+      "ext_price": 332.0,
+      "ah_pct": -2.72,
+      "name": "Norfolk Southern Corporation"
+    },
+    {
+      "symbol": "SSNC",
+      "regular_close": 81.06,
+      "ext_price": 79.1,
+      "ah_pct": -2.42,
+      "name": "SS&C Technologies Holdings, Inc"
+    },
+    {
+      "symbol": "T",
+      "regular_close": 23.38,
+      "ext_price": 22.82,
+      "ah_pct": -2.4,
+      "name": "AT&T Inc."
+    },
+    {
+      "symbol": "TMUS",
+      "regular_close": 177.21,
+      "ext_price": 173.5,
+      "ah_pct": -2.09,
+      "name": "T-Mobile US, Inc."
     }
   ]
 }
