@@ -1,86 +1,51 @@
 {
-  "updated_at": "2026-08-04 22:34 UTC",
+  "updated_at": "2026-08-05 22:33 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "ANET",
-      "regular_close": 190.51,
-      "ext_price": 209.2,
-      "ah_pct": 9.81,
-      "name": "Arista Networks, Inc."
-    },
-    {
-      "symbol": "BKNG",
-      "regular_close": 194.27,
-      "ext_price": 206.0,
-      "ah_pct": 6.04,
-      "name": "Booking Holdings Inc. Common St"
-    },
-    {
-      "symbol": "WYNN",
-      "regular_close": 97.6,
-      "ext_price": 102.58,
-      "ah_pct": 5.1,
-      "name": "Wynn Resorts, Limited"
-    },
-    {
-      "symbol": "CSCO",
-      "regular_close": 121.74,
-      "ext_price": 124.53,
-      "ah_pct": 2.29,
-      "name": "Cisco Systems, Inc."
+      "symbol": "TLN",
+      "regular_close": 329.84,
+      "ext_price": 337.75,
+      "ah_pct": 2.4,
+      "name": "Talen Energy Corporation"
     }
   ],
   "drops": [
     {
-      "symbol": "AMD",
-      "regular_close": 518.58,
-      "ext_price": 474.12,
-      "ah_pct": -8.57,
-      "name": "Advanced Micro Devices, Inc."
+      "symbol": "CRM",
+      "regular_close": 192.98,
+      "ext_price": 183.13,
+      "ah_pct": -5.1,
+      "name": "Salesforce, Inc."
     },
     {
-      "symbol": "VZ",
-      "regular_close": 46.88,
-      "ext_price": 45.18,
-      "ah_pct": -3.63,
-      "name": "Verizon Communications Inc."
+      "symbol": "WDAY",
+      "regular_close": 170.63,
+      "ext_price": 162.75,
+      "ah_pct": -4.62,
+      "name": "Workday, Inc."
     },
     {
-      "symbol": "INTC",
-      "regular_close": 100.86,
-      "ext_price": 97.68,
-      "ah_pct": -3.15,
-      "name": "Intel Corporation"
+      "symbol": "NOW",
+      "regular_close": 117.22,
+      "ext_price": 112.99,
+      "ah_pct": -3.61,
+      "name": "ServiceNow, Inc."
     },
     {
-      "symbol": "NSC",
-      "regular_close": 341.27,
-      "ext_price": 332.0,
-      "ah_pct": -2.72,
-      "name": "Norfolk Southern Corporation"
+      "symbol": "ADBE",
+      "regular_close": 259.32,
+      "ext_price": 250.15,
+      "ah_pct": -3.54,
+      "name": "Adobe Inc."
     },
     {
-      "symbol": "SSNC",
-      "regular_close": 81.06,
-      "ext_price": 79.1,
-      "ah_pct": -2.42,
-      "name": "SS&C Technologies Holdings, Inc"
-    },
-    {
-      "symbol": "T",
-      "regular_close": 23.38,
-      "ext_price": 22.82,
-      "ah_pct": -2.4,
-      "name": "AT&T Inc."
-    },
-    {
-      "symbol": "TMUS",
-      "regular_close": 177.21,
-      "ext_price": 173.5,
-      "ah_pct": -2.09,
-      "name": "T-Mobile US, Inc."
+      "symbol": "INTU",
+      "regular_close": 327.94,
+      "ext_price": 317.25,
+      "ah_pct": -3.26,
+      "name": "Intuit Inc."
     }
   ]
 }
