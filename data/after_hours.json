@@ -1,51 +1,57 @@
 {
-  "updated_at": "2026-08-05 22:33 UTC",
+  "updated_at": "2026-08-07 01:03 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "TLN",
-      "regular_close": 329.84,
-      "ext_price": 337.75,
-      "ah_pct": 2.4,
-      "name": "Talen Energy Corporation"
-    }
-  ],
-  "drops": [
-    {
-      "symbol": "CRM",
-      "regular_close": 192.98,
-      "ext_price": 183.13,
-      "ah_pct": -5.1,
-      "name": "Salesforce, Inc."
+      "symbol": "NET",
+      "regular_close": 284.43,
+      "ext_price": 330.5,
+      "ah_pct": 16.2,
+      "name": "Cloudflare, Inc."
     },
     {
-      "symbol": "WDAY",
-      "regular_close": 170.63,
-      "ext_price": 162.75,
-      "ah_pct": -4.62,
-      "name": "Workday, Inc."
+      "symbol": "INOD",
+      "regular_close": 65.48,
+      "ext_price": 73.5,
+      "ah_pct": 12.25,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "ABNB",
+      "regular_close": 151.64,
+      "ext_price": 163.52,
+      "ah_pct": 7.83,
+      "name": "Airbnb, Inc."
+    },
+    {
+      "symbol": "TAN",
+      "regular_close": 51.25,
+      "ext_price": 52.81,
+      "ah_pct": 3.04,
+      "name": "Invesco Solar ETF"
+    },
+    {
+      "symbol": "CIBR",
+      "regular_close": 96.39,
+      "ext_price": 98.88,
+      "ah_pct": 2.58,
+      "name": "First Trust NASDAQ Cybersecurit"
     },
     {
       "symbol": "NOW",
-      "regular_close": 117.22,
-      "ext_price": 112.99,
-      "ah_pct": -3.61,
+      "regular_close": 117.35,
+      "ext_price": 119.95,
+      "ah_pct": 2.22,
       "name": "ServiceNow, Inc."
     },
     {
-      "symbol": "ADBE",
-      "regular_close": 259.32,
-      "ext_price": 250.15,
-      "ah_pct": -3.54,
-      "name": "Adobe Inc."
-    },
-    {
-      "symbol": "INTU",
-      "regular_close": 327.94,
-      "ext_price": 317.25,
-      "ah_pct": -3.26,
-      "name": "Intuit Inc."
+      "symbol": "CRWD",
+      "regular_close": 207.39,
+      "ext_price": 211.78,
+      "ah_pct": 2.12,
+      "name": "CrowdStrike Holdings, Inc."
     }
-  ]
+  ],
+  "drops": []
 }
