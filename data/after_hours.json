@@ -1,57 +1,7 @@
 {
-  "updated_at": "2026-08-07 01:03 UTC",
+  "updated_at": "2026-08-07 22:03 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "NET",
-      "regular_close": 284.43,
-      "ext_price": 330.5,
-      "ah_pct": 16.2,
-      "name": "Cloudflare, Inc."
-    },
-    {
-      "symbol": "INOD",
-      "regular_close": 65.48,
-      "ext_price": 73.5,
-      "ah_pct": 12.25,
-      "name": "Innodata Inc."
-    },
-    {
-      "symbol": "ABNB",
-      "regular_close": 151.64,
-      "ext_price": 163.52,
-      "ah_pct": 7.83,
-      "name": "Airbnb, Inc."
-    },
-    {
-      "symbol": "TAN",
-      "regular_close": 51.25,
-      "ext_price": 52.81,
-      "ah_pct": 3.04,
-      "name": "Invesco Solar ETF"
-    },
-    {
-      "symbol": "CIBR",
-      "regular_close": 96.39,
-      "ext_price": 98.88,
-      "ah_pct": 2.58,
-      "name": "First Trust NASDAQ Cybersecurit"
-    },
-    {
-      "symbol": "NOW",
-      "regular_close": 117.35,
-      "ext_price": 119.95,
-      "ah_pct": 2.22,
-      "name": "ServiceNow, Inc."
-    },
-    {
-      "symbol": "CRWD",
-      "regular_close": 207.39,
-      "ext_price": 211.78,
-      "ah_pct": 2.12,
-      "name": "CrowdStrike Holdings, Inc."
-    }
-  ],
+  "surges": [],
   "drops": []
 }
