@@ -1,7 +1,23 @@
 {
-  "updated_at": "2026-08-07 22:03 UTC",
+  "updated_at": "2026-08-10 22:04 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": []
+  "surges": [
+    {
+      "symbol": "BTDR",
+      "regular_close": 8.69,
+      "ext_price": 8.88,
+      "ah_pct": 2.16,
+      "name": "Bitdeer Technologies Group"
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "RKLB",
+      "regular_close": 80.04,
+      "ext_price": 75.7,
+      "ah_pct": -5.42,
+      "name": "Rocket Lab Corporation"
+    }
+  ]
 }
