@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-08-14 21:46 UTC",
+  "updated_at": "2026-08-17 21:47 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
+  "surges": [],
+  "drops": [
     {
-      "symbol": "TLN",
-      "regular_close": 362.74,
-      "ext_price": 374.71,
-      "ah_pct": 3.3,
-      "name": "Talen Energy Corporation"
+      "symbol": "BLOK",
+      "regular_close": 61.08,
+      "ext_price": 57.77,
+      "ah_pct": -5.42,
+      "name": "Amplify Blockchain Technology E"
     }
-  ],
-  "drops": []
+  ]
 }
