@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-08-17 21:47 UTC",
+  "updated_at": "2026-08-18 21:44 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
+  "surges": [
     {
-      "symbol": "BLOK",
-      "regular_close": 61.08,
-      "ext_price": 57.77,
-      "ah_pct": -5.42,
-      "name": "Amplify Blockchain Technology E"
+      "symbol": "NSC",
+      "regular_close": 338.91,
+      "ext_price": 352.0,
+      "ah_pct": 3.86,
+      "name": "Norfolk Southern Corporation"
     }
-  ]
+  ],
+  "drops": []
 }
