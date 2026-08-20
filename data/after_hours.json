@@ -1,36 +1,7 @@
 {
-  "updated_at": "2026-08-19 21:47 UTC",
+  "updated_at": "2026-08-20 21:50 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "HOOD",
-      "regular_close": 95.77,
-      "ext_price": 98.9,
-      "ah_pct": 3.27,
-      "name": "Robinhood Markets, Inc."
-    },
-    {
-      "symbol": "COIN",
-      "regular_close": 160.2,
-      "ext_price": 165.14,
-      "ah_pct": 3.08,
-      "name": "Coinbase Global, Inc."
-    },
-    {
-      "symbol": "TLN",
-      "regular_close": 322.35,
-      "ext_price": 329.95,
-      "ah_pct": 2.36,
-      "name": "Talen Energy Corporation"
-    },
-    {
-      "symbol": "TAN",
-      "regular_close": 50.47,
-      "ext_price": 51.64,
-      "ah_pct": 2.32,
-      "name": "Invesco Solar ETF"
-    }
-  ],
+  "surges": [],
   "drops": []
 }
