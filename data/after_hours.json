@@ -1,7 +1,30 @@
 {
-  "updated_at": "2026-08-20 21:50 UTC",
+  "updated_at": "2026-08-21 21:45 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": []
+  "surges": [
+    {
+      "symbol": "LLY",
+      "regular_close": 1255.4,
+      "ext_price": 1334.93,
+      "ah_pct": 6.33,
+      "name": "Eli Lilly and Company"
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "GE",
+      "regular_close": 348.37,
+      "ext_price": 335.33,
+      "ah_pct": -3.74,
+      "name": "GE Aerospace"
+    },
+    {
+      "symbol": "MCD",
+      "regular_close": 270.95,
+      "ext_price": 261.72,
+      "ah_pct": -3.4,
+      "name": "McDonald's Corporation"
+    }
+  ]
 }
