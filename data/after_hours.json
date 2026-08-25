@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-08-24 21:51 UTC",
+  "updated_at": "2026-08-25 21:50 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
+  "surges": [],
+  "drops": [
     {
-      "symbol": "CHTR",
-      "regular_close": 150.3,
-      "ext_price": 153.84,
-      "ah_pct": 2.36,
-      "name": "Charter Communications, Inc."
+      "symbol": "INTU",
+      "regular_close": 357.46,
+      "ext_price": 326.99,
+      "ah_pct": -8.52,
+      "name": "Intuit Inc."
     }
-  ],
-  "drops": []
+  ]
 }
