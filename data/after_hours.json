@@ -1,15 +1,218 @@
 {
-  "updated_at": "2026-08-25 21:50 UTC",
+  "updated_at": "2026-08-27 00:55 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": [
+  "surges": [
     {
-      "symbol": "INTU",
-      "regular_close": 357.46,
-      "ext_price": 326.99,
-      "ah_pct": -8.52,
-      "name": "Intuit Inc."
+      "symbol": "CRM",
+      "regular_close": 205.62,
+      "ext_price": 232.32,
+      "ah_pct": 12.98,
+      "name": "Salesforce, Inc."
+    },
+    {
+      "symbol": "CRWD",
+      "regular_close": 189.18,
+      "ext_price": 209.1,
+      "ah_pct": 10.53,
+      "name": "CrowdStrike Holdings, Inc."
+    },
+    {
+      "symbol": "NVDA",
+      "regular_close": 209.66,
+      "ext_price": 219.53,
+      "ah_pct": 4.71,
+      "name": "NVIDIA Corporation"
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 251.06,
+      "ext_price": 262.85,
+      "ah_pct": 4.7,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "PANW",
+      "regular_close": 339.31,
+      "ext_price": 355.0,
+      "ah_pct": 4.62,
+      "name": "Palo Alto Networks, Inc."
+    },
+    {
+      "symbol": "MRVL",
+      "regular_close": 245.11,
+      "ext_price": 255.88,
+      "ah_pct": 4.39,
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "WDAY",
+      "regular_close": 190.75,
+      "ext_price": 198.23,
+      "ah_pct": 3.92,
+      "name": "Workday, Inc."
+    },
+    {
+      "symbol": "CIBR",
+      "regular_close": 93.66,
+      "ext_price": 97.23,
+      "ah_pct": 3.81,
+      "name": "First Trust NASDAQ Cybersecurit"
+    },
+    {
+      "symbol": "MU",
+      "regular_close": 938.4,
+      "ext_price": 974.0,
+      "ah_pct": 3.79,
+      "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 263.81,
+      "ext_price": 273.5,
+      "ah_pct": 3.67,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "ZS",
+      "regular_close": 170.31,
+      "ext_price": 176.47,
+      "ah_pct": 3.62,
+      "name": "Zscaler, Inc."
+    },
+    {
+      "symbol": "STX",
+      "regular_close": 846.37,
+      "ext_price": 875.05,
+      "ah_pct": 3.39,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "NOW",
+      "regular_close": 125.8,
+      "ext_price": 130.04,
+      "ah_pct": 3.37,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 404.03,
+      "ext_price": 417.02,
+      "ah_pct": 3.22,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "IGV",
+      "regular_close": 102.39,
+      "ext_price": 105.6,
+      "ah_pct": 3.14,
+      "name": "iShares Expanded Tech-Software "
+    },
+    {
+      "symbol": "BWXT",
+      "regular_close": 153.16,
+      "ext_price": 157.75,
+      "ah_pct": 3.0,
+      "name": "BWX Technologies, Inc."
+    },
+    {
+      "symbol": "KLAC",
+      "regular_close": 183.83,
+      "ext_price": 189.1,
+      "ah_pct": 2.87,
+      "name": "KLA Corporation"
+    },
+    {
+      "symbol": "LRCX",
+      "regular_close": 312.88,
+      "ext_price": 321.27,
+      "ah_pct": 2.68,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "BTDR",
+      "regular_close": 10.67,
+      "ext_price": 10.95,
+      "ah_pct": 2.62,
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "SMH",
+      "regular_close": 555.77,
+      "ext_price": 570.16,
+      "ah_pct": 2.59,
+      "name": "VanEck Semiconductor ETF"
+    },
+    {
+      "symbol": "ADSK",
+      "regular_close": 254.77,
+      "ext_price": 261.3,
+      "ah_pct": 2.56,
+      "name": "Autodesk, Inc."
+    },
+    {
+      "symbol": "SNOW",
+      "regular_close": 315.37,
+      "ext_price": 323.0,
+      "ah_pct": 2.42,
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "NET",
+      "regular_close": 284.89,
+      "ext_price": 291.69,
+      "ah_pct": 2.39,
+      "name": "Cloudflare, Inc."
+    },
+    {
+      "symbol": "MDB",
+      "regular_close": 406.11,
+      "ext_price": 415.71,
+      "ah_pct": 2.36,
+      "name": "MongoDB, Inc."
+    },
+    {
+      "symbol": "AMAT",
+      "regular_close": 479.76,
+      "ext_price": 491.0,
+      "ah_pct": 2.34,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "GEV",
+      "regular_close": 953.09,
+      "ext_price": 975.01,
+      "ah_pct": 2.3,
+      "name": "GE Vernova Inc."
+    },
+    {
+      "symbol": "ASML",
+      "regular_close": 1745.64,
+      "ext_price": 1785.0,
+      "ah_pct": 2.25,
+      "name": "ASML Holding N.V. - New York Re"
+    },
+    {
+      "symbol": "INOD",
+      "regular_close": 55.84,
+      "ext_price": 57.07,
+      "ah_pct": 2.2,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "TLN",
+      "regular_close": 306.29,
+      "ext_price": 312.88,
+      "ah_pct": 2.15,
+      "name": "Talen Energy Corporation"
+    },
+    {
+      "symbol": "VST",
+      "regular_close": 140.03,
+      "ext_price": 142.88,
+      "ah_pct": 2.04,
+      "name": "Vistra Corp."
     }
-  ]
+  ],
+  "drops": []
 }
