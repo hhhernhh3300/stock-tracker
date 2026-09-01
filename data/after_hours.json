@@ -1,58 +1,7 @@
 {
-  "updated_at": "2026-08-29 03:13 UTC",
+  "updated_at": "2026-09-01 00:41 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "PNC",
-      "regular_close": 242.22,
-      "ext_price": 256.3,
-      "ah_pct": 5.81,
-      "name": "PNC Financial Services Group, I"
-    },
-    {
-      "symbol": "COF",
-      "regular_close": 215.67,
-      "ext_price": 223.6,
-      "ah_pct": 3.68,
-      "name": "Capital One Financial Corporati"
-    },
-    {
-      "symbol": "XLU",
-      "regular_close": 42.73,
-      "ext_price": 44.08,
-      "ah_pct": 3.16,
-      "name": "State Street Utilities Select S"
-    }
-  ],
-  "drops": [
-    {
-      "symbol": "GILD",
-      "regular_close": 145.68,
-      "ext_price": 139.3,
-      "ah_pct": -4.38,
-      "name": "Gilead Sciences, Inc."
-    },
-    {
-      "symbol": "CDNS",
-      "regular_close": 340.39,
-      "ext_price": 329.89,
-      "ah_pct": -3.08,
-      "name": "Cadence Design Systems, Inc."
-    },
-    {
-      "symbol": "FDN",
-      "regular_close": 294.41,
-      "ext_price": 288.03,
-      "ah_pct": -2.17,
-      "name": "First Trust DJ Internet Index F"
-    },
-    {
-      "symbol": "BLOK",
-      "regular_close": 62.07,
-      "ext_price": 60.79,
-      "ah_pct": -2.06,
-      "name": "Amplify Blockchain Technology E"
-    }
-  ]
+  "surges": [],
+  "drops": []
 }
