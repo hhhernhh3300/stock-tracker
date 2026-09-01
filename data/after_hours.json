@@ -1,7 +1,23 @@
 {
-  "updated_at": "2026-09-01 00:41 UTC",
+  "updated_at": "2026-09-01 23:26 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": []
+  "surges": [
+    {
+      "symbol": "DELL",
+      "regular_close": 425.0,
+      "ext_price": 454.75,
+      "ah_pct": 7.0,
+      "name": "Dell Technologies Inc."
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "MDB",
+      "regular_close": 434.21,
+      "ext_price": 373.4,
+      "ah_pct": -14.0,
+      "name": "MongoDB, Inc."
+    }
+  ]
 }
