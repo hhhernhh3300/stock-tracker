@@ -1,23 +1,37 @@
 {
-  "updated_at": "2026-09-01 23:26 UTC",
+  "updated_at": "2026-09-02 23:26 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "DELL",
-      "regular_close": 425.0,
-      "ext_price": 454.75,
-      "ah_pct": 7.0,
-      "name": "Dell Technologies Inc."
+      "symbol": "SNOW",
+      "regular_close": 305.84,
+      "ext_price": 374.28,
+      "ah_pct": 22.38,
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "DDOG",
+      "regular_close": 209.23,
+      "ext_price": 221.2,
+      "ah_pct": 5.72,
+      "name": "Datadog, Inc."
+    },
+    {
+      "symbol": "NOW",
+      "regular_close": 136.72,
+      "ext_price": 140.48,
+      "ah_pct": 2.75,
+      "name": "ServiceNow, Inc."
     }
   ],
   "drops": [
     {
-      "symbol": "MDB",
-      "regular_close": 434.21,
-      "ext_price": 373.4,
-      "ah_pct": -14.0,
-      "name": "MongoDB, Inc."
+      "symbol": "ROKU",
+      "regular_close": 157.7,
+      "ext_price": 154.01,
+      "ah_pct": -2.34,
+      "name": "Roku, Inc."
     }
   ]
 }
