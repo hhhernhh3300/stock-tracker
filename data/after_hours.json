@@ -1,15 +1,15 @@
 {
-  "updated_at": "2026-09-03 23:23 UTC",
+  "updated_at": "2026-09-04 23:07 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
   "drops": [
     {
-      "symbol": "LULU",
-      "regular_close": 121.77,
-      "ext_price": 99.28,
-      "ah_pct": -18.47,
-      "name": "lululemon athletica inc."
+      "symbol": "AMGN",
+      "regular_close": 437.23,
+      "ext_price": 416.49,
+      "ah_pct": -4.74,
+      "name": "Amgen Inc."
     }
   ]
 }
