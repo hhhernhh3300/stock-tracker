@@ -1,37 +1,7 @@
 {
-  "updated_at": "2026-09-07 23:37 UTC",
+  "updated_at": "2026-09-08 23:29 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "MDB",
-      "regular_close": 368.74,
-      "ext_price": 382.51,
-      "ah_pct": 3.73,
-      "name": "MongoDB, Inc."
-    },
-    {
-      "symbol": "XOM",
-      "regular_close": 159.47,
-      "ext_price": 163.13,
-      "ah_pct": 2.3,
-      "name": "ExxonMobil Holdings Corporation"
-    },
-    {
-      "symbol": "REGN",
-      "regular_close": 827.72,
-      "ext_price": 845.04,
-      "ah_pct": 2.09,
-      "name": "Regeneron Pharmaceuticals, Inc."
-    }
-  ],
-  "drops": [
-    {
-      "symbol": "AMGN",
-      "regular_close": 437.23,
-      "ext_price": 415.0,
-      "ah_pct": -5.08,
-      "name": "Amgen Inc."
-    }
-  ]
+  "surges": [],
+  "drops": []
 }
