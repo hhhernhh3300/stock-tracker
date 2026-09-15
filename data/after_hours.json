@@ -1,15 +1,7 @@
 {
-  "updated_at": "2026-09-14 23:54 UTC",
+  "updated_at": "2026-09-15 23:34 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "DHR",
-      "regular_close": 203.25,
-      "ext_price": 217.79,
-      "ah_pct": 7.15,
-      "name": "Danaher Corporation"
-    }
-  ],
+  "surges": [],
   "drops": []
 }
