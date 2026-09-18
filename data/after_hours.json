@@ -1,7 +1,29 @@
 {
-  "updated_at": "2026-09-17 23:35 UTC",
+  "updated_at": "2026-09-18 23:25 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
+  "surges": [
+    {
+      "symbol": "REGN",
+      "regular_close": 784.85,
+      "ext_price": 841.51,
+      "ah_pct": 7.22,
+      "name": "Regeneron Pharmaceuticals, Inc."
+    },
+    {
+      "symbol": "SCHW",
+      "regular_close": 105.25,
+      "ext_price": 110.14,
+      "ah_pct": 4.65,
+      "name": "Charles Schwab Corporation (The"
+    },
+    {
+      "symbol": "AMT",
+      "regular_close": 173.98,
+      "ext_price": 178.56,
+      "ah_pct": 2.63,
+      "name": "American Tower Corporation (REI"
+    }
+  ],
   "drops": []
 }
