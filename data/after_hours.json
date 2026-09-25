@@ -1,15 +1,7 @@
 {
-  "updated_at": "2026-09-24 23:55 UTC",
+  "updated_at": "2026-09-25 23:59 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
-  "drops": [
-    {
-      "symbol": "ZS",
-      "regular_close": 214.64,
-      "ext_price": 206.32,
-      "ah_pct": -3.88,
-      "name": "Zscaler, Inc."
-    }
-  ]
+  "drops": []
 }
