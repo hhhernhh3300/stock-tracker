@@ -1,7 +1,331 @@
 {
-  "updated_at": "2026-09-25 23:59 UTC",
+  "updated_at": "2026-09-29 01:06 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [],
-  "drops": []
+  "surges": [
+    {
+      "symbol": "PANW",
+      "regular_close": 374.74,
+      "ext_price": 392.99,
+      "ah_pct": 4.87,
+      "name": "Palo Alto Networks, Inc."
+    },
+    {
+      "symbol": "ZS",
+      "regular_close": 193.05,
+      "ext_price": 199.3,
+      "ah_pct": 3.24,
+      "name": "Zscaler, Inc."
+    },
+    {
+      "symbol": "CRWD",
+      "regular_close": 252.13,
+      "ext_price": 259.25,
+      "ah_pct": 2.82,
+      "name": "CrowdStrike Holdings, Inc."
+    },
+    {
+      "symbol": "ISRG",
+      "regular_close": 405.18,
+      "ext_price": 415.0,
+      "ah_pct": 2.42,
+      "name": "Intuitive Surgical, Inc."
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "MDB",
+      "regular_close": 410.44,
+      "ext_price": 337.39,
+      "ah_pct": -17.8,
+      "name": "MongoDB, Inc."
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 310.32,
+      "ext_price": 285.86,
+      "ah_pct": -7.88,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "QCOM",
+      "regular_close": 201.97,
+      "ext_price": 187.79,
+      "ah_pct": -7.02,
+      "name": "QUALCOMM Incorporated"
+    },
+    {
+      "symbol": "BA",
+      "regular_close": 198.07,
+      "ext_price": 185.43,
+      "ah_pct": -6.38,
+      "name": "Boeing Company (The)"
+    },
+    {
+      "symbol": "INTC",
+      "regular_close": 123.0,
+      "ext_price": 116.06,
+      "ah_pct": -5.64,
+      "name": "Intel Corporation"
+    },
+    {
+      "symbol": "AFRM",
+      "regular_close": 71.52,
+      "ext_price": 67.6,
+      "ah_pct": -5.48,
+      "name": "Affirm Holdings, Inc."
+    },
+    {
+      "symbol": "GDX",
+      "regular_close": 92.87,
+      "ext_price": 88.26,
+      "ah_pct": -4.96,
+      "name": "VanEck Gold Miners ETF"
+    },
+    {
+      "symbol": "REGN",
+      "regular_close": 788.04,
+      "ext_price": 752.3,
+      "ah_pct": -4.54,
+      "name": "Regeneron Pharmaceuticals, Inc."
+    },
+    {
+      "symbol": "META",
+      "regular_close": 751.66,
+      "ext_price": 718.1,
+      "ah_pct": -4.46,
+      "name": "Meta Platforms, Inc."
+    },
+    {
+      "symbol": "BTDR",
+      "regular_close": 11.51,
+      "ext_price": 11.03,
+      "ah_pct": -4.17,
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "TSLA",
+      "regular_close": 372.11,
+      "ext_price": 358.19,
+      "ah_pct": -3.74,
+      "name": "Tesla, Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 356.91,
+      "ext_price": 344.0,
+      "ah_pct": -3.62,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "MRVL",
+      "regular_close": 261.94,
+      "ext_price": 252.49,
+      "ah_pct": -3.61,
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 562.89,
+      "ext_price": 542.61,
+      "ah_pct": -3.6,
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 253.28,
+      "ext_price": 244.38,
+      "ah_pct": -3.51,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "ORCL",
+      "regular_close": 137.1,
+      "ext_price": 132.38,
+      "ah_pct": -3.45,
+      "name": "Oracle Corporation"
+    },
+    {
+      "symbol": "NOW",
+      "regular_close": 135.62,
+      "ext_price": 131.06,
+      "ah_pct": -3.36,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "AMD",
+      "regular_close": 630.63,
+      "ext_price": 610.3,
+      "ah_pct": -3.22,
+      "name": "Advanced Micro Devices, Inc."
+    },
+    {
+      "symbol": "BLOK",
+      "regular_close": 64.21,
+      "ext_price": 62.22,
+      "ah_pct": -3.1,
+      "name": "Amplify Blockchain Technology E"
+    },
+    {
+      "symbol": "CRM",
+      "regular_close": 234.02,
+      "ext_price": 227.52,
+      "ah_pct": -2.78,
+      "name": "Salesforce, Inc."
+    },
+    {
+      "symbol": "NFLX",
+      "regular_close": 71.15,
+      "ext_price": 69.22,
+      "ah_pct": -2.72,
+      "name": "Netflix, Inc."
+    },
+    {
+      "symbol": "GE",
+      "regular_close": 327.09,
+      "ext_price": 318.24,
+      "ah_pct": -2.71,
+      "name": "GE Aerospace"
+    },
+    {
+      "symbol": "BWXT",
+      "regular_close": 138.47,
+      "ext_price": 134.75,
+      "ah_pct": -2.69,
+      "name": "BWX Technologies, Inc."
+    },
+    {
+      "symbol": "HOOD",
+      "regular_close": 119.4,
+      "ext_price": 116.23,
+      "ah_pct": -2.65,
+      "name": "Robinhood Markets, Inc."
+    },
+    {
+      "symbol": "INOD",
+      "regular_close": 69.21,
+      "ext_price": 67.43,
+      "ah_pct": -2.57,
+      "name": "Innodata Inc."
+    },
+    {
+      "symbol": "MU",
+      "regular_close": 1082.28,
+      "ext_price": 1055.37,
+      "ah_pct": -2.49,
+      "name": "Micron Technology, Inc."
+    },
+    {
+      "symbol": "WFC",
+      "regular_close": 82.97,
+      "ext_price": 80.92,
+      "ah_pct": -2.47,
+      "name": "Wells Fargo & Company"
+    },
+    {
+      "symbol": "SPOT",
+      "regular_close": 510.01,
+      "ext_price": 497.51,
+      "ah_pct": -2.45,
+      "name": "Spotify Technology S.A."
+    },
+    {
+      "symbol": "RKLB",
+      "regular_close": 73.95,
+      "ext_price": 72.15,
+      "ah_pct": -2.44,
+      "name": "Rocket Lab Corporation"
+    },
+    {
+      "symbol": "TAN",
+      "regular_close": 44.06,
+      "ext_price": 43.0,
+      "ah_pct": -2.41,
+      "name": "Invesco Solar ETF"
+    },
+    {
+      "symbol": "MNST",
+      "regular_close": 43.11,
+      "ext_price": 42.1,
+      "ah_pct": -2.34,
+      "name": "Monster Beverage Corporation"
+    },
+    {
+      "symbol": "C",
+      "regular_close": 134.28,
+      "ext_price": 131.31,
+      "ah_pct": -2.21,
+      "name": "Citigroup, Inc."
+    },
+    {
+      "symbol": "SNOW",
+      "regular_close": 335.94,
+      "ext_price": 328.72,
+      "ah_pct": -2.15,
+      "name": "Snowflake Inc."
+    },
+    {
+      "symbol": "ITA",
+      "regular_close": 213.81,
+      "ext_price": 209.26,
+      "ah_pct": -2.13,
+      "name": "iShares U.S. Aerospace & Defens"
+    },
+    {
+      "symbol": "ARKX",
+      "regular_close": 32.69,
+      "ext_price": 32.0,
+      "ah_pct": -2.12,
+      "name": "ARK Space & Defense Innovation "
+    },
+    {
+      "symbol": "NXT",
+      "regular_close": 80.85,
+      "ext_price": 79.14,
+      "ah_pct": -2.11,
+      "name": "Nextpower Inc."
+    },
+    {
+      "symbol": "INTU",
+      "regular_close": 275.79,
+      "ext_price": 270.0,
+      "ah_pct": -2.1,
+      "name": "Intuit Inc."
+    },
+    {
+      "symbol": "ADSK",
+      "regular_close": 209.4,
+      "ext_price": 205.0,
+      "ah_pct": -2.1,
+      "name": "Autodesk, Inc."
+    },
+    {
+      "symbol": "IBM",
+      "regular_close": 225.51,
+      "ext_price": 220.81,
+      "ah_pct": -2.08,
+      "name": "International Business Machines"
+    },
+    {
+      "symbol": "BAC",
+      "regular_close": 56.7,
+      "ext_price": 55.53,
+      "ah_pct": -2.06,
+      "name": "Bank of America Corporation"
+    },
+    {
+      "symbol": "SNPS",
+      "regular_close": 425.76,
+      "ext_price": 417.05,
+      "ah_pct": -2.05,
+      "name": "Synopsys, Inc."
+    },
+    {
+      "symbol": "GS",
+      "regular_close": 935.45,
+      "ext_price": 916.7,
+      "ah_pct": -2.0,
+      "name": "Goldman Sachs Group, Inc. (The)"
+    }
+  ]
 }
