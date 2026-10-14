@@ -1,254 +1,142 @@
 {
-  "updated_at": "2026-10-14 00:26 UTC",
+  "updated_at": "2026-10-14 23:59 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "NXT",
-      "regular_close": 84.86,
-      "ext_price": 89.65,
-      "ah_pct": 5.65,
-      "name": "Nextpower Inc."
-    },
-    {
-      "symbol": "VLO",
-      "regular_close": 436.0,
-      "ext_price": 457.0,
-      "ah_pct": 4.82,
-      "name": "Valero Energy Corporation"
-    },
-    {
-      "symbol": "CHTR",
-      "regular_close": 102.48,
-      "ext_price": 106.95,
-      "ah_pct": 4.36,
-      "name": "Charter Communications, Inc."
-    },
-    {
-      "symbol": "ORCL",
-      "regular_close": 137.39,
-      "ext_price": 143.1,
-      "ah_pct": 4.16,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "MPC",
-      "regular_close": 458.81,
-      "ext_price": 477.67,
-      "ah_pct": 4.11,
-      "name": "Marathon Petroleum Corporation"
-    },
-    {
-      "symbol": "PSX",
-      "regular_close": 281.47,
-      "ext_price": 292.65,
-      "ah_pct": 3.97,
-      "name": "Phillips 66"
-    },
-    {
-      "symbol": "VST",
-      "regular_close": 158.13,
-      "ext_price": 163.11,
-      "ah_pct": 3.15,
-      "name": "Vistra Corp."
-    },
-    {
-      "symbol": "LVS",
-      "regular_close": 36.15,
-      "ext_price": 37.23,
-      "ah_pct": 2.99,
-      "name": "Las Vegas Sands Corp."
-    },
-    {
-      "symbol": "DE",
-      "regular_close": 632.61,
-      "ext_price": 650.0,
-      "ah_pct": 2.75,
-      "name": "Deere & Company"
-    },
-    {
-      "symbol": "TAN",
-      "regular_close": 43.48,
-      "ext_price": 44.65,
-      "ah_pct": 2.69,
-      "name": "Invesco Solar ETF"
-    },
-    {
-      "symbol": "META",
-      "regular_close": 742.96,
-      "ext_price": 762.55,
-      "ah_pct": 2.64,
-      "name": "Meta Platforms, Inc."
-    },
-    {
-      "symbol": "AMD",
-      "regular_close": 594.24,
-      "ext_price": 608.1,
-      "ah_pct": 2.33,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "COP",
-      "regular_close": 137.56,
-      "ext_price": 140.6,
-      "ah_pct": 2.21,
-      "name": "ConocoPhillips"
+      "symbol": "AMT",
+      "regular_close": 179.4,
+      "ext_price": 185.0,
+      "ah_pct": 3.12,
+      "name": "American Tower Corporation (REI"
     }
   ],
   "drops": [
     {
-      "symbol": "ASTS",
-      "regular_close": 51.46,
-      "ext_price": 47.03,
-      "ah_pct": -8.61,
-      "name": "AST SpaceMobile, Inc."
+      "symbol": "RKLB",
+      "regular_close": 59.18,
+      "ext_price": 53.3,
+      "ah_pct": -9.94,
+      "name": "Rocket Lab Corporation"
     },
     {
-      "symbol": "AMAT",
-      "regular_close": 497.53,
-      "ext_price": 462.6,
-      "ah_pct": -7.02,
-      "name": "Applied Materials, Inc."
+      "symbol": "DHR",
+      "regular_close": 224.69,
+      "ext_price": 217.79,
+      "ah_pct": -3.07,
+      "name": "Danaher Corporation"
     },
     {
-      "symbol": "UEC",
-      "regular_close": 8.83,
-      "ext_price": 8.27,
-      "ah_pct": -6.34,
-      "name": "Uranium Energy Corp."
+      "symbol": "STX",
+      "regular_close": 713.54,
+      "ext_price": 692.04,
+      "ah_pct": -3.01,
+      "name": "Seagate Technology Holdings PLC"
     },
     {
-      "symbol": "JNJ",
-      "regular_close": 263.73,
-      "ext_price": 249.07,
-      "ah_pct": -5.56,
-      "name": "Johnson & Johnson"
+      "symbol": "VRT",
+      "regular_close": 222.83,
+      "ext_price": 216.4,
+      "ah_pct": -2.89,
+      "name": "Vertiv Holdings, LLC"
     },
     {
-      "symbol": "C",
-      "regular_close": 131.92,
-      "ext_price": 125.0,
-      "ah_pct": -5.25,
-      "name": "Citigroup, Inc."
+      "symbol": "AMD",
+      "regular_close": 570.82,
+      "ext_price": 554.56,
+      "ah_pct": -2.85,
+      "name": "Advanced Micro Devices, Inc."
     },
     {
-      "symbol": "CDNS",
-      "regular_close": 348.42,
-      "ext_price": 332.01,
-      "ah_pct": -4.71,
-      "name": "Cadence Design Systems, Inc."
+      "symbol": "VST",
+      "regular_close": 151.79,
+      "ext_price": 147.53,
+      "ah_pct": -2.81,
+      "name": "Vistra Corp."
     },
     {
-      "symbol": "VRTX",
-      "regular_close": 507.0,
-      "ext_price": 486.2,
-      "ah_pct": -4.1,
-      "name": "Vertex Pharmaceuticals Incorpor"
-    },
-    {
-      "symbol": "BAC",
-      "regular_close": 54.58,
-      "ext_price": 52.73,
-      "ah_pct": -3.4,
-      "name": "Bank of America Corporation"
+      "symbol": "ARM",
+      "regular_close": 238.01,
+      "ext_price": 231.45,
+      "ah_pct": -2.76,
+      "name": "Arm Holdings plc"
     },
     {
       "symbol": "MU",
-      "regular_close": 989.04,
-      "ext_price": 956.2,
-      "ah_pct": -3.32,
+      "regular_close": 914.13,
+      "ext_price": 889.01,
+      "ah_pct": -2.75,
       "name": "Micron Technology, Inc."
     },
     {
-      "symbol": "CAT",
-      "regular_close": 799.37,
-      "ext_price": 772.9,
-      "ah_pct": -3.31,
-      "name": "Caterpillar, Inc."
+      "symbol": "MRVL",
+      "regular_close": 245.28,
+      "ext_price": 238.99,
+      "ah_pct": -2.56,
+      "name": "Marvell Technology, Inc."
     },
     {
-      "symbol": "KLAC",
-      "regular_close": 190.12,
-      "ext_price": 183.99,
-      "ah_pct": -3.22,
-      "name": "KLA Corporation"
+      "symbol": "ORCL",
+      "regular_close": 130.55,
+      "ext_price": 127.33,
+      "ah_pct": -2.47,
+      "name": "Oracle Corporation"
     },
     {
-      "symbol": "WFC",
-      "regular_close": 83.32,
-      "ext_price": 80.8,
-      "ah_pct": -3.03,
-      "name": "Wells Fargo & Company"
+      "symbol": "INTC",
+      "regular_close": 98.12,
+      "ext_price": 95.77,
+      "ah_pct": -2.4,
+      "name": "Intel Corporation"
     },
     {
-      "symbol": "ANET",
-      "regular_close": 210.88,
-      "ext_price": 204.52,
-      "ah_pct": -3.02,
-      "name": "Arista Networks, Inc."
+      "symbol": "TEM",
+      "regular_close": 68.32,
+      "ext_price": 66.68,
+      "ah_pct": -2.4,
+      "name": "Tempus AI, Inc."
+    },
+    {
+      "symbol": "ASTS",
+      "regular_close": 42.14,
+      "ext_price": 41.17,
+      "ah_pct": -2.3,
+      "name": "AST SpaceMobile, Inc."
+    },
+    {
+      "symbol": "DDOG",
+      "regular_close": 269.33,
+      "ext_price": 263.35,
+      "ah_pct": -2.22,
+      "name": "Datadog, Inc."
+    },
+    {
+      "symbol": "GEV",
+      "regular_close": 941.78,
+      "ext_price": 922.24,
+      "ah_pct": -2.07,
+      "name": "GE Vernova Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 359.6,
+      "ext_price": 352.15,
+      "ah_pct": -2.07,
+      "name": "Ciena Corporation"
     },
     {
       "symbol": "LRCX",
-      "regular_close": 309.56,
-      "ext_price": 300.24,
-      "ah_pct": -3.01,
+      "regular_close": 286.92,
+      "ext_price": 281.0,
+      "ah_pct": -2.06,
       "name": "Lam Research Corporation"
     },
     {
-      "symbol": "XBI",
-      "regular_close": 151.4,
-      "ext_price": 147.04,
-      "ah_pct": -2.88,
-      "name": "State Street SPDR S&P Biotech E"
-    },
-    {
-      "symbol": "ASML",
-      "regular_close": 1750.24,
-      "ext_price": 1705.0,
-      "ah_pct": -2.58,
-      "name": "ASML Holding N.V. - New York Re"
-    },
-    {
-      "symbol": "PANW",
-      "regular_close": 403.83,
-      "ext_price": 393.9,
-      "ah_pct": -2.46,
-      "name": "Palo Alto Networks, Inc."
-    },
-    {
-      "symbol": "INTU",
-      "regular_close": 305.99,
-      "ext_price": 299.0,
-      "ah_pct": -2.28,
-      "name": "Intuit Inc."
-    },
-    {
-      "symbol": "MRK",
-      "regular_close": 145.45,
-      "ext_price": 142.15,
-      "ah_pct": -2.27,
-      "name": "Merck & Company, Inc."
-    },
-    {
-      "symbol": "ABBV",
-      "regular_close": 281.12,
-      "ext_price": 274.9,
-      "ah_pct": -2.21,
-      "name": "AbbVie Inc."
-    },
-    {
-      "symbol": "MDB",
-      "regular_close": 381.29,
-      "ext_price": 373.0,
-      "ah_pct": -2.17,
-      "name": "MongoDB, Inc."
-    },
-    {
-      "symbol": "RKLB",
-      "regular_close": 65.71,
-      "ext_price": 64.3,
-      "ah_pct": -2.15,
-      "name": "Rocket Lab Corporation"
+      "symbol": "QCOM",
+      "regular_close": 172.62,
+      "ext_price": 169.16,
+      "ah_pct": -2.0,
+      "name": "QUALCOMM Incorporated"
     }
   ]
 }
