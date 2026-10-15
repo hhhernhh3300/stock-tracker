@@ -1,142 +1,22 @@
 {
-  "updated_at": "2026-10-14 23:59 UTC",
+  "updated_at": "2026-10-15 23:44 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
-  "surges": [
-    {
-      "symbol": "AMT",
-      "regular_close": 179.4,
-      "ext_price": 185.0,
-      "ah_pct": 3.12,
-      "name": "American Tower Corporation (REI"
-    }
-  ],
+  "surges": [],
   "drops": [
     {
-      "symbol": "RKLB",
-      "regular_close": 59.18,
-      "ext_price": 53.3,
-      "ah_pct": -9.94,
-      "name": "Rocket Lab Corporation"
+      "symbol": "IYT",
+      "regular_close": 80.91,
+      "ext_price": 79.04,
+      "ah_pct": -2.31,
+      "name": "iShares U.S. Transportation ETF"
     },
     {
-      "symbol": "DHR",
-      "regular_close": 224.69,
-      "ext_price": 217.79,
-      "ah_pct": -3.07,
-      "name": "Danaher Corporation"
-    },
-    {
-      "symbol": "STX",
-      "regular_close": 713.54,
-      "ext_price": 692.04,
-      "ah_pct": -3.01,
-      "name": "Seagate Technology Holdings PLC"
-    },
-    {
-      "symbol": "VRT",
-      "regular_close": 222.83,
-      "ext_price": 216.4,
-      "ah_pct": -2.89,
-      "name": "Vertiv Holdings, LLC"
-    },
-    {
-      "symbol": "AMD",
-      "regular_close": 570.82,
-      "ext_price": 554.56,
-      "ah_pct": -2.85,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "VST",
-      "regular_close": 151.79,
-      "ext_price": 147.53,
-      "ah_pct": -2.81,
-      "name": "Vistra Corp."
-    },
-    {
-      "symbol": "ARM",
-      "regular_close": 238.01,
-      "ext_price": 231.45,
-      "ah_pct": -2.76,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "MU",
-      "regular_close": 914.13,
-      "ext_price": 889.01,
-      "ah_pct": -2.75,
-      "name": "Micron Technology, Inc."
-    },
-    {
-      "symbol": "MRVL",
-      "regular_close": 245.28,
-      "ext_price": 238.99,
-      "ah_pct": -2.56,
-      "name": "Marvell Technology, Inc."
-    },
-    {
-      "symbol": "ORCL",
-      "regular_close": 130.55,
-      "ext_price": 127.33,
-      "ah_pct": -2.47,
-      "name": "Oracle Corporation"
-    },
-    {
-      "symbol": "INTC",
-      "regular_close": 98.12,
-      "ext_price": 95.77,
-      "ah_pct": -2.4,
-      "name": "Intel Corporation"
-    },
-    {
-      "symbol": "TEM",
-      "regular_close": 68.32,
-      "ext_price": 66.68,
-      "ah_pct": -2.4,
-      "name": "Tempus AI, Inc."
-    },
-    {
-      "symbol": "ASTS",
-      "regular_close": 42.14,
-      "ext_price": 41.17,
-      "ah_pct": -2.3,
-      "name": "AST SpaceMobile, Inc."
-    },
-    {
-      "symbol": "DDOG",
-      "regular_close": 269.33,
-      "ext_price": 263.35,
+      "symbol": "XLC",
+      "regular_close": 112.44,
+      "ext_price": 109.94,
       "ah_pct": -2.22,
-      "name": "Datadog, Inc."
-    },
-    {
-      "symbol": "GEV",
-      "regular_close": 941.78,
-      "ext_price": 922.24,
-      "ah_pct": -2.07,
-      "name": "GE Vernova Inc."
-    },
-    {
-      "symbol": "CIEN",
-      "regular_close": 359.6,
-      "ext_price": 352.15,
-      "ah_pct": -2.07,
-      "name": "Ciena Corporation"
-    },
-    {
-      "symbol": "LRCX",
-      "regular_close": 286.92,
-      "ext_price": 281.0,
-      "ah_pct": -2.06,
-      "name": "Lam Research Corporation"
-    },
-    {
-      "symbol": "QCOM",
-      "regular_close": 172.62,
-      "ext_price": 169.16,
-      "ah_pct": -2.0,
-      "name": "QUALCOMM Incorporated"
+      "name": "State Street Communication Serv"
     }
   ]
 }
