@@ -1,22 +1,7 @@
 {
-  "updated_at": "2026-10-15 23:44 UTC",
+  "updated_at": "2026-10-16 23:43 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [],
-  "drops": [
-    {
-      "symbol": "IYT",
-      "regular_close": 80.91,
-      "ext_price": 79.04,
-      "ah_pct": -2.31,
-      "name": "iShares U.S. Transportation ETF"
-    },
-    {
-      "symbol": "XLC",
-      "regular_close": 112.44,
-      "ext_price": 109.94,
-      "ah_pct": -2.22,
-      "name": "State Street Communication Serv"
-    }
-  ]
+  "drops": []
 }
