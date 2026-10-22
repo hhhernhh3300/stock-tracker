@@ -1,170 +1,359 @@
 {
-  "updated_at": "2026-10-20 23:59 UTC",
+  "updated_at": "2026-10-22 00:04 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "DELL",
-      "regular_close": 461.56,
-      "ext_price": 489.01,
-      "ah_pct": 5.95,
-      "name": "Dell Technologies Inc."
+      "symbol": "TAN",
+      "regular_close": 41.75,
+      "ext_price": 48.67,
+      "ah_pct": 16.57,
+      "name": "Invesco Solar ETF"
     },
     {
-      "symbol": "VRT",
-      "regular_close": 203.56,
-      "ext_price": 213.83,
-      "ah_pct": 5.05,
-      "name": "Vertiv Holdings, LLC"
+      "symbol": "INOD",
+      "regular_close": 55.05,
+      "ext_price": 59.12,
+      "ah_pct": 7.39,
+      "name": "Innodata Inc."
     },
     {
-      "symbol": "COF",
-      "regular_close": 201.56,
-      "ext_price": 210.5,
-      "ah_pct": 4.44,
-      "name": "Capital One Financial Corporati"
+      "symbol": "ZS",
+      "regular_close": 214.51,
+      "ext_price": 229.0,
+      "ah_pct": 6.75,
+      "name": "Zscaler, Inc."
     },
     {
-      "symbol": "LRCX",
-      "regular_close": 263.45,
-      "ext_price": 274.0,
-      "ah_pct": 4.0,
-      "name": "Lam Research Corporation"
+      "symbol": "NET",
+      "regular_close": 291.69,
+      "ext_price": 309.28,
+      "ah_pct": 6.03,
+      "name": "Cloudflare, Inc."
     },
     {
-      "symbol": "INTC",
-      "regular_close": 91.69,
-      "ext_price": 94.74,
-      "ah_pct": 3.33,
-      "name": "Intel Corporation"
+      "symbol": "DDOG",
+      "regular_close": 256.43,
+      "ext_price": 271.71,
+      "ah_pct": 5.96,
+      "name": "Datadog, Inc."
     },
     {
-      "symbol": "CIEN",
-      "regular_close": 341.95,
-      "ext_price": 353.0,
-      "ah_pct": 3.23,
-      "name": "Ciena Corporation"
+      "symbol": "MDB",
+      "regular_close": 366.18,
+      "ext_price": 386.5,
+      "ah_pct": 5.55,
+      "name": "MongoDB, Inc."
     },
     {
-      "symbol": "ARM",
-      "regular_close": 221.06,
-      "ext_price": 228.01,
-      "ah_pct": 3.14,
-      "name": "Arm Holdings plc"
-    },
-    {
-      "symbol": "KLAC",
-      "regular_close": 161.74,
-      "ext_price": 166.8,
-      "ah_pct": 3.13,
-      "name": "KLA Corporation"
-    },
-    {
-      "symbol": "BTDR",
-      "regular_close": 7.84,
-      "ext_price": 8.08,
-      "ah_pct": 3.07,
-      "name": "Bitdeer Technologies Group"
-    },
-    {
-      "symbol": "RKLB",
-      "regular_close": 50.9,
-      "ext_price": 52.45,
-      "ah_pct": 3.04,
-      "name": "Rocket Lab Corporation"
-    },
-    {
-      "symbol": "AMD",
-      "regular_close": 534.74,
-      "ext_price": 550.95,
-      "ah_pct": 3.03,
-      "name": "Advanced Micro Devices, Inc."
-    },
-    {
-      "symbol": "AMAT",
-      "regular_close": 404.98,
-      "ext_price": 416.5,
-      "ah_pct": 2.84,
-      "name": "Applied Materials, Inc."
-    },
-    {
-      "symbol": "MRVL",
-      "regular_close": 240.42,
-      "ext_price": 247.09,
-      "ah_pct": 2.78,
-      "name": "Marvell Technology, Inc."
-    },
-    {
-      "symbol": "STX",
-      "regular_close": 675.13,
-      "ext_price": 691.25,
-      "ah_pct": 2.39,
-      "name": "Seagate Technology Holdings PLC"
-    },
-    {
-      "symbol": "ANET",
-      "regular_close": 181.19,
-      "ext_price": 185.5,
-      "ah_pct": 2.38,
-      "name": "Arista Networks, Inc."
-    },
-    {
-      "symbol": "ASML",
-      "regular_close": 1630.84,
-      "ext_price": 1669.29,
-      "ah_pct": 2.36,
-      "name": "ASML Holding N.V. - New York Re"
-    },
-    {
-      "symbol": "NXT",
-      "regular_close": 79.03,
-      "ext_price": 80.84,
-      "ah_pct": 2.29,
-      "name": "Nextpower Inc."
-    },
-    {
-      "symbol": "SMH",
-      "regular_close": 546.36,
-      "ext_price": 558.75,
-      "ah_pct": 2.27,
-      "name": "VanEck Semiconductor ETF"
-    },
-    {
-      "symbol": "NVDA",
-      "regular_close": 216.47,
-      "ext_price": 221.14,
-      "ah_pct": 2.16,
-      "name": "NVIDIA Corporation"
-    },
-    {
-      "symbol": "MU",
-      "regular_close": 896.07,
-      "ext_price": 915.23,
-      "ah_pct": 2.14,
-      "name": "Micron Technology, Inc."
-    }
-  ],
-  "drops": [
-    {
-      "symbol": "ISRG",
-      "regular_close": 438.0,
-      "ext_price": 407.45,
-      "ah_pct": -6.97,
-      "name": "Intuitive Surgical, Inc."
-    },
-    {
-      "symbol": "NFLX",
-      "regular_close": 68.69,
-      "ext_price": 64.7,
-      "ah_pct": -5.8,
-      "name": "Netflix, Inc."
+      "symbol": "CRWD",
+      "regular_close": 227.37,
+      "ext_price": 237.5,
+      "ah_pct": 4.46,
+      "name": "CrowdStrike Holdings, Inc."
     },
     {
       "symbol": "DHR",
       "regular_close": 224.24,
-      "ext_price": 219.6,
-      "ah_pct": -2.07,
+      "ext_price": 233.86,
+      "ah_pct": 4.29,
       "name": "Danaher Corporation"
+    },
+    {
+      "symbol": "CEG",
+      "regular_close": 258.84,
+      "ext_price": 269.5,
+      "ah_pct": 4.12,
+      "name": "Constellation Energy Corporatio"
+    },
+    {
+      "symbol": "RKLB",
+      "regular_close": 50.9,
+      "ext_price": 52.86,
+      "ah_pct": 3.85,
+      "name": "Rocket Lab Corporation"
+    },
+    {
+      "symbol": "TXN",
+      "regular_close": 277.78,
+      "ext_price": 288.39,
+      "ah_pct": 3.82,
+      "name": "Texas Instruments Incorporated"
+    },
+    {
+      "symbol": "PLTR",
+      "regular_close": 192.6,
+      "ext_price": 199.68,
+      "ah_pct": 3.68,
+      "name": "Palantir Technologies Inc."
+    },
+    {
+      "symbol": "NXT",
+      "regular_close": 79.03,
+      "ext_price": 81.8,
+      "ah_pct": 3.5,
+      "name": "Nextpower Inc."
+    },
+    {
+      "symbol": "TLN",
+      "regular_close": 349.43,
+      "ext_price": 361.0,
+      "ah_pct": 3.31,
+      "name": "Talen Energy Corporation"
+    },
+    {
+      "symbol": "MS",
+      "regular_close": 180.4,
+      "ext_price": 186.3,
+      "ah_pct": 3.27,
+      "name": "Morgan Stanley"
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 461.56,
+      "ext_price": 476.36,
+      "ah_pct": 3.21,
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 341.95,
+      "ext_price": 352.0,
+      "ah_pct": 2.94,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "GEV",
+      "regular_close": 890.33,
+      "ext_price": 915.0,
+      "ah_pct": 2.77,
+      "name": "GE Vernova Inc."
+    },
+    {
+      "symbol": "META",
+      "regular_close": 694.25,
+      "ext_price": 712.31,
+      "ah_pct": 2.6,
+      "name": "Meta Platforms, Inc."
+    },
+    {
+      "symbol": "COF",
+      "regular_close": 201.56,
+      "ext_price": 206.66,
+      "ah_pct": 2.53,
+      "name": "Capital One Financial Corporati"
+    },
+    {
+      "symbol": "VST",
+      "regular_close": 150.32,
+      "ext_price": 154.1,
+      "ah_pct": 2.51,
+      "name": "Vistra Corp."
+    },
+    {
+      "symbol": "BLOK",
+      "regular_close": 55.07,
+      "ext_price": 56.43,
+      "ah_pct": 2.47,
+      "name": "Amplify Blockchain Technology E"
+    },
+    {
+      "symbol": "COIN",
+      "regular_close": 170.85,
+      "ext_price": 175.05,
+      "ah_pct": 2.46,
+      "name": "Coinbase Global, Inc."
+    },
+    {
+      "symbol": "SLB",
+      "regular_close": 49.98,
+      "ext_price": 51.2,
+      "ah_pct": 2.44,
+      "name": "SLB Limited"
+    },
+    {
+      "symbol": "PANW",
+      "regular_close": 340.28,
+      "ext_price": 348.0,
+      "ah_pct": 2.27,
+      "name": "Palo Alto Networks, Inc."
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 203.56,
+      "ext_price": 208.08,
+      "ah_pct": 2.22,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "NOW",
+      "regular_close": 149.54,
+      "ext_price": 152.84,
+      "ah_pct": 2.21,
+      "name": "ServiceNow, Inc."
+    },
+    {
+      "symbol": "CIBR",
+      "regular_close": 100.4,
+      "ext_price": 102.6,
+      "ah_pct": 2.19,
+      "name": "First Trust NASDAQ Cybersecurit"
+    },
+    {
+      "symbol": "HOOD",
+      "regular_close": 98.21,
+      "ext_price": 100.25,
+      "ah_pct": 2.08,
+      "name": "Robinhood Markets, Inc."
+    },
+    {
+      "symbol": "JCI",
+      "regular_close": 147.94,
+      "ext_price": 151.02,
+      "ah_pct": 2.08,
+      "name": "Johnson Controls International "
+    },
+    {
+      "symbol": "SKYY",
+      "regular_close": 163.34,
+      "ext_price": 166.63,
+      "ah_pct": 2.01,
+      "name": "First Trust Cloud Computing ETF"
+    }
+  ],
+  "drops": [
+    {
+      "symbol": "LRCX",
+      "regular_close": 263.45,
+      "ext_price": 241.48,
+      "ah_pct": -8.34,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "T",
+      "regular_close": 23.42,
+      "ext_price": 22.0,
+      "ah_pct": -6.06,
+      "name": "AT&T Inc."
+    },
+    {
+      "symbol": "NFLX",
+      "regular_close": 68.69,
+      "ext_price": 65.06,
+      "ah_pct": -5.28,
+      "name": "Netflix, Inc."
+    },
+    {
+      "symbol": "LVS",
+      "regular_close": 38.17,
+      "ext_price": 36.7,
+      "ah_pct": -3.85,
+      "name": "Las Vegas Sands Corp."
+    },
+    {
+      "symbol": "LULU",
+      "regular_close": 99.94,
+      "ext_price": 96.11,
+      "ah_pct": -3.83,
+      "name": "lululemon athletica inc."
+    },
+    {
+      "symbol": "BKNG",
+      "regular_close": 163.92,
+      "ext_price": 157.68,
+      "ah_pct": -3.81,
+      "name": "Booking Holdings Inc. Common St"
+    },
+    {
+      "symbol": "AMAT",
+      "regular_close": 404.98,
+      "ext_price": 393.07,
+      "ah_pct": -2.94,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "CHTR",
+      "regular_close": 110.03,
+      "ext_price": 107.26,
+      "ah_pct": -2.52,
+      "name": "Charter Communications, Inc."
+    },
+    {
+      "symbol": "ORCL",
+      "regular_close": 131.14,
+      "ext_price": 127.9,
+      "ah_pct": -2.47,
+      "name": "Oracle Corporation"
+    },
+    {
+      "symbol": "ISRG",
+      "regular_close": 438.0,
+      "ext_price": 427.25,
+      "ah_pct": -2.45,
+      "name": "Intuitive Surgical, Inc."
+    },
+    {
+      "symbol": "WYNN",
+      "regular_close": 77.45,
+      "ext_price": 75.6,
+      "ah_pct": -2.39,
+      "name": "Wynn Resorts, Limited"
+    },
+    {
+      "symbol": "TMUS",
+      "regular_close": 157.75,
+      "ext_price": 154.0,
+      "ah_pct": -2.38,
+      "name": "T-Mobile US, Inc."
+    },
+    {
+      "symbol": "BSX",
+      "regular_close": 45.58,
+      "ext_price": 44.5,
+      "ah_pct": -2.37,
+      "name": "Boston Scientific Corporation"
+    },
+    {
+      "symbol": "ASTS",
+      "regular_close": 41.13,
+      "ext_price": 40.2,
+      "ah_pct": -2.26,
+      "name": "AST SpaceMobile, Inc."
+    },
+    {
+      "symbol": "SYK",
+      "regular_close": 304.4,
+      "ext_price": 297.6,
+      "ah_pct": -2.23,
+      "name": "Stryker Corporation"
+    },
+    {
+      "symbol": "GOOG",
+      "regular_close": 336.4,
+      "ext_price": 329.12,
+      "ah_pct": -2.16,
+      "name": "Alphabet Inc."
+    },
+    {
+      "symbol": "VZ",
+      "regular_close": 44.54,
+      "ext_price": 43.59,
+      "ah_pct": -2.13,
+      "name": "Verizon Communications Inc."
+    },
+    {
+      "symbol": "GOOGL",
+      "regular_close": 340.28,
+      "ext_price": 333.1,
+      "ah_pct": -2.11,
+      "name": "Alphabet Inc."
+    },
+    {
+      "symbol": "MDT",
+      "regular_close": 94.63,
+      "ext_price": 92.71,
+      "ah_pct": -2.03,
+      "name": "Medtronic plc."
     }
   ]
 }
