@@ -6,8 +6,8 @@ name: Analyst site health
 
 on:
   schedule:
-    # Backup only; the job-scheduler Worker (scheduler/) starts this at 7:30am New York time.
-    - cron: "40 11 * * 1-5"
+    # Backup only; the job-scheduler Worker (scheduler/) starts this at 12:15am New York time.
+    - cron: "30 5 * * 1-5"
   workflow_dispatch: {}
 
 permissions:

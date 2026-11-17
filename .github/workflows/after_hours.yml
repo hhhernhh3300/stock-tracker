@@ -2,10 +2,10 @@ name: After-Hours Screener
 
 on:
   schedule:
-    # Backup only. GitHub's cron has been starting this 4-7 h late, so the
-    # job-scheduler Worker (scheduler/) starts it on time at 5:30pm New York time
-    # (1.5 h into extended trading, all year round). A late duplicate skips itself.
-    - cron: "30 21 * * 1-5"
+    # Backup only. GitHub's cron has been starting jobs 4-10 h late, so the
+    # job-scheduler Worker (scheduler/) starts this on time at midnight New York
+    # time (Mon-Fri), after extended trading has closed. A late duplicate skips itself.
+    - cron: "0 5 * * 1-5"
   workflow_dispatch: {}
 
 permissions:

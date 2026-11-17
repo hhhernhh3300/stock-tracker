@@ -5,21 +5,23 @@
 
 const OWNER = 'hhhernhh3300'
 
+// Nightly at midnight New York time, Mon–Fri: at the start of each trading day
+// the previous session — including its after-hours trading — is final, and
+// everything is ready hours before the open.
 const PLAN = [
-  // Private portfolio: positions first, then the value screen the 8:07am Claude routine reads.
-  { at: '06:45', repo: 'portfolio-private', workflow: 'ibkr.yml' },
-  { at: '07:15', repo: 'portfolio-private', workflow: 'agent-screen.yml' },
-  // Public screener, before the US open.
-  { at: '07:00', repo: 'stock-tracker', workflow: 'screen.yml' },
+  { at: '00:00', repo: 'stock-tracker', workflow: 'screen.yml' },
+  { at: '00:00', repo: 'stock-tracker', workflow: 'after_hours.yml' },
+  // Early try for fresh positions; if the day's statement isn't ready yet, 06:45 catches it.
+  { at: '00:00', repo: 'portfolio-private', workflow: 'ibkr.yml' },
+  // Value screen, read by the Claude finance-agent routine at 00:35 (claude.ai).
+  { at: '00:15', repo: 'portfolio-private', workflow: 'agent-screen.yml' },
   // Public analyst site: AI providers + data sources.
-  { at: '07:30', repo: 'stock-tracker', workflow: 'analyst-health.yml' },
-  // Finance-agent health checks (screen ran? routine published?).
-  { at: '07:45', repo: 'portfolio-private', workflow: 'agent-health.yml' },
-  { at: '08:45', repo: 'portfolio-private', workflow: 'agent-health.yml' },
-  { at: '10:45', repo: 'portfolio-private', workflow: 'agent-health.yml' },
-  { at: '12:45', repo: 'portfolio-private', workflow: 'agent-health.yml' },
-  // After-hours screener, 1.5 h into extended trading.
-  { at: '17:30', repo: 'stock-tracker', workflow: 'after_hours.yml' },
+  { at: '00:15', repo: 'stock-tracker', workflow: 'analyst-health.yml' },
+  // Did the routine publish? The 02:30 check fails loudly if not.
+  { at: '01:15', repo: 'portfolio-private', workflow: 'agent-health.yml' },
+  { at: '02:30', repo: 'portfolio-private', workflow: 'agent-health.yml' },
+  // IBKR's statement for the previous day is reliably ready by morning.
+  { at: '06:45', repo: 'portfolio-private', workflow: 'ibkr.yml' },
 ]
 
 function newYorkClock(date) {

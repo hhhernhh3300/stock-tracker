@@ -2,10 +2,10 @@ name: Daily Screener
 
 on:
   schedule:
-    # Backup only. GitHub's cron has been starting this 6-10 h late, so the
-    # job-scheduler Worker (scheduler/) starts it on time at 7:00am New York time
-    # via workflow_dispatch. If that run already happened, this one skips itself.
-    - cron: "0 11 * * 1-5"
+    # Backup only. GitHub's cron has been starting jobs 6-10 h late, so the
+    # job-scheduler Worker (scheduler/) starts this on time at midnight New York
+    # time (Mon-Fri) via workflow_dispatch. If that ran, this one skips itself.
+    - cron: "0 5 * * 1-5"
   push:
     branches: [main]
     paths:
