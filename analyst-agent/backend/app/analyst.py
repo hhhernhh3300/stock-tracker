@@ -407,7 +407,8 @@ def _error_kind(exc: Exception) -> str | None:
     'unavailable' (retired / no access), 'no-free-tier', 'per-day',
     'per-minute', or None for anything else."""
     s = str(exc).lower()
-    if any(k in s for k in ("model_not_found", "does not exist", "archived", "is not found")):
+    if any(k in s for k in ("model_not_found", "does not exist", "archived", "is not found",
+                            "no longer available", "payment required", "error code: 402")):
         return "unavailable"
     if any(k in s for k in ("429", "quota", "rate limit", "rate_limit",
                             "resource_exhausted", "resource exhausted", "too many requests")):
