@@ -987,6 +987,58 @@ def ping(provider: str) -> dict:
         return {"ok": False, "model": model, "reply": None, "error": str(exc)[:240]}
 
 
+def list_models(provider: str) -> dict:
+    """Model ids this provider's API key can actually use — ids only, never keys.
+
+    Powers /api/diag/models, used to pick a replacement when /api/diag/llm reports
+    a retired or inaccessible model (e.g. a 404 "model not found"). For the
+    OpenAI-compatible gateways it also reports the host, so it's clear which one
+    is Groq and which is Cerebras."""
+    from urllib.parse import urlparse
+
+    out: dict = {"configured": bool(_key_for(provider)), "current_model": DEFAULT_MODELS.get(provider)}
+    if not out["configured"]:
+        return out
+    try:
+        if provider in ("openai_compatible", "openai_compatible2"):
+            from openai import OpenAI  # lazy import
+
+            key, base_url, _ = _compat_cfg(provider)
+            out["host"] = urlparse(base_url or "").netloc or None
+            if not base_url:
+                raise RuntimeError("no BASE_URL set for this gateway")
+            ids = [m.id for m in OpenAI(api_key=key, base_url=base_url).models.list()]
+        elif provider == "openai":
+            from openai import OpenAI  # lazy import
+
+            ids = [m.id for m in OpenAI(api_key=_key_for("openai")).models.list()]
+        elif provider == "gemini":
+            import google.generativeai as genai  # lazy import
+
+            genai.configure(api_key=_key_for("gemini"))
+            ids = [
+                m.name.split("/")[-1]
+                for m in genai.list_models()
+                if "generateContent" in (getattr(m, "supported_generation_methods", None) or [])
+            ]
+        elif provider == "anthropic":
+            import anthropic  # lazy import
+
+            ids = [m.id for m in anthropic.Anthropic(api_key=_key_for("anthropic")).models.list()]
+        else:
+            raise RuntimeError("unknown provider")
+        ids = sorted(set(ids))
+        out.update({
+            "ok": True,
+            "count": len(ids),
+            "current_model_listed": out["current_model"] in ids,
+            "ids": ids[:100],
+        })
+    except Exception as exc:
+        out.update({"ok": False, "error": str(exc)[:240]})
+    return out
+
+
 def chat(snap: dict, question: str, history: list | None = None) -> dict:
     """Answer a free-form question about the stock, grounded in the snapshot.
 

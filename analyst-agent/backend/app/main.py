@@ -117,6 +117,15 @@ def diag_context() -> dict:
     return market_data.diag_sources()
 
 
+@app.get("/api/diag/models")
+def diag_models() -> dict:
+    """List the model ids each configured LLM provider's key can use (ids only —
+    keys are never returned). Use it to choose replacements when /api/diag/llm
+    reports a retired or inaccessible model."""
+    chain = analyst.resolve_provider_chain()
+    return {"chain": chain, "providers": {p: analyst.list_models(p) for p in chain}}
+
+
 @app.get("/api/search")
 def search(q: str = "") -> dict:
     """Live symbol search for the autocomplete box.
