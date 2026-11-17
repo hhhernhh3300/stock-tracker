@@ -22,6 +22,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Literal
 
 from pydantic import BaseModel, Field
@@ -65,11 +68,10 @@ DEFAULT_MODELS = {
 # resolve to whichever model Google rotates in — often a Pro id that 429s
 # immediately. Trying those just burned quota and produced noisy errors. Flash
 # models have generous free quotas and are plenty for this summarisation task.
-_GEMINI_FALLBACKS = [
+_GEMINI_FALLBACKS = [  # used only when GEMINI_MODELS isn't set
     "gemini-2.5-flash",
+    "gemini-3.5-flash-lite",
     "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
 ]
 
 
@@ -361,8 +363,90 @@ def is_configured() -> bool:
 
 
 def active_model(provider: str | None = None) -> str | None:
+    """The provider's first-choice model (its strongest configured model)."""
     provider = provider or resolve_provider()
-    return DEFAULT_MODELS.get(provider) if provider else None
+    if not provider:
+        return None
+    models = models_for(provider)
+    return models[0] if models else None
+
+
+# --------------------------------------------------------------------------- #
+# Model fallback lists (strongest first) + quota cooldown
+# --------------------------------------------------------------------------- #
+# Each provider can list several models (GEMINI_MODELS, OPENAI_COMPAT_MODELS,
+# OPENAI_COMPAT2_MODELS — comma-separated, strongest first). They're tried in
+# order until one works, so the best model is used while its free quota lasts
+# and requests step down instead of failing. A model refused for quota (or one
+# that's retired / not available to this key) is skipped for a while, so a
+# used-up model doesn't add a wasted round-trip to every request.
+
+def _env_list(name: str) -> list[str]:
+    return [m.strip() for m in (os.environ.get(name) or "").split(",") if m.strip()]
+
+
+def models_for(provider: str) -> list[str]:
+    """Ordered, de-duplicated model list for a provider (strongest first)."""
+    if provider == "gemini":
+        ids = _gemini_candidates()
+    elif provider == "openai_compatible":
+        ids = _env_list("OPENAI_COMPAT_MODELS") or [DEFAULT_MODELS["openai_compatible"]]
+    elif provider == "openai_compatible2":
+        ids = _env_list("OPENAI_COMPAT2_MODELS") or [DEFAULT_MODELS["openai_compatible2"]]
+    else:
+        ids = [DEFAULT_MODELS.get(provider) or ""]
+    out: list[str] = []
+    for m in ids:
+        if m and m not in out:
+            out.append(m)
+    return out
+
+
+def _error_kind(exc: Exception) -> str | None:
+    """Classify a provider error so the right cooldown applies:
+    'unavailable' (retired / no access), 'no-free-tier', 'per-day',
+    'per-minute', or None for anything else."""
+    s = str(exc).lower()
+    if any(k in s for k in ("model_not_found", "does not exist", "archived", "is not found")):
+        return "unavailable"
+    if any(k in s for k in ("429", "quota", "rate limit", "rate_limit",
+                            "resource_exhausted", "resource exhausted", "too many requests")):
+        if "limit: 0" in s or "limit 0," in s:
+            return "no-free-tier"
+        if "day" in s:
+            return "per-day"
+        return "per-minute"
+    return None
+
+
+_COOLDOWN_SECONDS = {
+    "unavailable": 6 * 3600,
+    "no-free-tier": 6 * 3600,
+    "per-day": 3600,
+    "per-minute": 60,
+}
+_COOLDOWN: dict[tuple[str, str], float] = {}
+
+
+def _try_models(provider: str, attempt):
+    """Call attempt(model) for each of the provider's models, strongest first.
+    Returns (result, model_used); raises RuntimeError if every model fails."""
+    models = models_for(provider)
+    if not models:
+        raise RuntimeError(f"{provider}: no model configured")
+    errors: list[str] = []
+    for model in models:
+        if _COOLDOWN.get((provider, model), 0.0) > time.time():
+            errors.append(f"{model}: skipped (cooling down after a quota/availability error)")
+            continue
+        try:
+            return attempt(model), model
+        except Exception as exc:
+            kind = _error_kind(exc)
+            if kind:
+                _COOLDOWN[(provider, model)] = time.time() + _COOLDOWN_SECONDS[kind]
+            errors.append(f"{model}: {str(exc)[:160]}")
+    raise RuntimeError(f"all {provider} models failed — " + " | ".join(errors[-4:]))
 
 
 # --------------------------------------------------------------------------- #
@@ -434,9 +518,9 @@ def _build_commodity_message(snap: dict) -> str:
     cot = c.get("cot") or {}
     inv = c.get("inventory") or {}
     lines = [
-        f"Analyze this commodity for the upcoming trading days.",
+        "Analyze this commodity for the upcoming trading days.",
         "",
-        f"INSTRUMENT",
+        "INSTRUMENT",
         f"  Ticker: {m['ticker']}   Name: {m.get('name')}   Currency: {m.get('currency', 'USD')}",
         "",
         _price_tech_block(snap),
@@ -545,9 +629,25 @@ def _select_prompt(snap: dict):
     return system, builder(snap)
 
 
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.S | re.I)
+
+
+def _strip_thinking(text: str | None) -> str:
+    """Remove a reasoning model's visible thinking (Qwen-style <think>…</think>).
+
+    If a <think> block was never closed (the answer was cut off mid-thought),
+    nothing usable is left: return "" so the caller moves on to the next model."""
+    text = _THINK_BLOCK.sub("", text or "")
+    low = text.lower()
+    if "<think>" in low:
+        text = text[: low.index("<think>")]
+    return text.strip()
+
+
 def _extract_json(text: str) -> dict:
-    """Parse a JSON object out of model text, tolerating markdown fences."""
-    text = (text or "").strip()
+    """Parse a JSON object out of model text, tolerating markdown fences and a
+    reasoning model's <think> block."""
+    text = _strip_thinking(text)
     if text.startswith("```"):
         # strip ```json ... ``` fences
         text = text.split("```", 2)[1] if text.count("```") >= 2 else text.strip("`")
@@ -568,7 +668,77 @@ def _extract_json(text: str) -> dict:
 # --------------------------------------------------------------------------- #
 
 
-def _call_anthropic(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+def _gemini_complete(model_name: str, system: str, contents, json_mode: bool) -> str:
+    """One Gemini (or Gemma) call with one model; returns the raw reply text."""
+    import google.generativeai as genai  # lazy import
+
+    genai.configure(api_key=_key_for("gemini"))
+    is_gemma = model_name.lower().startswith("gemma")
+    config = {"response_mime_type": "application/json"} if (json_mode and not is_gemma) else None
+    if is_gemma:
+        # Gemma on the Gemini API takes no separate system instruction (and no
+        # JSON mode): put the instructions at the start of the first user turn.
+        model = genai.GenerativeModel(model_name=model_name, generation_config=config)
+        contents = _inline_system(system, contents)
+    else:
+        model = genai.GenerativeModel(
+            model_name=model_name, system_instruction=system, generation_config=config
+        )
+    return model.generate_content(contents).text or ""
+
+
+def _inline_system(system: str, contents):
+    if isinstance(contents, str):
+        return f"{system}\n\n{contents}"
+    out = [dict(c) for c in contents]
+    for c in out:
+        if c.get("role") == "user":
+            c["parts"] = [f"{system}\n\n{c['parts'][0]}", *c["parts"][1:]]
+            break
+    return out
+
+
+def _compat_complete(provider: str, model: str, messages: list, max_tokens: int, json_mode: bool) -> str:
+    """One call to an OpenAI-compatible gateway (Groq, Cerebras, OpenRouter,
+    Mistral, LiteLLM…) with one model; returns the raw reply text."""
+    from openai import OpenAI  # lazy import
+
+    key, base_url, _ = _compat_cfg(provider)
+    if not base_url:
+        raise RuntimeError(f"{provider} needs its BASE_URL set (e.g. https://api.cerebras.ai/v1)")
+    # No SDK retries: on any failure we move straight on to the next model.
+    client = OpenAI(api_key=key, base_url=base_url, max_retries=0, timeout=90)
+    kwargs: dict = {"model": model, "max_tokens": max_tokens, "messages": messages}
+    if "groq.com" in base_url and "qwen" in model.lower():
+        # Groq returns Qwen's thinking inside the answer unless told to hide it.
+        kwargs["extra_body"] = {"reasoning_format": "hidden"}
+    if not json_mode:
+        resp = client.chat.completions.create(**kwargs)
+    else:
+        try:
+            resp = client.chat.completions.create(response_format={"type": "json_object"}, **kwargs)
+        except Exception as exc:
+            if _error_kind(exc):
+                raise  # quota / unavailable: don't spend a second call on this model
+            # Some gateways reject response_format: retry once without it (the
+            # prompt already asks for JSON only, and _extract_json is lenient).
+            resp = client.chat.completions.create(**kwargs)
+    return resp.choices[0].message.content or ""
+
+
+def _validated(text: str) -> dict:
+    """Parse and schema-check an assessment. Raises if invalid, so the caller
+    moves on to the next model instead of returning a broken result."""
+    return StockAssessment(**_extract_json(text)).model_dump()
+
+
+# Reasoning models (gpt-oss, Qwen, Gemini 3.x) spend tokens thinking before they
+# answer, so the gateways get more room than the old 2000/1200 limits.
+_ANALYSIS_MAX_TOKENS = 4000
+_CHAT_MAX_TOKENS = 2500
+
+
+def _call_anthropic(user_msg: str, system: str = SYSTEM_PROMPT):
     import anthropic  # lazy import
 
     client = anthropic.Anthropic(api_key=_key_for("anthropic"))
@@ -585,10 +755,10 @@ def _call_anthropic(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
         messages=[{"role": "user", "content": user_msg}],
     )
     text = "".join(block.text for block in resp.content if getattr(block, "type", None) == "text")
-    return _extract_json(text)
+    return _validated(text), DEFAULT_MODELS["anthropic"]
 
 
-def _call_openai(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+def _call_openai(user_msg: str, system: str = SYSTEM_PROMPT):
     from openai import OpenAI  # lazy import
 
     client = OpenAI(api_key=_key_for("openai"))
@@ -601,74 +771,28 @@ def _call_openai(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
             {"role": "user", "content": user_msg},
         ],
     )
-    return _extract_json(resp.choices[0].message.content)
+    return _validated(resp.choices[0].message.content), DEFAULT_MODELS["openai"]
 
 
-def _call_gemini(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
-    import google.generativeai as genai  # lazy import
+def _call_gemini(user_msg: str, system: str = SYSTEM_PROMPT):
+    return _try_models("gemini", lambda m: _validated(_gemini_complete(m, system, user_msg, True)))
 
-    genai.configure(api_key=_key_for("gemini"))
-    last_err: Exception | None = None
-    for model_name in _gemini_candidates():
-        try:
-            model = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=system,
-                generation_config={"response_mime_type": "application/json"},
-            )
-            resp = model.generate_content(user_msg)
-            return _extract_json(resp.text)
-        except Exception as exc:  # 404 / not-found / unsupported -> try next id
-            last_err = exc
-            continue
-    raise RuntimeError(
-        f"All Gemini models failed ({', '.join(_gemini_candidates())}). "
-        f"Last error: {last_err}"
+
+def _call_compat(user_msg: str, provider: str, system: str = SYSTEM_PROMPT):
+    """Any OpenAI-compatible /v1 gateway (``openai_compatible`` or
+    ``openai_compatible2``), trying its model list strongest first."""
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": user_msg}]
+    return _try_models(
+        provider,
+        lambda m: _validated(_compat_complete(provider, m, msgs, _ANALYSIS_MAX_TOKENS, True)),
     )
 
 
-def _call_compat(user_msg: str, provider: str, system: str = SYSTEM_PROMPT) -> dict:
-    """Any OpenAI-compatible /v1 gateway: Groq, OpenRouter, Mistral, Cerebras,
-    LiteLLM, or a corporate model gateway. Reuses the openai SDK with a custom
-    base_url. Key + URL + model come from the env vars for the given provider
-    (``openai_compatible`` or ``openai_compatible2``)."""
-    from openai import OpenAI  # lazy import
-
-    key, base_url, model = _compat_cfg(provider)
-    if not base_url:
-        raise RuntimeError(f"{provider} needs its BASE_URL set (e.g. https://api.cerebras.ai/v1)")
-    if not model:
-        raise RuntimeError(f"{provider} needs its MODEL set (e.g. llama-3.3-70b)")
-    client = OpenAI(api_key=key, base_url=base_url)
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            max_tokens=2000,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_msg},
-            ],
-        )
-    except Exception:
-        # Some gateways don't support response_format=json_object — retry without it
-        # (the prompt already instructs JSON-only output, and _extract_json is lenient).
-        resp = client.chat.completions.create(
-            model=model,
-            max_tokens=2000,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_msg},
-            ],
-        )
-    return _extract_json(resp.choices[0].message.content)
-
-
-def _call_openai_compatible(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+def _call_openai_compatible(user_msg: str, system: str = SYSTEM_PROMPT):
     return _call_compat(user_msg, "openai_compatible", system)
 
 
-def _call_openai_compatible2(user_msg: str, system: str = SYSTEM_PROMPT) -> dict:
+def _call_openai_compatible2(user_msg: str, system: str = SYSTEM_PROMPT):
     return _call_compat(user_msg, "openai_compatible2", system)
 
 
@@ -706,11 +830,10 @@ def analyze(snap: dict) -> dict:
     errors: list[str] = []
     for provider in chain:
         try:
-            raw = _DISPATCH[provider](user_msg, system)
-            assessment = StockAssessment(**raw)
-            result = assessment.model_dump()
+            assessment, used_model = _DISPATCH[provider](user_msg, system)
+            result = dict(assessment)            # already schema-validated
             result["engine"] = provider          # e.g. "gemini", "openai_compatible"
-            result["model"] = DEFAULT_MODELS[provider]
+            result["model"] = used_model         # the model that actually answered
             return result
         except Exception as exc:
             errors.append(f"{provider}: {exc}")
@@ -888,7 +1011,16 @@ def _chat_messages(snap: dict, question: str, history: list | None = None) -> li
     return msgs
 
 
-def _chat_anthropic(messages: list) -> str:
+def _nonempty(text: str | None) -> str:
+    """Clean a chat reply (drop visible thinking); raise if nothing is left, so
+    the caller moves on to the next model."""
+    text = _strip_thinking(text)
+    if not text:
+        raise RuntimeError("empty reply")
+    return text
+
+
+def _chat_anthropic(messages: list):
     import anthropic  # lazy import
 
     system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
@@ -900,62 +1032,42 @@ def _chat_anthropic(messages: list) -> str:
         system=system,
         messages=[{"role": m["role"], "content": m["content"]} for m in convo],
     )
-    return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
+    text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+    return _nonempty(text), DEFAULT_MODELS["anthropic"]
 
 
-def _chat_openai(messages: list) -> str:
+def _chat_openai(messages: list):
     from openai import OpenAI  # lazy import
 
     client = OpenAI(api_key=_key_for("openai"))
     resp = client.chat.completions.create(
         model=DEFAULT_MODELS["openai"], max_tokens=1200, messages=messages
     )
-    return (resp.choices[0].message.content or "").strip()
+    return _nonempty(resp.choices[0].message.content), DEFAULT_MODELS["openai"]
 
 
-def _chat_gemini(messages: list) -> str:
-    import google.generativeai as genai  # lazy import
-
+def _chat_gemini(messages: list):
     system = "\n\n".join(m["content"] for m in messages if m["role"] == "system")
-    genai.configure(api_key=_key_for("gemini"))
     convo = [m for m in messages if m["role"] != "system"]
     parts = [
         {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
         for m in convo
     ]
-    last_err: Exception | None = None
-    for model_name in _gemini_candidates():
-        try:
-            model = genai.GenerativeModel(
-                model_name=model_name, system_instruction=system
-            )
-            resp = model.generate_content(parts)
-            return (resp.text or "").strip()
-        except Exception as exc:  # 404 / not-found / unsupported -> try next id
-            last_err = exc
-            continue
-    raise RuntimeError(
-        f"All Gemini models failed ({', '.join(_gemini_candidates())}). "
-        f"Last error: {last_err}"
+    return _try_models("gemini", lambda m: _nonempty(_gemini_complete(m, system, parts, False)))
+
+
+def _chat_compat(messages: list, provider: str):
+    return _try_models(
+        provider,
+        lambda m: _nonempty(_compat_complete(provider, m, messages, _CHAT_MAX_TOKENS, False)),
     )
 
 
-def _chat_compat(messages: list, provider: str) -> str:
-    from openai import OpenAI  # lazy import
-
-    key, base_url, model = _compat_cfg(provider)
-    if not base_url or not model:
-        raise RuntimeError(f"{provider} chat needs its BASE_URL and MODEL set.")
-    client = OpenAI(api_key=key, base_url=base_url)
-    resp = client.chat.completions.create(model=model, max_tokens=1200, messages=messages)
-    return (resp.choices[0].message.content or "").strip()
-
-
-def _chat_openai_compatible(messages: list) -> str:
+def _chat_openai_compatible(messages: list):
     return _chat_compat(messages, "openai_compatible")
 
 
-def _chat_openai_compatible2(messages: list) -> str:
+def _chat_openai_compatible2(messages: list):
     return _chat_compat(messages, "openai_compatible2")
 
 
@@ -972,19 +1084,21 @@ def ping(provider: str) -> dict:
     """Minimal liveness check for ONE provider — a 1-token round-trip. Returns
     {ok, model, reply, error}. Used by the /api/diag/llm health endpoint so each
     configured provider (incl. the Cerebras fallback) can be verified in isolation
-    without disturbing the production failover order."""
-    model = DEFAULT_MODELS.get(provider)
+    without disturbing the production failover order. `model` is the model that
+    actually answered (walking the provider's list strongest first)."""
+    models = models_for(provider)
     if provider not in _CHAT_DISPATCH:
-        return {"ok": False, "model": model, "reply": None, "error": "unknown provider"}
+        return {"ok": False, "model": None, "models": models, "reply": None, "error": "unknown provider"}
     messages = [
         {"role": "system", "content": "You are a health check. Reply with exactly: OK"},
         {"role": "user", "content": "ping"},
     ]
     try:
-        reply = (_CHAT_DISPATCH[provider](messages) or "").strip()
-        return {"ok": bool(reply), "model": model, "reply": reply[:60], "error": None}
+        reply, used = _CHAT_DISPATCH[provider](messages)
+        return {"ok": True, "model": used, "models": models, "reply": reply[:60], "error": None}
     except Exception as exc:
-        return {"ok": False, "model": model, "reply": None, "error": str(exc)[:240]}
+        return {"ok": False, "model": active_model(provider), "models": models,
+                "reply": None, "error": str(exc)[:240]}
 
 
 def list_models(provider: str) -> dict:
@@ -996,7 +1110,7 @@ def list_models(provider: str) -> dict:
     is Groq and which is Cerebras."""
     from urllib.parse import urlparse
 
-    out: dict = {"configured": bool(_key_for(provider)), "current_model": DEFAULT_MODELS.get(provider)}
+    out: dict = {"configured": bool(_key_for(provider)), "configured_models": models_for(provider)}
     if not out["configured"]:
         return out
     try:
@@ -1031,7 +1145,7 @@ def list_models(provider: str) -> dict:
         out.update({
             "ok": True,
             "count": len(ids),
-            "current_model_listed": out["current_model"] in ids,
+            "configured_but_unavailable": [m for m in out["configured_models"] if m not in ids],
             "ids": ids[:100],
         })
     except Exception as exc:
@@ -1057,15 +1171,64 @@ def chat(snap: dict, question: str, history: list | None = None) -> dict:
     errors: list[str] = []
     for provider in chain:
         try:
-            reply = _CHAT_DISPATCH[provider](messages)
-            if reply and reply.strip():
-                return {
-                    "reply": reply,
-                    "engine": provider,
-                    "model": DEFAULT_MODELS[provider],
-                }
-            errors.append(f"{provider}: empty reply")
+            reply, used_model = _CHAT_DISPATCH[provider](messages)
+            return {"reply": reply, "engine": provider, "model": used_model}
         except Exception as exc:
             errors.append(f"{provider}: {exc}")
 
     raise RuntimeError("All configured LLM providers failed — " + " | ".join(errors))
+
+
+# --------------------------------------------------------------------------- #
+# Model trials (/api/diag/trial) — compare models on THIS deployment's keys
+# --------------------------------------------------------------------------- #
+
+# Realistic shape, clearly fake values: trials never depend on (or spend) Yahoo calls.
+_TRIAL_SNAPSHOT = {
+    "meta": {"ticker": "TRIAL", "name": "Trial Corp (synthetic test data)", "sector": "Technology",
+             "industry": "Semiconductors", "currency": "USD", "asset_class": "equity"},
+    "quote": {"price": 142.5, "day_change_pct": 1.8,
+              "fifty_two_week_low": 96.2, "fifty_two_week_high": 158.9},
+    "indicators": {"sma50": 135.1, "sma200": 121.4, "price_vs_sma50_pct": 5.5,
+                   "price_vs_sma200_pct": 17.4, "trend": "golden-cross (50d above 200d)",
+                   "rsi": 66.3, "rsi_zone": "neutral", "macd": 2.41, "macd_signal": 1.97,
+                   "macd_state": "bullish (MACD above signal)"},
+    "fundamentals": {"market_cap": 3.4e11, "beta": 1.6, "trailing_pe": 38.9, "forward_pe": 29.4,
+                     "peg_ratio": 1.4, "revenue_growth": 0.22, "earnings_growth": 0.31,
+                     "profit_margin": 0.27, "dividend_yield": 0.004},
+    "analyst": {"recommendation": "buy", "recommendation_mean": 1.9, "num_analysts": 41,
+                "target_mean": 165.0, "target_low": 120.0, "target_high": 210.0,
+                "target_upside_pct": 15.8},
+}
+
+
+def trial(provider: str, models: list[str] | None = None) -> list[dict]:
+    """Run the real assessment prompt once per model on synthetic data: does the
+    model answer on this key (i.e. is it free here), is the output valid, how long
+    does it take, does reasoning text leak. Ignores cooldowns. Every run spends
+    real free-tier quota, which is why the endpoint is token-protected."""
+    if provider not in ("gemini", "openai_compatible", "openai_compatible2"):
+        raise ValueError("trials support gemini, openai_compatible and openai_compatible2")
+    if not _key_for(provider):
+        raise ValueError(f"{provider} has no API key configured")
+    models = models or models_for(provider)
+    system, user_msg = _select_prompt(_TRIAL_SNAPSHOT)
+    msgs = [{"role": "system", "content": system}, {"role": "user", "content": user_msg}]
+
+    def run(model: str) -> dict:
+        t0 = time.time()
+        try:
+            if provider == "gemini":
+                raw = _gemini_complete(model, system, user_msg, True)
+            else:
+                raw = _compat_complete(provider, model, msgs, _ANALYSIS_MAX_TOKENS, True)
+            data = _validated(raw)
+            return {"model": model, "ok": True, "ms": int((time.time() - t0) * 1000),
+                    "thinking_leaked": "<think>" in raw.lower(), "chars": len(raw),
+                    "signal": data.get("signal"), "risk_level": data.get("risk_level")}
+        except Exception as exc:
+            return {"model": model, "ok": False, "ms": int((time.time() - t0) * 1000),
+                    "kind": _error_kind(exc), "error": str(exc)[:220]}
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        return list(pool.map(run, models))

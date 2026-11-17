@@ -14,10 +14,11 @@ Run:  uvicorn app.main:app --reload --port 8000
 """
 from __future__ import annotations
 
+import hmac
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -124,6 +125,24 @@ def diag_models() -> dict:
     reports a retired or inaccessible model."""
     chain = analyst.resolve_provider_chain()
     return {"chain": chain, "providers": {p: analyst.list_models(p) for p in chain}}
+
+
+@app.get("/api/diag/trial")
+def diag_trial(provider: str, models: str = "", x_diag_token: str = Header(default="")) -> dict:
+    """Run the real assessment prompt once per model (synthetic data) to compare
+    models on this deployment's keys: answers for free? valid output? how fast?
+
+    Protected by the DIAG_TOKEN setting (sent as the X-Diag-Token header), because
+    every run spends real free-tier quota. Disabled when DIAG_TOKEN isn't set."""
+    expected = os.environ.get("DIAG_TOKEN", "")
+    if not expected or not hmac.compare_digest(x_diag_token, expected):
+        raise HTTPException(status_code=403, detail="Model trials need the diagnostics token.")
+    wanted = [m.strip() for m in models.split(",") if m.strip()] or None
+    try:
+        results = analyst.trial(provider, wanted)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"provider": provider, "results": results}
 
 
 @app.get("/api/search")
