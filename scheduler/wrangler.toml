@@ -1,0 +1,27 @@
+# job-scheduler — starts the GitHub Actions jobs ON TIME.
+#
+# GitHub's own cron has been running these jobs 6-10 hours late. This Worker uses
+# Cloudflare's cron (minute-accurate, free plan) to start them through GitHub's
+# workflow_dispatch API at the planned New York times (see src/index.js).
+# Each job's own GitHub `schedule:` stays as a late backup and skips itself when
+# the data is already fresh, so the two never double up.
+#
+# One secret, set once:  npx wrangler secret put GH_DISPATCH
+#   = a fine-grained GitHub token, repos stock-tracker + portfolio-private,
+#     permission "Actions: Read and write" only.
+# Until it is set, the Worker logs a note and does nothing.
+
+name = "job-scheduler"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+# Cron-only: no public URL at all.
+workers_dev = false
+preview_urls = false
+
+[triggers]
+# One trigger every 15 minutes; the code decides which jobs are due.
+crons = ["*/15 * * * *"]
+
+[observability]
+enabled = true

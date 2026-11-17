@@ -1,0 +1,61 @@
+name: Analyst site health
+
+# Daily check of the public analyst site (analyst-agent on Render): every AI
+# provider in the failover chain and every market-data source. Fails loudly, so
+# a retired model or broken data source is caught the same day.
+
+on:
+  schedule:
+    # Backup only; the job-scheduler Worker (scheduler/) starts this at 7:30am New York time.
+    - cron: "40 11 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: analyst-health
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SITE: https://analyst-agent-gfsc.onrender.com
+    steps:
+      - name: Wake the site (free hosting sleeps when idle)
+        run: curl -fsS --retry 6 --retry-delay 10 --retry-all-errors --max-time 90 "$SITE/api/health" > /dev/null
+
+      - name: Check AI providers and data sources
+        run: |
+          curl -fsS --max-time 120 "$SITE/api/diag/llm" -o llm.json
+          curl -fsS --max-time 120 "$SITE/api/diag/context" -o ctx.json
+          python3 - <<'PY'
+          import json
+
+          bad = []
+          llm = json.load(open("llm.json"))
+          for name, p in (llm.get("providers") or {}).items():
+              ok = bool(p.get("ok"))
+              print(f"AI    {name:20} {'OK  ' if ok else 'FAIL'} {p.get('model') or ''} {(p.get('error') or '')[:140]}")
+              if not ok:
+                  bad.append(f"AI provider {name} ({p.get('model')})")
+
+          ctx = json.load(open("ctx.json"))
+          for tier in ctx.values():
+              for name, r in tier.items():
+                  if r.get("configured") is False:
+                      print(f"DATA  {name:20} not configured")
+                      continue
+                  ok = bool(r.get("ok"))
+                  print(f"DATA  {name:20} {'OK  ' if ok else 'FAIL'} {r.get('note') or ''}")
+                  if not ok:
+                      bad.append(f"data source {name}")
+
+          if bad:
+              print("::error title=Analyst site degraded::" + "; ".join(bad)
+                    + " — see /api/diag/llm, /api/diag/models and /api/diag/context")
+              raise SystemExit(1)
+          print("All checks passed.")
+          PY

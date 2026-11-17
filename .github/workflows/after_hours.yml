@@ -2,7 +2,9 @@ name: After-Hours Screener
 
 on:
   schedule:
-    # 21:30 UTC weekdays = 5:30pm ET — 1.5h into extended trading.
+    # Backup only. GitHub's cron has been starting this 4-7 h late, so the
+    # job-scheduler Worker (scheduler/) starts it on time at 5:30pm New York time
+    # (1.5 h into extended trading, all year round). A late duplicate skips itself.
     - cron: "30 21 * * 1-5"
   workflow_dispatch: {}
 
@@ -16,23 +18,33 @@ concurrency:
 jobs:
   ah:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Skip if already refreshed this session
+        id: guard
+        if: github.event_name == 'schedule'
+        run: python3 scripts/fresh_guard.py data/after_hours.json updated_at 12
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
           cache-dependency-path: scripts/requirements.txt
 
       - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
         run: pip install -r scripts/requirements.txt
 
       - name: Run after-hours screener
+        if: steps.guard.outputs.skip != 'true'
         run: python scripts/screen.py --mode after-hours
 
       - name: Commit updated after_hours.json
+        if: steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
