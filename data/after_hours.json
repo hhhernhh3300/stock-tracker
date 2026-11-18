@@ -1,23 +1,142 @@
 {
-  "updated_at": "2026-11-17 04:02 UTC",
+  "updated_at": "2026-11-18 13:36 UTC",
   "universe_size": 179,
   "threshold_pct": 2.0,
   "surges": [
     {
-      "symbol": "TEM",
-      "regular_close": 64.76,
-      "ext_price": 66.98,
-      "ah_pct": 3.42,
-      "name": "Tempus AI, Inc."
+      "symbol": "BTDR",
+      "regular_close": 4.0,
+      "ext_price": 4.13,
+      "ah_pct": 3.23,
+      "name": "Bitdeer Technologies Group"
+    },
+    {
+      "symbol": "NVDA",
+      "regular_close": 155.46,
+      "ext_price": 160.17,
+      "ah_pct": 3.03,
+      "name": "NVIDIA Corporation"
+    },
+    {
+      "symbol": "DELL",
+      "regular_close": 322.79,
+      "ext_price": 331.9,
+      "ah_pct": 2.82,
+      "name": "Dell Technologies Inc."
+    },
+    {
+      "symbol": "TSM",
+      "regular_close": 359.69,
+      "ext_price": 369.65,
+      "ah_pct": 2.77,
+      "name": "Taiwan Semiconductor Manufactur"
+    },
+    {
+      "symbol": "STX",
+      "regular_close": 504.4,
+      "ext_price": 517.9,
+      "ah_pct": 2.68,
+      "name": "Seagate Technology Holdings PLC"
+    },
+    {
+      "symbol": "ARM",
+      "regular_close": 183.39,
+      "ext_price": 187.95,
+      "ah_pct": 2.49,
+      "name": "Arm Holdings plc"
+    },
+    {
+      "symbol": "RKLB",
+      "regular_close": 55.05,
+      "ext_price": 56.42,
+      "ah_pct": 2.49,
+      "name": "Rocket Lab Corporation"
+    },
+    {
+      "symbol": "LRCX",
+      "regular_close": 210.69,
+      "ext_price": 215.71,
+      "ah_pct": 2.38,
+      "name": "Lam Research Corporation"
+    },
+    {
+      "symbol": "CIEN",
+      "regular_close": 264.82,
+      "ext_price": 271.0,
+      "ah_pct": 2.33,
+      "name": "Ciena Corporation"
+    },
+    {
+      "symbol": "MRVL",
+      "regular_close": 148.74,
+      "ext_price": 152.18,
+      "ah_pct": 2.31,
+      "name": "Marvell Technology, Inc."
+    },
+    {
+      "symbol": "AMAT",
+      "regular_close": 349.23,
+      "ext_price": 357.22,
+      "ah_pct": 2.29,
+      "name": "Applied Materials, Inc."
+    },
+    {
+      "symbol": "SMH",
+      "regular_close": 460.1,
+      "ext_price": 470.13,
+      "ah_pct": 2.18,
+      "name": "VanEck Semiconductor ETF"
+    },
+    {
+      "symbol": "VRT",
+      "regular_close": 190.37,
+      "ext_price": 194.47,
+      "ah_pct": 2.15,
+      "name": "Vertiv Holdings, LLC"
+    },
+    {
+      "symbol": "AVGO",
+      "regular_close": 341.6,
+      "ext_price": 348.77,
+      "ah_pct": 2.1,
+      "name": "Broadcom Inc."
+    },
+    {
+      "symbol": "ZS",
+      "regular_close": 185.19,
+      "ext_price": 189.0,
+      "ah_pct": 2.06,
+      "name": "Zscaler, Inc."
+    },
+    {
+      "symbol": "MU",
+      "regular_close": 712.42,
+      "ext_price": 726.83,
+      "ah_pct": 2.02,
+      "name": "Micron Technology, Inc."
     }
   ],
   "drops": [
     {
-      "symbol": "INTC",
-      "regular_close": 55.47,
-      "ext_price": 53.64,
-      "ah_pct": -3.3,
-      "name": "Intel Corporation"
+      "symbol": "LOW",
+      "regular_close": 220.46,
+      "ext_price": 209.0,
+      "ah_pct": -5.2,
+      "name": "Lowe's Companies, Inc."
+    },
+    {
+      "symbol": "FCX",
+      "regular_close": 55.3,
+      "ext_price": 53.2,
+      "ah_pct": -3.8,
+      "name": "Freeport-McMoRan, Inc."
+    },
+    {
+      "symbol": "GDX",
+      "regular_close": 79.57,
+      "ext_price": 77.0,
+      "ah_pct": -3.23,
+      "name": "VanEck Gold Miners ETF"
     }
   ]
 }
